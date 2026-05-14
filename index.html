@@ -39,6 +39,20 @@
   body.flight-iso .static-hero { opacity: 0 !important; transition: opacity 280ms ease; }
   body.flight-iso { background: #000; }
 
+  /* ─── Safari perf overrides ──────────────────────────────────────────────
+     Safari's compositor is significantly slower than Chrome's for SVG
+     filters, mix-blend-mode stacks, and animated blur — all of which we
+     lean on heavily for the cinematic look. On Safari we strip the most
+     expensive effects and lean on simpler equivalents (lower opacity in
+     place of blend modes, no SVG sharpen, no animated blur). The visual
+     hit is small; the scroll smoothness gain is huge. */
+  body.safari .matte { filter: saturate(1.12) contrast(1.05) brightness(1.02); }
+  body.safari .matte.dim { filter: saturate(0.85) brightness(0.6); }
+  body.safari .grain { display: none; }
+  body.safari .vignette { mix-blend-mode: normal; opacity: 0.7; }
+  body.safari .cloud-drift { mix-blend-mode: normal; opacity: 0.18; }
+  body.safari .bird { mix-blend-mode: normal; filter: none; opacity: 0.45; }
+
   /* ─── Custom cursor ──────────────────────────────────────────────────────
      Native cursor is only hidden AFTER the custom cursor JS has mounted and
      added body.custom-cursor-on. If the JS fails or the user is on a touch
@@ -3122,6 +3136,15 @@ function App(){
   const [muted] = useState(true);  // ambient sound disabled; toggle removed from UI
   const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  // Add a body class so CSS can disable expensive effects (SVG filter on the
+  // matte, mix-blend-mode stacks, animated blur) only for Safari users —
+  // their compositor handles those layers much slower than Chrome's.
+  useEffect(() => {
+    if (isSafari) {
+      document.body.classList.add('safari');
+      return () => document.body.classList.remove('safari');
+    }
+  }, [isSafari]);
   // Flight progress + direction (enter = picking a path, return = going home).
   // The two use different visual wash treatments — warm for arrival, dark for return.
   const [flightProgress, setFlightProgress] = useState(0);
