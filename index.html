@@ -289,7 +289,11 @@
     pointer-events: none; z-index: -1;
   }
   /* Top bar — pushed down 15px so it sits clear of the very top edge */
-  .bar { position: fixed; top: 15px; left: 0; right: 0; padding: 22px 51px 22px 36px; display: flex; align-items: center; justify-content: space-between; z-index: 40; pointer-events: none; }
+  .bar { position: fixed; top: 15px; left: 0; right: 0; padding: 22px 51px 22px 36px; display: flex; align-items: center; justify-content: space-between; z-index: 40; pointer-events: none; transition: padding-left 320ms ease; }
+  /* On destination pages the wordmark doubles as a "return home" button —
+     hover reveals a leading chevron. Bump the nav's left padding by 10px so
+     the chevron has breathing room instead of crowding the viewport edge. */
+  body.in-dest .bar { padding-left: 46px; }
   .bar > * { pointer-events: auto; }
   /* ─────────────────────────────────────────────────────────────────────────
      OLD WORDMARK (preserved for future restoration — boss is still using this
