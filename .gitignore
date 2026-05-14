@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Node (in case dependencies are added later)
+node_modules/
+
+# Internal — chat screenshots + WIP scraps not meant for the deployed site
+uploads/
+scraps/
+
+# Per-instance image-slot drops (sidecar file — local only)
+.image-slots.state.json
+
+# Vercel local config
+.vercel/
+
+# Claude tooling
+.claude/
