@@ -1,0 +1,1757 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Brands corporate page styles. Uses the existing site's warm-gold tokens
+   (Cormorant Garamond / #f0c673 / #c98a3a / deep ink) but with a calmer,
+   more disciplined B2B layout — more whitespace, clearer hierarchy, less
+   atmospheric chrome than the cinematic creative site.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.page {
+  --gold: #f0c673;
+  --gold-bright: #ffd98a;
+  --gold-deep: #c98a3a;
+  --gold-soft: rgba(240, 198, 115, 0.14);
+  --ember: #ff9a3c;
+  --ink: #0a0805;
+  --ink-soft: #14110c;
+  --ink-lift: #1a160f;
+  --cream: #f3e7c8;
+  --cream-mute: rgba(243, 231, 200, 0.72);
+  --cream-faint: rgba(243, 231, 200, 0.48);
+  --rule: rgba(240, 198, 115, 0.18);
+  --rule-strong: rgba(240, 198, 115, 0.34);
+
+  --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--sans);
+  font-weight: 300;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Subtle warm radial glow on the body backdrop — calmer than the cinematic
+   site's matte. Just enough warmth to feel like the same brand. */
+.page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 138, 58, 0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(240, 198, 115, 0.08) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Don't blanket-apply z-index here. The global .bar uses z-index: 40 to
+   sit above everything; overriding it to z-index: 1 trapped the header
+   under the destStatic wrapper (also z-index: 1) and absorbed all clicks. */
+
+/* ─── Container ─────────────────────────────────────────────────────────── */
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  /* Mobile clamp bumped +5px on each side (37px min, 49px max) so
+     content has more breathing room from the viewport edge on phones.
+     Desktop rules (@768/@1100) unchanged. */
+  padding: 0 clamp(37px, 7vw, 49px);
+}
+
+@media (min-width: 768px) { .container { padding: 0 40px; } }
+@media (min-width: 1100px) { .container { padding: 0 56px; } }
+
+/* ─── Nav ───────────────────────────────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(10, 8, 5, 0.72);
+  border-bottom: 1px solid var(--rule);
+}
+
+.navInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+  gap: 24px;
+}
+
+.navLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--cream);
+  text-decoration: none;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 240ms;
+}
+
+.navLogo img {
+  height: 26px;
+  width: auto;
+  display: block;
+  transition: filter 240ms;
+}
+
+/* Hover state — matches the splash hero logo affordance so the home
+   button reads identically across the site (warm gold glow + a back-
+   arrow that slides out from the left). */
+.navLogo:hover { color: var(--gold-bright); }
+.navLogo:hover img {
+  filter: drop-shadow(0 0 10px rgba(255, 210, 140, 0.45));
+}
+.navLogoArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: var(--gold-bright);
+  transition: width 320ms cubic-bezier(.22, .65, .21, 1), opacity 240ms;
+}
+.navLogo:hover .navLogoArrow {
+  width: 14px;
+  opacity: 1;
+}
+
+.navLinks {
+  display: none;
+  align-items: center;
+  gap: 32px;
+}
+
+@media (min-width: 880px) {
+  .navLinks { display: flex; }
+}
+
+.navLink {
+  color: var(--cream-mute);
+  text-decoration: none;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 400;
+  transition: color 200ms ease;
+}
+
+.navLink:hover { color: var(--gold); }
+
+.navCta {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 11px 20px;
+  background: var(--gold-deep);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+  border: 1px solid var(--gold-deep);
+  transition: background 200ms ease, color 200ms ease;
+}
+
+.navCta:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+/* ─── Section frame ─────────────────────────────────────────────────────── */
+.section {
+  padding: 96px 0;
+}
+
+@media (min-width: 768px) { .section { padding: 128px 0; } }
+
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 24px;
+}
+
+.sectionLabel::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--gold);
+}
+
+.sectionHeading {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+  margin: 0 0 24px;
+  max-width: 24ch;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 24px;
+}
+
+.sectionLead {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  max-width: 60ch;
+  margin: 0 0 56px;
+}
+
+/* ─── Hero ──────────────────────────────────────────────────────────────── */
+.hero {
+  padding: 120px 0 96px;
+  position: relative;
+}
+
+@media (min-width: 768px) { .hero { padding: 160px 0 128px; } }
+
+.heroEyebrow {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 28px;
+  font-weight: 500;
+}
+
+.heroTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 6.5vw, 5rem);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  margin: 0 0 32px;
+  max-width: 18ch;
+  color: var(--cream);
+}
+
+.heroTitle em {
+  font-style: italic;
+  color: var(--gold);
+  font-weight: 400;
+}
+
+.heroSub {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  max-width: 60ch;
+  margin: 0 0 48px;
+  font-weight: 300;
+}
+
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.ctaPrimary {
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 16px 28px;
+  background: var(--gold-deep);
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--gold-deep);
+  cursor: pointer;
+  transition: background 200ms ease, transform 200ms ease;
+  display: inline-block;
+}
+
+.ctaPrimary:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.ctaSecondary {
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 16px 28px;
+  background: transparent;
+  color: var(--gold);
+  text-decoration: none;
+  border: 1px solid var(--gold-deep);
+  cursor: pointer;
+  transition: background 200ms ease, color 200ms ease;
+  display: inline-block;
+}
+
+.ctaSecondary:hover {
+  background: var(--gold-soft);
+  color: var(--gold-bright);
+}
+
+/* ─── Trust strip ───────────────────────────────────────────────────────── */
+.trust {
+  padding: 56px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.trustCaption {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--cream-faint);
+  margin: 0 0 28px;
+}
+
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 36px 56px;
+  opacity: 0.55;
+}
+
+.trustLogo {
+  width: 96px;
+  height: 28px;
+  background: linear-gradient(180deg, rgba(240, 198, 115, 0.35), rgba(240, 198, 115, 0.15));
+  border-radius: 2px;
+  position: relative;
+  filter: grayscale(100%);
+}
+
+.trustLogo::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--serif);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: rgba(10, 8, 5, 0.7);
+  font-weight: 500;
+}
+
+/* ─── Services ──────────────────────────────────────────────────────────── */
+.services {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+
+@media (min-width: 880px) {
+  .services { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+
+.serviceCard {
+  background: var(--ink-soft);
+  border: 1px solid var(--rule);
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: border-color 240ms ease, background 240ms ease;
+}
+
+@media (min-width: 768px) {
+  .serviceCard { padding: 56px 44px; gap: 24px; }
+}
+
+.serviceCard:hover {
+  border-color: var(--rule-strong);
+  background: var(--ink-lift);
+}
+
+.serviceNumber {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+}
+
+.serviceTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  line-height: 1.1;
+  margin: 0;
+  color: var(--cream);
+}
+
+.serviceSubtitle {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.125rem;
+  line-height: 1.4;
+  color: var(--gold);
+  margin: 0;
+}
+
+.serviceBody {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--cream-mute);
+  margin: 0;
+}
+
+.serviceBulletsLabel {
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--cream-faint);
+  margin: 12px 0 4px;
+}
+
+.serviceBullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.serviceBullets li {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--cream);
+  padding-left: 20px;
+  position: relative;
+}
+
+.serviceBullets li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 8px;
+  height: 1px;
+  background: var(--gold);
+}
+
+.serviceCardCta {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 500;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  transition: color 200ms ease, gap 200ms ease;
+}
+
+.serviceCardCta:hover {
+  color: var(--gold-bright);
+  gap: 14px;
+}
+
+/* ─── How it works ──────────────────────────────────────────────────────── */
+.steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  counter-reset: step;
+}
+
+@media (min-width: 768px) { .steps { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1100px) { .steps { grid-template-columns: repeat(4, 1fr); gap: 28px; } }
+
+.step {
+  background: var(--ink-soft);
+  border: 1px solid var(--rule);
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+}
+
+.stepNumber {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 2.25rem;
+  color: var(--gold);
+  line-height: 1;
+  font-weight: 400;
+}
+
+.stepTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.375rem;
+  line-height: 1.2;
+  margin: 0;
+  color: var(--cream);
+}
+
+.stepBody {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--cream-mute);
+  margin: 0;
+}
+
+/* ─── Vetting ───────────────────────────────────────────────────────────── */
+.vetting {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 880px) { .vetting { grid-template-columns: repeat(3, 1fr); gap: 40px; } }
+
+.vetCard {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 1px solid var(--rule-strong);
+  padding-top: 28px;
+}
+
+.vetMark {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+
+.vetTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  margin: 0;
+  color: var(--cream);
+}
+
+.vetBody {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  margin: 0;
+}
+
+/* ─── Selected work ─────────────────────────────────────────────────────── */
+.workGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 640px) { .workGrid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1000px) { .workGrid { grid-template-columns: repeat(3, 1fr); } }
+
+.workCard {
+  aspect-ratio: 4 / 3;
+  background: var(--ink-soft);
+  border: 1px solid var(--rule);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding: 24px;
+  cursor: pointer;
+  transition: border-color 240ms ease;
+}
+
+.workCard:hover { border-color: var(--rule-strong); }
+
+.workCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 30% 30%, rgba(240, 198, 115, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(20, 17, 12, 0.4) 0%, rgba(10, 8, 5, 0.85) 100%);
+  pointer-events: none;
+}
+
+.workInfo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.workName {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--cream);
+}
+
+.workDesc {
+  font-size: 0.85rem;
+  color: var(--cream-faint);
+  margin: 0;
+}
+
+.workEmpty {
+  grid-column: 1 / -1;
+  border: 1px dashed var(--rule);
+  padding: 40px 32px;
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.0625rem;
+  color: var(--cream-mute);
+  line-height: 1.5;
+}
+
+/* ─── Stats ─────────────────────────────────────────────────────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px 24px;
+  border-top: 1px solid var(--rule);
+  padding-top: 56px;
+}
+
+@media (min-width: 880px) { .stats { grid-template-columns: repeat(4, 1fr); gap: 24px; } }
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statNum {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  line-height: 1;
+  color: var(--gold);
+}
+
+.statLabel {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cream-faint);
+  font-weight: 500;
+}
+
+/* ─── About teaser ──────────────────────────────────────────────────────── */
+.aboutBody {
+  font-family: var(--serif);
+  font-size: clamp(1.25rem, 2.2vw, 1.625rem);
+  line-height: 1.45;
+  color: var(--cream);
+  max-width: 56ch;
+  margin: 0 0 28px;
+  font-weight: 400;
+}
+
+.aboutLink {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  transition: gap 200ms ease, color 200ms ease;
+}
+
+.aboutLink:hover { color: var(--gold-bright); gap: 14px; }
+
+/* ─── Final CTA band ────────────────────────────────────────────────────── */
+.finalBand {
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 50%, rgba(201, 138, 58, 0.35) 0%, transparent 70%),
+    linear-gradient(180deg, #1f1408 0%, #2a1a0d 100%);
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 96px 0;
+  text-align: center;
+}
+
+@media (min-width: 768px) { .finalBand { padding: 128px 0; } }
+
+.finalTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2.25rem, 5vw, 3.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  margin: 0 auto 24px;
+  max-width: 20ch;
+  color: var(--cream);
+}
+
+.finalSub {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--cream-mute);
+  max-width: 56ch;
+  margin: 0 auto 40px;
+}
+
+.finalCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+/* ─── Footer ────────────────────────────────────────────────────────────── */
+.footer {
+  padding: 64px 0 40px;
+  border-top: 1px solid var(--rule);
+  background: var(--ink);
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--rule);
+}
+
+@media (min-width: 768px) {
+  .footerGrid {
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 48px;
+  }
+}
+
+.footerBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footerLogo {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--cream);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 240ms;
+}
+
+.footerLogo img { height: 24px; transition: filter 240ms; }
+
+.footerLogo:hover { color: var(--gold-bright); }
+.footerLogo:hover img {
+  filter: drop-shadow(0 0 10px rgba(255, 210, 140, 0.4));
+}
+.footerLogoArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: var(--gold-bright);
+  transition: width 320ms cubic-bezier(.22, .65, .21, 1), opacity 240ms;
+}
+.footerLogo:hover .footerLogoArrow {
+  width: 14px;
+  opacity: 1;
+}
+
+.footerTag {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--cream-mute);
+  margin: 0;
+}
+
+.footerColTitle {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 16px;
+}
+
+.footerList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footerList a, .footerList span {
+  font-size: 0.875rem;
+  color: var(--cream-mute);
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+.footerList a:hover { color: var(--gold); }
+
+.footerBase {
+  padding-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footerCopy {
+  font-size: 12px;
+  color: var(--cream-faint);
+  letter-spacing: 0.04em;
+}
+
+.footerLegal {
+  display: flex;
+  gap: 24px;
+}
+
+.footerLegal a {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--cream-faint);
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+.footerLegal a:hover { color: var(--gold); }
+
+/* ─── Arrival wash ───────────────────────────────────────────────────────
+   Rendered on top of the corporate page when the user arrives via the
+   splash brand-path transition. Starts opaque (CSS keyframe `from`) so
+   first paint is the wash, then fades out, revealing the corporate
+   layout underneath. */
+@keyframes arrivalWashOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.arrivalWash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  /* Flat cream — seam-matched to the splash's brand-transition end frame
+     so the hand-off has no visible colour shift. */
+  background: #F5E6D3;
+  animation: arrivalWashOut 1100ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrivalWash { display: none; }
+}
+
+/* ─── .dest static override ──────────────────────────────────────────────
+   The global .dest design language was authored for the immersive /creatives
+   overlay, where it's position: fixed and lives at z-index 15 inside the 3D
+   scene. On this standalone /brands page we want the same typography and
+   grid system, but laid out as ordinary scrolling content between the sticky
+   nav and the footer. .destStatic flips the positioning to static and lets
+   the page handle its own scroll. */
+.destStatic {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  /* The global .dest::before paints a dark warm-gradient background. Hide it
+     here so the brand corporate palette shows through cleanly. */
+}
+.destStatic::before { display: none !important; }
+.destStatic :global(.scroll) {
+  position: static !important;
+  inset: auto !important;
+  overflow: visible !important;
+}
+
+/* Lift the page wrapper above the page::before radial-glow pseudo so the
+   destStatic content sits on top of the glow. The wrapper still scrolls
+   inline as normal content - only the stacking context changed. */
+.destStatic {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Plain <img> tags inside .bleed and .slot-frame don't match the global
+   `image-slot` selectors. Mirror the box behaviour so the static port
+   renders identically. */
+.destStatic :global(.bleed) img,
+.destStatic :global(.slot-frame) img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Brand intake form - the global .dest .contact-form caps max-width at
+   900px, which reads narrow next to the full-width comparison table,
+   FAQ grid, and fit panel. Match the form to the container width so
+   every section on the page has the same horizontal rhythm.
+   (cf-wrap padding-top is handled in the section-rhythm block below.) */
+.destStatic :global(.contact-form) {
+  max-width: none;
+}
+/* Vertically centre the left info panel's content. The global rule
+   pins social icons to the bottom via margin-top: auto, which leaves
+   a big empty middle and makes the title + body read as top-stuck.
+   Letting content flow naturally and centring it within the column. */
+.destStatic :global(.cf-info) {
+  justify-content: center;
+}
+.destStatic :global(.cf-info) :global(.cf-social) {
+  margin-top: 8px;
+}
+
+/* ─── Process flow (How It Works) ──────────────────────────────────────
+   Four-column corporate process layout. Each step is a self-contained
+   numbered column with a thin gold accent line under the numeral - the
+   accent is the visual anchor instead of a connecting line spanning the
+   whole row. Less "timeline diagram", more "considered steps". Each
+   column staggers in on scroll for a calm sequential reveal. */
+.processFlow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 36px;
+  padding-top: 8px;
+}
+.processStep {
+  text-align: center;
+  padding: 0 4px;
+}
+.processNum {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(26px, 2.6vw, 34px);
+  color: var(--gold);
+  line-height: 1;
+  display: inline-block;
+  padding-bottom: 20px;
+  margin: 0 0 26px;
+  border-bottom: 1px solid rgba(240, 198, 115, 0.42);
+  min-width: 64px;
+  letter-spacing: -0.01em;
+}
+.processTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-style: normal;
+  font-size: clamp(19px, 1.5vw, 22px);
+  line-height: 1.25;
+  color: #fff3d6;
+  margin: 0 0 14px;
+  letter-spacing: -0.005em;
+}
+.processBody {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  margin: 0 auto;
+  max-width: 26ch;
+}
+/* Cascade the four steps on scroll - calm sequential reveal, each
+   column 140ms after the previous so the eye reads left-to-right. */
+.processStep.anim:nth-child(1) { transition-delay: 0ms; }
+.processStep.anim:nth-child(2) { transition-delay: 140ms; }
+.processStep.anim:nth-child(3) { transition-delay: 280ms; }
+.processStep.anim:nth-child(4) { transition-delay: 420ms; }
+@media (max-width: 760px) {
+  /* Mobile: each step becomes a row with a larger numeral inline with a
+     gold hairline that extends to the right edge of the column. Keeps
+     the desktop "numeral + accent rule" idiom but with more presence
+     and less wasted vertical space. */
+  .processFlow { grid-template-columns: 1fr; gap: 28px; padding-top: 0; }
+  .processStep { text-align: left; padding: 0; }
+  .processNum {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+    padding-bottom: 0;
+    margin: 0 0 14px;
+    font-size: clamp(30px, 8vw, 40px);
+    line-height: 1;
+    border-bottom: none;
+  }
+  /* The trailing hairline takes over the gold-accent role - sits inline
+     with the numeral, extends to the column edge. Reads as a deliberate
+     rule rather than a tiny stub. */
+  .processNum::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(240, 198, 115, 0.42), rgba(240, 198, 115, 0));
+  }
+  .processTitle { margin-bottom: 8px; }
+  .processBody { margin: 0; max-width: 60ch; }
+}
+
+/* ─── Editorial list (Why Beacon) ───────────────────────────────────────
+   Four numbered prose rows with hairline dividers - magazine-style
+   layout that breaks up the box-grid rhythm. Each row has a large
+   italic numeral on the left, title + body to the right. */
+.editorialList {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(240, 198, 115, 0.18);
+}
+.editorialItem {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 32px;
+  padding: 32px 0;
+  border-bottom: 1px solid rgba(240, 198, 115, 0.18);
+  align-items: start;
+  transition: background 360ms;
+}
+.editorialItem:hover { background: linear-gradient(90deg, rgba(240, 198, 115, 0.04) 0%, transparent 60%); }
+.editorialNum {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(36px, 4.2vw, 56px);
+  color: rgba(240, 198, 115, 0.55);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.editorialBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 72ch;
+}
+.editorialTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.15;
+  color: #fff3d6;
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.editorialBody p {
+  font-family: var(--sans);
+  font-size: clamp(14px, 1.05vw, 16px);
+  line-height: 1.6;
+  color: var(--cream-mute);
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .editorialItem { grid-template-columns: 56px 1fr; gap: 20px; padding: 24px 0; }
+}
+
+/* ─── Consistent inter-section rhythm ─────────────────────────────────
+   The global .dest .section-rule provides padding: 9vh 0 5vh at the top
+   of every section - that single rule sets the inter-section cadence.
+   But .dest .pillars adds padding: 4vh 0 8vh and .dest .cf-wrap adds
+   4vh 0 6vh on TOP of that, so sections containing those elements get
+   visibly bigger gaps than sections with custom layouts (processFlow,
+   editorialList, compareTable, etc.). Neutralising the inner paddings
+   here so every section on /brands shares the same rhythm. */
+.destStatic :global(.pillars) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+.destStatic :global(.cf-wrap) {
+  /* cf-wrap padding zeroed - form spacing now lives on the contact-form
+     margin-top (see above) so the visual offset is unambiguous. */
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+/* ─── Mobile hamburger + side menu ─────────────────────────────────────
+   Desktop (≥ 760px): the inline .top-nav links show, the hamburger is
+   hidden. Mobile (< 760px): the inline nav is hidden in favour of a
+   right-side slide-in sheet triggered by the hamburger button. The
+   sheet contains the same nav links plus a Connect block; the backdrop
+   dims the page and closes the menu on tap. Body scroll is locked
+   while open (handled in BrandsClient.tsx). */
+.hamburger {
+  display: none;
+  background: transparent;
+  border: 1px solid rgba(240, 198, 115, 0.32);
+  border-radius: 4px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 240ms, background 240ms;
+}
+.hamburger:hover { border-color: rgba(240, 198, 115, 0.7); background: rgba(240, 198, 115, 0.06); }
+.hamburger span {
+  display: block;
+  width: 18px;
+  height: 1.5px;
+  background: #fff3d6;
+  transition: background 240ms;
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 280ms cubic-bezier(.22, .65, .21, 1);
+  z-index: 90;
+}
+.menuBackdropOpen { opacity: 1; pointer-events: auto; }
+
+.sideMenu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(85vw, 340px);
+  background: rgba(10, 8, 5, 0.98);
+  border-left: 1px solid rgba(240, 198, 115, 0.18);
+  padding: 80px 32px 32px;
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 320ms cubic-bezier(.22, .65, .21, 1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.sideMenuOpen { transform: translateX(0); }
+.sideMenuClose {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(240, 198, 115, 0.32);
+  border-radius: 4px;
+  cursor: pointer;
+  color: #fff3d6;
+  transition: border-color 240ms, background 240ms;
+}
+.sideMenuClose:hover { border-color: rgba(240, 198, 115, 0.7); background: rgba(240, 198, 115, 0.06); }
+.sideMenuNav {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+.sideMenuNav a {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 22px;
+  color: #fff3d6;
+  text-decoration: none;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(240, 198, 115, 0.16);
+  transition: color 240ms, transform 240ms;
+  letter-spacing: -0.005em;
+}
+.sideMenuNav a:hover {
+  color: #ffe2a0;
+  transform: translateX(4px);
+}
+.sideMenuConnect {
+  margin-top: auto;
+  padding-top: 24px;
+}
+.sideMenuLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.72);
+  margin: 0 0 10px;
+  font-weight: 500;
+}
+.sideMenuConnect a {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: #fff3d6;
+  text-decoration: none;
+}
+.sideMenuConnect a:hover { color: #ffe2a0; }
+
+@media (max-width: 759px) {
+  /* Swap the inline desktop nav for the hamburger toggle on mobile. */
+  .topNavDesktop { display: none !important; }
+  .hamburger { display: inline-flex; }
+}
+
+/* ─── Service 02 image order on mobile ──────────────────────────────────
+   The global .case.split-flip puts content first in source order, so
+   when the layout stacks on mobile (< 900px) the image lands BELOW the
+   content. Service 01 has image-first source order, so its image
+   stacks on TOP. Reordering the image cell to render first when stacked
+   so both service blocks behave the same on phones. */
+@media (max-width: 899px) {
+  .destStatic :global(.case.split-flip) > :global(.slot-frame) {
+    order: -1;
+  }
+}
+
+/* Footer adjustments scoped to /brands. Two changes:
+   1. Keep Navigate + Pathways side-by-side at every viewport - the
+      global rule stacks them below 760px which leaves a long, lonely
+      Pathways column on mobile.
+   2. Drop the hairline above the social icons - the meta line below
+      already provides the legal-text separator, so two stacked rules
+      that close together read as accidental. */
+.destStatic :global(.dest-footer) :global(.ft-cols) {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 24px;
+}
+@media (min-width: 760px) {
+  .destStatic :global(.dest-footer) :global(.ft-cols) {
+    gap: 56px;
+  }
+}
+.destStatic :global(.dest-footer) :global(.ft-social) {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 18px;
+}
+
+/* Closing block has no section-rule, so it needs its own top padding
+   for breathing room from the form above. Global rule (12vh 0 14vh) is
+   too generous next to the equalised section rhythm; pulling it down
+   to roughly match a single section's vertical block. */
+.destStatic :global(.closing) {
+  padding-top: clamp(48px, 6vh, 80px) !important;
+  padding-bottom: clamp(32px, 4vh, 56px) !important;
+}
+
+/* ─── Vetting grid (3 cards) ──────────────────────────────────────────
+   The Vetting section has exactly three cards. The default .dest .pillars
+   uses a 2-col grid at ≥760px which leaves the third card orphaned in
+   the bottom-left. Override to a clean 3-col layout on desktop and a
+   single column on mobile - no 2-col intermediate where the orphan
+   appears. */
+.vettingGrid {
+  grid-template-columns: 1fr !important;
+}
+@media (min-width: 768px) {
+  .vettingGrid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+/* ─── Editorial list - hover-bg breathing room ──────────────────────
+   Numeral sits at the row's left edge by default, where the hover
+   gradient also starts. Adding left padding to the numeral itself
+   pushes it 10px inside the row without changing the hover background
+   (which still fills the .editorialItem from edge to edge). */
+.editorialNum {
+  padding-left: 10px;
+}
+
+/* ─── Stats grid - 2×2 on mobile ────────────────────────────────────
+   The global .dest .brand-stats stacks to a single column below 760px.
+   At phone widths that creates a long vertical run of similar-looking
+   numeral + label pairs. Force 2×2 below 760px so the four stats
+   compress into a single visual block. */
+@media (max-width: 759px) {
+  .destStatic :global(.brand-stats) {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px 18px;
+  }
+  /* Global .brand-stat-num floors at 40px which is too big for the
+     narrow 2x2 cells on phones - "SG / SEA" wraps to two lines and
+     visually dominates the shorter stats. Shrink so all four fit on
+     one line at the same visual scale. */
+  .destStatic :global(.brand-stat-num) {
+    font-size: clamp(26px, 6vw, 36px) !important;
+  }
+}
+
+/* ─── FAQ visual hierarchy ──────────────────────────────────────────
+   The original FAQ section uses serif italic for every question and
+   serif for every answer - too much sameness, hard to scan. Adding:
+   1. Sans-serif numbered prefix on each question (auto-incremented via
+      CSS counter so the JSX stays clean)
+   2. Sans-serif body type for answers (so questions vs answers read as
+      distinct typographic registers)
+   3. Brighter hover/open state on the question row */
+.faqList { counter-reset: brandFaq; }
+.faqRow {
+  counter-increment: brandFaq;
+  transition: background 240ms;
+}
+.faqRow[open] {
+  background: linear-gradient(90deg, rgba(240, 198, 115, 0.04) 0%, transparent 65%);
+}
+.faqQ::before {
+  content: counter(brandFaq, decimal-leading-zero);
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.55);
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-right: 4px;
+  min-width: 26px;
+  transition: color 240ms;
+}
+.faqRow[open] .faqQ::before { color: var(--gold-bright); }
+.faqA {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  letter-spacing: 0.005em;
+}
+
+/* ─── Mobile responsive pass ──────────────────────────────────────────
+   Most custom sections already have section-specific breakpoints; this
+   block tightens overall mobile rhythm (section padding, font scaling,
+   and the bits that don't have dedicated rules yet). Two breakpoints:
+   ≤ 640px for typical phones, ≤ 420px for very narrow screens. */
+@media (max-width: 640px) {
+  /* Modest container padding so sections have breathing room. The
+     section-rule provides ~28px of internal padding above the label;
+     adding 24px container padding on each end gives ~76px between
+     adjacent sections - enough to feel deliberate without the
+     ballooned 140px the previous 56px override produced. */
+  .destStatic > :global(.scroll) > :global(.container) {
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+  /* Section rules and headings - reduce to fit narrower screens. */
+  .destStatic :global(.section-rule) :global(.label) { font-size: 10px; letter-spacing: 0.28em; }
+  .destStatic :global(.section-rule) { gap: 14px; }
+  /* Brand quote - tighter padding, smaller serif on mobile. */
+  .brandQuote { padding: 0 4px; }
+  .brandQuote p { font-size: clamp(1.0625rem, 4vw, 1.25rem); }
+  .brandQuoteMark { width: 32px; height: 28px; margin-bottom: 18px; }
+  /* Editorial list - reduce numeral size on mobile so it doesn't compete
+     with the title. */
+  .editorialNum { font-size: clamp(28px, 8vw, 36px); }
+  /* Fit panel cards - reduce internal padding. */
+  .fitCol { padding: 28px 24px; }
+  /* Stats band globally renders single-column below 880px; tighten
+     vertical rhythm so the stack doesn't run too long. */
+  .destStatic :global(.brand-stats) { gap: 28px; }
+  /* Capabilities list - the min-height 88px is comfortable on desktop
+     but cramped at narrow widths when the title wraps. Let mobile size
+     to content. */
+  .destStatic :global(.capabilities) li { min-height: 0; }
+  .destStatic :global(.capabilities) :global(.cap-title) { min-height: 0; }
+  /* FAQ accordion - reduce row padding for thumb-friendly spacing. */
+  .faqQ { padding: 18px 0; gap: 14px; }
+  .faqA { padding-bottom: 22px; font-size: 0.9375rem; }
+  .faqIntroText { font-size: 1.0625rem; }
+  /* Process flow already collapses at 760px, but tighten more here. */
+  .processFlow { gap: 28px; }
+  .processStep { text-align: left; }
+  .processNum { min-width: 0; padding-bottom: 14px; margin-bottom: 18px; }
+}
+
+@media (max-width: 420px) {
+  /* Very narrow screens - slightly tighter container padding to keep
+     the page from feeling airy on small viewports. */
+  .destStatic > :global(.scroll) > :global(.container) {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+  .compareLabel,
+  .compareCell { padding: 16px 18px; }
+  .compareColHead { padding: 18px 20px; font-size: 1.25rem; }
+  .editorialItem { padding: 20px 0; gap: 16px; }
+  .editorialNum { font-size: 26px; }
+  .editorialTitle { font-size: 1.0625rem; }
+  .fitCol { padding: 24px 20px; }
+  .fitList li { font-size: 0.875rem; }
+  .brandQuote p { font-size: 1rem; line-height: 1.5; }
+}
+
+/* Equal-height capabilities rows. The global .dest .capabilities li sizes
+   each row to its own content, so a 3-line title wraps into a taller row
+   than a 1-line title - and the reader's eye reads "this capability is
+   more important" purely because of the title length. Enforcing a
+   uniform min-height on the cap-title (3 lines of leading) reserves the
+   worst-case space on every row so the list reads as a deliberate grid. */
+.destStatic :global(.capabilities) li {
+  min-height: 88px;
+  align-items: center;
+}
+.destStatic :global(.capabilities) :global(.cap-title) {
+  min-height: 2.4em;
+  display: flex;
+  align-items: center;
+}
+.destStatic :global(.capabilities) :global(.cap-tag) {
+  align-self: center;
+}
+
+/* ─── Pathway comparison table ────────────────────────────────────────
+   6-row decision aid (Engagement / Timeline / Output / Team / Billing /
+   Best for) between the two services. Uses the same visual vocabulary
+   as the pathway pages' comparison table - dark cells, gold rules,
+   row-label column on the left. Collapses to a stacked 2-col grid on
+   mobile so it stays scannable. */
+.compareTable {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.1fr) 1fr 1fr;
+  border: 1px solid rgba(240, 198, 115, 0.18);
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(20, 17, 12, 0.5);
+}
+.compareRow { display: contents; }
+.compareColHead {
+  padding: 22px 24px;
+  background: rgba(14, 12, 9, 0.55);
+  border-bottom: 1px solid rgba(240, 198, 115, 0.18);
+  border-left: 1px solid rgba(240, 198, 115, 0.18);
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.5rem;
+  color: #fff3d6;
+}
+.compareLabel {
+  padding: 20px 24px;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(243, 231, 200, 0.72);
+  font-weight: 500;
+  border-top: 1px solid rgba(240, 198, 115, 0.18);
+  align-self: center;
+  background: rgba(14, 12, 9, 0.55);
+  /* Stretch the cell so its background fills the full grid-row height
+     (otherwise align-self: center collapses it to its padding box and the
+     corner cell looks shorter than the column headers next to it). */
+  display: flex;
+  align-items: center;
+  height: 100%;
+  box-sizing: border-box;
+}
+.compareRow:first-child .compareLabel,
+.compareRow:first-child .compareColHead {
+  border-top: 0;
+}
+.compareRow:first-child .compareLabel {
+  /* Corner cell (top-left, no text) - match the column headers' bottom
+     border so the header strip reads as one continuous bar. */
+  border-bottom: 1px solid rgba(240, 198, 115, 0.18);
+}
+.compareCell {
+  padding: 20px 24px;
+  border-top: 1px solid rgba(240, 198, 115, 0.18);
+  border-left: 1px solid rgba(240, 198, 115, 0.18);
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #fff3d6;
+  align-self: center;
+}
+@media (max-width: 720px) {
+  .compareTable { grid-template-columns: 1fr 1fr; }
+  .compareLabel {
+    grid-column: 1 / -1;
+    border-top: 1px solid rgba(240, 198, 115, 0.18);
+    padding-bottom: 6px;
+  }
+  .compareColHead { border-left: 0; }
+  .compareColHead + .compareColHead { border-left: 1px solid rgba(240, 198, 115, 0.18); }
+  .compareCell { border-top: 0; }
+  .compareCell + .compareCell { border-left: 1px solid rgba(240, 198, 115, 0.18); }
+}
+
+/* ─── Fit panel (Built for / Not built for) ───────────────────────────
+   Two-column self-selection. The not-for column is slightly dimmer so
+   it reads as honest counterweight without competing for attention. */
+.fitGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 768px) { .fitGrid { grid-template-columns: 1fr 1fr; gap: 32px; } }
+
+.fitCol {
+  padding: 36px 32px;
+  background: rgba(20, 17, 12, 0.55);
+  border: 1px solid rgba(240, 198, 115, 0.18);
+  border-radius: 4px;
+}
+.fitFor { border-color: rgba(240, 198, 115, 0.32); }
+.fitNot { background: rgba(14, 12, 9, 0.55); }
+
+.fitHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.fitMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+}
+.fitFor .fitMark {
+  background: rgba(240, 198, 115, 0.18);
+  color: #ffe2a0;
+  border: 1px solid rgba(240, 198, 115, 0.45);
+}
+.fitNot .fitMark {
+  background: rgba(243, 231, 200, 0.06);
+  color: rgba(243, 231, 200, 0.72);
+  border: 1px solid rgba(243, 231, 200, 0.18);
+}
+.fitTitle {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: #fff3d6;
+}
+.fitNot .fitTitle { color: rgba(243, 231, 200, 0.72); }
+
+.fitList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fitList li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #fff3d6;
+}
+.fitNot .fitList li { color: rgba(243, 231, 200, 0.72); }
+.fitList li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 8px;
+  height: 1px;
+  background: #f0c673;
+}
+.fitNot .fitList li::before { background: rgba(243, 231, 200, 0.4); }
+
+/* ─── Brand testimonial ──────────────────────────────────────────────── */
+.brandQuote {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 24px;
+  text-align: center;
+}
+.brandQuoteMark {
+  color: rgba(240, 198, 115, 0.4);
+  margin-bottom: 24px;
+}
+.brandQuote p {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+  line-height: 1.45;
+  color: #fff3d6;
+  margin: 0 0 24px;
+}
+.brandQuote cite {
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.72);
+  font-weight: 500;
+}
+
+/* ─── FAQ (brand-side) ───────────────────────────────────────────────── */
+.faqGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 36px;
+}
+@media (min-width: 880px) { .faqGrid { grid-template-columns: 340px 1fr; gap: 56px; } }
+
+.faqIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.faqIntroText {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  /* Scaled up and italicised so it reads as a deliberate sub-heading
+     (the section-rule above provides the label "Plainly Put"; this is
+     the actual question prompt). The italic + brighter gold tint
+     anchors it as a heading rather than body copy that blends into
+     the FAQ list below. */
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  color: #fff3d6;
+  margin: 0 0 6px;
+}
+.faqIntroText em {
+  font-style: italic;
+  color: var(--gold-bright);
+}
+.faqIntroFallback {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.72);
+  font-weight: 500;
+  margin: 12px 0 6px;
+}
+.faqIntroLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: #fff3d6;
+  text-decoration: none;
+  transition: color 240ms, transform 240ms;
+  width: fit-content;
+}
+.faqIntroLink:hover { color: #ffe2a0; transform: translateX(2px); }
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid rgba(240, 198, 115, 0.18);
+}
+.faqRow {
+  border-bottom: 1px solid rgba(240, 198, 115, 0.18);
+}
+.faqQ {
+  list-style: none;
+  cursor: pointer;
+  padding: 22px 0;
+  /* Grid layout: counter (auto) · question (1fr, left-aligned) ·
+     chevron (auto). Using `space-between` flex meant the question got
+     pushed to the centre when it was shorter than the row, which read
+     as inconsistent alignment - especially obvious on mobile. */
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+  line-height: 1.35;
+  color: #fff3d6;
+  transition: color 240ms;
+}
+.faqQ::-webkit-details-marker { display: none; }
+.faqQ:hover { color: #ffe2a0; }
+.faqChev {
+  flex-shrink: 0;
+  color: rgba(240, 198, 115, 0.72);
+  transition: transform 280ms cubic-bezier(.22, .65, .21, 1);
+}
+.faqRow[open] .faqChev { transform: rotate(180deg); }
+.faqA {
+  padding: 0 0 26px;
+  max-width: 64ch;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgba(243, 231, 200, 0.82);
+}
+
+/* Hero centering - matches the cinematic centred-hero idiom used on the
+   creative pathway pages. Overrides the global .dest .hero-section
+   (which is a top-padded grid biasing content downward) with flex
+   centering and zero padding so the eyebrow / title / sub / CTAs sit at
+   the true vertical centre of the viewport. */
+.destStatic :global(.hero-section) {
+  padding: 0;
+  /* Was -70px; shifted down 60px total (50px + another 10px) so the
+     hero sits lower from the top edge of the viewport (more breathing
+     room above the eyebrow). Desktop only - mobile stays put. */
+  margin-top: -10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+@media (max-width: 720px) {
+  .destStatic :global(.hero-section) {
+    /* Mobile preserved at -32px; cumulative +30px shift down so the
+       hero sits 30px lower than the original (more padding above the
+       eyebrow on iPhone SE). */
+    margin-top: -2px;
+  }
+}
+.destStatic :global(.hero-section) :global(.actions) {
+  justify-content: center;
+}
+/* h1.display has max-width: 22ch; centering it as a block needs auto margins
+   on top of the inherited text-align so the centred-text caret aligns with
+   the centred-block frame on multi-line wraps. */
+.destStatic :global(.hero-section) :global(h1.display),
+.destStatic :global(.hero-section) :global(p.lead) {
+  margin-left: auto;
+  margin-right: auto;
+}

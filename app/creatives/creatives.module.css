@@ -1,0 +1,240 @@
+/* ─── Arrival wash ───────────────────────────────────────────────────────
+   Rendered on top of the creative experience when the user arrives via
+   the splash creative-transition (?from=beam). Starts opaque on first
+   paint at the exact gold the MP4's last frame hands off as, then fades
+   out over 600ms to reveal the descent scene underneath. */
+@keyframes arrivalWashOutCreative {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.arrivalWash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  /* Deep ink — seam-matches the splash creative-transition's dark wash
+     (#07060a) so returning visitors who skip the cinematic intro don't
+     see a colour flip at the route boundary. The fade reveals the warm
+     descent scene underneath rather than starting from full gold. */
+  background: #07060a;
+  animation: arrivalWashOutCreative 900ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrivalWash { display: none; }
+}
+
+/* ─── Main page background still ──────────────────────────────────────────
+   The intro video's pixel-exact final frame, served as a JPG. Sits at
+   z-index 0 above the original beacon-sky.jpg matte, below the Three.js
+   canvas and all UI. object-fit: cover crops the portrait still to fill
+   the desktop viewport while keeping the dead-center beam visible. The
+   scroll-pan useEffect updates object-position Y to reveal the valleys
+   at the bottom as the user scrolls — same mechanic as the matte. */
+.mainLoop {
+  position: fixed;
+  inset: 0;
+  /* Slight overscan (104% width, -2% left) gives the image horizontal
+     slack so we can nudge it sideways with transform without leaving a
+     gap on either edge. */
+  width: 104%;
+  left: -2%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+  pointer-events: none;
+  /* The AI-generated still has its lighthouse beam ~0.5% left of pure
+     centre, so we push the whole image LEFT by 0.5% of its own width.
+     That shifts the lighthouse RIGHT relative to the viewport, lining
+     it up with the HTML beams (which sit at true 50%). Bump this value
+     positive if the lighthouse drifts right, negative if it goes left. */
+  transform: translateX(-0.5%);
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Brand backdrop — painted instead of the mainLoop image when /about or
+   /contact is opened from /brands. Same warm-dark gradient palette as the
+   brands corporate page, so the destination overlay feels like it sits on
+   top of the brand site rather than the creatives landscape. */
+.brandBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 138, 58, 0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(240, 198, 115, 0.08) 0%, transparent 65%),
+    linear-gradient(180deg, #0a0805 0%, #14110c 60%, #0a0805 100%);
+}
+
+/* Drifting wisps — a low-opacity gradient overlay that slides horizontally
+   across the frame, faking clouds and smoke moving through the scene
+   without touching the video itself. Sits above the loop video but below
+   the vignette so the existing atmosphere still reads on top. */
+.cloudWisps {
+  position: fixed;
+  inset: -10%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 30% at 20% 30%, rgba(255,210,140,0.10), transparent 60%),
+    radial-gradient(ellipse 50% 25% at 70% 20%, rgba(40,30,20,0.18), transparent 65%),
+    radial-gradient(ellipse 80% 40% at 50% 75%, rgba(255,180,90,0.08), transparent 70%);
+  mix-blend-mode: overlay;
+  animation: wispsDrift 38s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes wispsDrift {
+  0%   { transform: translate(-3%, 0)    scale(1.02); opacity: 0.85; }
+  50%  { transform: translate(2%, -1.5%) scale(1.05); opacity: 1.0; }
+  100% { transform: translate(4%, 1%)    scale(1.03); opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mainLoop { animation: none; }
+  .cloudWisps { animation: none; }
+}
+
+/* ─── Intro overlay ───────────────────────────────────────────────────────
+   Pre-roll video that plays once on entry to the creatives page. Covers
+   the entire viewport above the existing matte/Three.js scene, then fades
+   out after the clip ends so the underlying experience is revealed in
+   place. Reduced-motion users skip the video entirely. */
+.introOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: #07060a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 1;
+  /* Long, atmospheric fade — the dark periphery lingers as the centre
+     brightens, so the world feels like it's "lighting up from the inside"
+     rather than the overlay just dropping out. The exaggerated ease-out
+     curve holds the dark longer at the start and accelerates the reveal
+     in the back half of the transition. */
+  transition: opacity 2400ms cubic-bezier(0.68, 0, 0.32, 1);
+  will-change: opacity;
+  /* Radial mask so the fade biases toward the centre — the bright beam
+     area reveals first, the darker corners cling on longer, matching the
+     "dawn opening up" feel rather than a flat dimmer. */
+  -webkit-mask-image: radial-gradient(ellipse 130% 100% at center, rgba(0,0,0,0.92) 30%, rgba(0,0,0,1.0) 75%);
+  mask-image: radial-gradient(ellipse 130% 100% at center, rgba(0,0,0,0.92) 30%, rgba(0,0,0,1.0) 75%);
+}
+
+.introOverlay.fadeOut {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Dawn vignette — a dark radial wash that's transparent at centre and
+   opaque at the edges. Sits just below the intro overlay (z-index 8999)
+   so it's invisible while the intro is playing, then becomes visible as
+   the overlay fades out. Its own fade is longer than the overlay's, so
+   the dark periphery lingers after the centre has fully revealed — the
+   "light spreading from the beam to the sides" effect. */
+.dawnVignette {
+  position: fixed;
+  inset: 0;
+  z-index: 8999;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 75% 95% at 50% 45%,
+    transparent 18%,
+    rgba(7, 6, 10, 0.35) 55%,
+    rgba(7, 6, 10, 0.92) 100%
+  );
+  opacity: 1;
+  transition: opacity 4500ms cubic-bezier(0.25, 0.55, 0.35, 1) 1500ms;
+  will-change: opacity;
+}
+
+.dawnVignette.clearing {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dawnVignette { display: none; }
+}
+
+.introVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.introSkip {
+  position: absolute;
+  bottom: 32px;
+  right: 32px;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 224, 160, 0.35);
+  color: rgba(255, 235, 200, 0.85);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  cursor: pointer;
+  opacity: 0;
+  animation: introSkipIn 600ms ease 1500ms forwards;
+}
+
+@keyframes introSkipIn {
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .introOverlay { display: none; }
+}
+
+/* Replay-intro button — sits bottom-left after the intro has dismissed,
+   so users can rewatch the cinematic. Fades in 1.2s after dismiss so it
+   doesn't distract from the page's own arrival, and stays low-contrast
+   so it never competes with content. */
+.replayIntro {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(8, 5, 2, 0.35);
+  border: 1px solid rgba(255, 224, 160, 0.25);
+  color: rgba(255, 235, 200, 0.7);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 600ms ease, color 200ms ease, border-color 200ms ease, background 200ms ease;
+  animation: replayIntroIn 700ms ease 1200ms forwards;
+}
+
+.replayIntro:hover {
+  color: rgba(255, 245, 210, 0.95);
+  border-color: rgba(255, 224, 160, 0.55);
+  background: rgba(8, 5, 2, 0.5);
+}
+
+@keyframes replayIntroIn {
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .replayIntro { display: none; }
+}

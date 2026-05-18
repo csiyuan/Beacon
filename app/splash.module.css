@@ -1,0 +1,776 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Splash / lighthouse page styles.
+
+   Hero: full-viewport R3F scene with HTML overlay (wordmark, two path
+   markers, trust strip, scroll hint). Below the fold: brief overview, two
+   service lines bridging to /brands, creative blurb routing to /creatives,
+   minimal footer.
+
+   Shares warm-gold tokens with the rest of the site (Cormorant Garamond,
+   #f0c673 / #c98a3a / #0a0805).
+   ───────────────────────────────────────────────────────────────────────── */
+
+.page {
+  --gold: #f0c673;
+  --gold-bright: #ffd98a;
+  --gold-deep: #c98a3a;
+  --gold-soft: rgba(240, 198, 115, 0.14);
+  --ember: #ff9a3c;
+  --ink: #07060a;
+  --ink-soft: #14110c;
+  --ink-lift: #1a160f;
+  --cream: #f3e7c8;
+  --cream-mute: rgba(243, 231, 200, 0.72);
+  --cream-faint: rgba(243, 231, 200, 0.48);
+  --rule: rgba(240, 198, 115, 0.18);
+  --rule-strong: rgba(240, 198, 115, 0.34);
+
+  --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--sans);
+  font-weight: 300;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+@media (min-width: 768px) { .container { padding: 0 40px; } }
+
+/* ─── Hero ──────────────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  /* 100svh stays stable across the iOS Safari toolbar show/hide, so the
+     absolute-positioned overlay (paths, scrollHint, trust strip) doesn't
+     jump when the address bar collapses. 100vh fallback for browsers that
+     don't support svh yet. */
+  height: 100vh;
+  height: 100svh;
+  min-height: 640px;
+  width: 100%;
+  overflow: hidden;
+  background: radial-gradient(ellipse 90% 70% at 50% 60%, #1a0e05 0%, #0a0604 70%, #050302 100%);
+}
+
+/* Hero image — fills the hero, sits behind everything in the overlay. */
+.heroImageWrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #06040a;
+}
+
+.heroImage {
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Ambient mist loop — sits over the still PNG on desktop, crossfades in
+   once the video has enough data to start playing smoothly. The Image
+   underneath remains as the poster for the first paint, the mobile
+   fallback, and the reduced-motion experience. */
+.heroLoop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  pointer-events: none;
+  /* Browser-native fade-in is unreliable across engines, so we leave the
+     element at full opacity and let the underlying PNG hold the visual
+     until the first video frame paints. */
+}
+
+/* Subtle dark gradient over the top + bottom edges so the wordmark and the
+   path cards stay legible against the warmest parts of the image, while
+   the centre stays largely visible. */
+.heroGradient {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(6, 4, 10, 0.55) 0%, transparent 18%, transparent 72%, rgba(6, 4, 10, 0.6) 100%);
+}
+
+/* Full-width dark band at the bottom of the hero that covers the AI-tool
+   watermark baked into the source PNG. Vertical gradient from transparent
+   at the top to fully opaque at the bottom — reads as cinematic
+   letterboxing / atmospheric falloff rather than a mask. */
+.heroWatermarkCover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 160px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(6, 4, 10, 0.55) 22%,
+    rgba(6, 4, 10, 0.95) 45%,
+    rgba(6, 4, 10, 1) 60%,
+    rgba(6, 4, 10, 1) 100%
+  );
+}
+
+@media (max-width: 640px) {
+  .heroWatermarkCover { height: 120px; }
+}
+
+/* ─── Hero overlay ──────────────────────────────────────────────────────── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.overlay > * { pointer-events: auto; }
+
+.heroNav {
+  /* Sized to match the creatives page's .bar — same padding rhythm and
+     the same 34px logo so the header reads identically across the site.
+     Left padding bumped +10px (36 → 46) to give the logo more breathing
+     room from the viewport edge. */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 51px 22px 46px;
+  margin-top: 15px;
+  pointer-events: auto;
+}
+
+@media (max-width: 640px) {
+  .heroNav { padding: 18px 24px 18px 34px; margin-top: 8px; }
+}
+
+/* Logo button — matched to the creatives page .wordmark-btn so the
+   home/refresh affordance feels identical. Default state has a black
+   drop-shadow stack for legibility against bright clouds; hover swaps
+   those shadows for warm-gold glows and slides an inline back-arrow
+   out from the left. */
+.heroLogo {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--cream);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 240ms;
+}
+
+.heroLogo img {
+  display: block;
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 0 10px rgba(0, 0, 0, 0.7))
+    drop-shadow(0 0 22px rgba(0, 0, 0, 0.5));
+  transition: filter 240ms, transform 240ms;
+}
+
+.heroLogo:hover { color: #ffe2a0; }
+
+.heroLogo:hover img {
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 0 10px rgba(255, 210, 140, 0.45))
+    drop-shadow(0 0 22px rgba(255, 180, 80, 0.25));
+}
+
+.heroLogoArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: #ffe2a0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.9));
+  transition: width 320ms cubic-bezier(.22, .65, .21, 1), opacity 240ms;
+}
+
+.heroLogo:hover .heroLogoArrow {
+  width: 18px;
+  opacity: 1;
+}
+
+/* Matched to the creatives page .top-nav (globals.css ~365) so About /
+   Contact read identically on every route — same gap, weight, spacing,
+   text-shadow, and hover underline. */
+.heroNavLinks {
+  display: flex;
+  gap: 38px;
+  align-items: center;
+}
+
+.heroNavLink {
+  position: relative;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: #fff8e2;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    0 0 8px rgba(0, 0, 0, 0.9),
+    0 0 18px rgba(0, 0, 0, 0.75),
+    0 0 32px rgba(0, 0, 0, 0.55);
+  text-decoration: none;
+  transition: color 240ms ease;
+}
+
+.heroNavLink:hover { color: #ffe2a0; }
+
+.heroNavLink::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 1px;
+  background: rgba(255, 224, 160, 0.95);
+  box-shadow: 0 0 6px rgba(255, 200, 120, 0.7);
+  transform-origin: center;
+  transform: scaleX(0);
+  transition: transform 320ms cubic-bezier(.22, .65, .21, 1);
+}
+
+.heroNavLink:hover::after { transform: scaleX(1); }
+
+@media (max-width: 720px) {
+  .heroNavLinks { gap: 18px; }
+  .heroNavLink { font-size: 10.5px; letter-spacing: 0.22em; }
+}
+
+/* Wordmark + tagline near top-center */
+.heroWordmark {
+  text-align: center;
+  /* Was clamp(8px, 4vh, 32px) — sitting tight to the top, floating above
+     the composition. Pushed down so the wordmark lands in the bright
+     cloud break above the lighthouse rather than above the whole scene,
+     reading as part of the painting instead of UI chrome over it. */
+  margin-top: clamp(40px, 11vh, 120px);
+  padding: 0 24px;
+  opacity: 0;
+  animation: fadeUp 1100ms 200ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.heroEyebrow {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 14px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.heroTitle {
+  font-family: var(--serif);
+  /* Weight 400 to match the creatives page wordmark — keeping a single
+     letterform weight across the site so the two contextual treatments
+     (cool-white front door vs warm-honey cinematic) read as the same
+     wordmark in different light, not two different brands. */
+  font-weight: 400;
+  font-size: clamp(3.5rem, 9vw, 6.5rem);
+  line-height: 0.95;
+  letter-spacing: 0.14em;
+  /* Compensate for letter-spacing pushing the visual centre right of
+     true centre — padding-left equal to one letter-spacing keeps the
+     wordmark optically balanced beneath the lighthouse. */
+  padding-left: 0.14em;
+  margin: 0;
+  color: #fff8e2;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.95),
+    0 0 14px rgba(0, 0, 0, 0.85),
+    0 1px 16px rgba(240, 198, 115, 0.45),
+    0 0 60px rgba(0, 0, 0, 0.7);
+}
+
+.heroTagline {
+  font-family: var(--serif);
+  font-style: italic;
+  /* Full cream + tighter shadow stack so the tagline reads cleanly
+     instead of dissolving into the painted clouds. */
+  font-weight: 400;
+  font-size: clamp(1rem, 1.8vw, 1.25rem);
+  line-height: 1.4;
+  margin: 18px 0 0;
+  color: rgba(255, 245, 220, 0.96);
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    0 0 18px rgba(0, 0, 0, 0.75),
+    0 0 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Two path markers — anchored to the bottom of the scene where the paths
+   terminate at the viewer. Each marker is centered on its path. */
+.paths {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(160px, 26vh, 240px);
+  display: flex;
+  justify-content: center;
+  /* Wider gap so the two cards sit further off the central light pillar
+     and don't get washed out by it — was clamp(48, 14vw, 200) which let
+     them crowd the beam at narrow widths. */
+  gap: clamp(140px, 22vw, 360px);
+  padding: 0 24px;
+  pointer-events: auto;
+  opacity: 0;
+  animation: fadeUp 1100ms 900ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.pathMarker {
+  flex: 0 0 auto;
+  width: clamp(240px, 30vw, 340px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--cream);
+  padding: 22px 24px;
+  /* Default state: denser dark backing + sharper border so the label and
+     sub-copy read cleanly against the bright cloud sky. Was 0.18 / 0.28
+     border — text was getting lost in the painted background.
+     Backdrop blur removed — the 0.42 opacity already isolates the text;
+     adding blur was making the surrounding lighthouse painting read as
+     out-of-focus, which looked like a bug. */
+  background: rgba(12, 8, 4, 0.42);
+  border: 1px solid rgba(240, 198, 115, 0.42);
+  border-radius: 2px;
+  box-shadow:
+    0 0 24px rgba(240, 198, 115, 0.22),
+    inset 0 0 24px rgba(240, 198, 115, 0.06);
+  cursor: pointer;
+  transition:
+    transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 320ms ease,
+    border-color 320ms ease,
+    box-shadow 320ms ease,
+    background-color 320ms ease;
+}
+
+.pathMarker:hover {
+  transform: translateY(-4px) scale(1.03);
+  border-color: rgba(255, 217, 138, 0.7);
+  background: rgba(40, 28, 14, 0.42);
+  box-shadow:
+    0 0 36px rgba(255, 217, 138, 0.32),
+    inset 0 0 28px rgba(255, 217, 138, 0.08);
+}
+
+/* No sibling-dim on hover — each card stands on its own; hovering one
+   shouldn't make the other react. The "focus pull" effect read as the
+   brand card also responding, which was confusing. */
+
+.pathLabel {
+  font-family: var(--serif);
+  /* Bumped weight 400 → 500 and added a tight black base shadow so the
+     "I'm a Brand / I'm a Creative" labels hold against the bright
+     cloud sky regardless of where they land on the painted backdrop. */
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3vw, 2.125rem);
+  line-height: 1.1;
+  letter-spacing: 0;
+  color: #fff8e2;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.95),
+    0 0 14px rgba(0, 0, 0, 0.8),
+    0 0 18px rgba(240, 198, 115, 0.55),
+    0 0 36px rgba(0, 0, 0, 0.6);
+  transition: color 240ms ease, text-shadow 240ms ease;
+}
+
+.pathMarker:hover .pathLabel {
+  color: var(--gold-bright);
+  text-shadow:
+    0 0 22px rgba(255, 217, 138, 0.85),
+    0 0 48px rgba(0, 0, 0, 0.7);
+}
+
+.pathSub {
+  font-family: var(--sans);
+  font-size: clamp(0.8rem, 1.1vw, 0.925rem);
+  line-height: 1.45;
+  /* Bumped from cream-mute to cream and from weight 300 → 400 so the
+     description line carries past the box backdrop instead of dissolving
+     into the painted cloud. */
+  color: var(--cream);
+  font-weight: 400;
+  max-width: 28ch;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    0 0 14px rgba(0, 0, 0, 0.85);
+}
+
+.pathArrow {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-top: 6px;
+  /* Up from 0.7 — the CTA hint shouldn't read as half-disabled at rest. */
+  opacity: 0.95;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.pathMarker:hover .pathArrow {
+  opacity: 1;
+  transform: translateY(2px);
+}
+
+/* Mobile: stack path markers vertically, keep big tappable area */
+@media (max-width: 640px) {
+  .paths {
+    flex-direction: column;
+    align-items: stretch;
+    bottom: clamp(120px, 18vh, 180px);
+    gap: 14px;
+  }
+  .pathMarker {
+    width: 100%;
+    background: rgba(20, 17, 12, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--rule);
+    padding: 18px 20px;
+  }
+}
+
+/* Tiny copyright mark — bottom-centre, faded enough that it reads as
+   legal chrome rather than content. Centred so it doesn't pull the eye
+   to a single corner; pairs visually with the centred subtagline above
+   it. Same fade-up timing so the page settles in one beat. */
+.copyright {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(243, 231, 200, 0.42);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeUp 900ms 1500ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+/* Middle-dot separator between the copyright and designer credit —
+   slightly more faded than the surrounding text so it reads as a
+   typographic divider rather than punctuation. */
+.copyrightSep {
+  color: rgba(243, 231, 200, 0.28);
+  margin: 0 4px;
+}
+
+@media (max-width: 640px) {
+  .copyright {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Below the fold ────────────────────────────────────────────────────── */
+.section {
+  padding: 96px 0;
+}
+
+@media (min-width: 768px) { .section { padding: 128px 0; } }
+
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 24px;
+}
+
+.sectionLabel::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--gold);
+}
+
+.sectionHeading {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+  margin: 0 0 24px;
+  max-width: 24ch;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 24px;
+}
+
+.sectionLead {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  max-width: 60ch;
+  margin: 0 0 24px;
+}
+
+.serviceRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  margin-top: 32px;
+}
+
+@media (min-width: 880px) { .serviceRow { grid-template-columns: 1fr 1fr; gap: 32px; } }
+
+.serviceCard {
+  background: var(--ink-soft);
+  border: 1px solid var(--rule);
+  padding: 36px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: border-color 240ms ease, background 240ms ease;
+}
+
+.serviceCard:hover {
+  border-color: var(--rule-strong);
+  background: var(--ink-lift);
+}
+
+.serviceTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  margin: 0;
+  color: var(--cream);
+}
+
+.serviceBody {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  margin: 0;
+}
+
+.serviceCta {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 500;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  transition: color 200ms ease, gap 200ms ease;
+}
+
+.serviceCta:hover {
+  color: var(--gold-bright);
+  gap: 14px;
+}
+
+.creativeBlurb {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 60ch;
+}
+
+.creativeCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  align-self: flex-start;
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 16px 28px;
+  background: var(--gold-deep);
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--gold-deep);
+  transition: background 200ms ease;
+}
+
+.creativeCta:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+/* ─── Footer (minimal) ──────────────────────────────────────────────────── */
+.footer {
+  padding: 48px 0 32px;
+  border-top: 1px solid var(--rule);
+}
+
+.footerInner {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+@media (min-width: 768px) {
+  .footerInner {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.footerBrand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--cream);
+  text-decoration: none;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.footerBrand img { height: 22px; }
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.footerLinks a {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--cream-faint);
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+.footerLinks a:hover { color: var(--gold); }
+
+.footerCopy {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--cream-faint);
+}
+
+/* ─── Departure wash overlays ────────────────────────────────────────────
+   Rendered on top of the hero when the user clicks a path marker. The
+   brand variant is a quick atmospheric fade-in; the creative variant
+   ramps slower and scales subtly so it feels like flying *into* the
+   light. Each fades from 0 → 1, then the route navigates at peak. */
+@keyframes washInBrand {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes washInCreative {
+  0%   { opacity: 0;    transform: scale(1); }
+  60%  { opacity: 0.85; transform: scale(1.04); }
+  100% { opacity: 1;    transform: scale(1.1); }
+}
+
+.washBrand,
+.washCreative {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 55% at 50% 45%, #fff0c8 0%, #f0c673 30%, #c98a3a 65%, #2a1a0d 100%);
+  opacity: 0;
+  transform-origin: 50% 45%;
+  will-change: opacity, transform;
+}
+
+.washBrand {
+  animation: washInBrand 600ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+
+.washCreative {
+  animation: washInCreative 1100ms cubic-bezier(0.5, 0, 0.85, 0.1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .washBrand, .washCreative {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ─── Short-viewport handling (landscape phones) ─────────────────────────
+   On viewports shorter than 640px the .hero min-height was forcing
+   internal scroll — paths dropped below the fold. Compress vertical
+   rhythm and let the hero shrink to fit. */
+@media (max-height: 640px) {
+  .hero { min-height: 0; height: 100svh; }
+  .heroWordmark { margin-top: clamp(4px, 2vh, 16px); }
+  .heroTitle { font-size: clamp(2.25rem, 7vw, 4rem); }
+  .heroTagline { margin-top: 8px; }
+  .paths { bottom: clamp(72px, 12vh, 140px); }
+  .trust { display: none; }
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────
+   Disable the hero entrance keyframes and the scroll-hint drip pulse.
+   Departure washes and FadeIn (Framer Motion) handle this separately. */
+@media (prefers-reduced-motion: reduce) {
+  .heroWordmark,
+  .paths,
+  .trust,
+  .scrollHint {
+    animation: none !important;
+    opacity: 1;
+  }
+  .scrollHintLine::after { animation: none !important; }
+  .pathMarker:hover { transform: none; }
+}

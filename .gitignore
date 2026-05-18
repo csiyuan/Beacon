@@ -5,8 +5,14 @@
 .vscode/
 .idea/
 
-# Node (in case dependencies are added later)
+# Node
 node_modules/
+
+# Next.js
+.next/
+next-env.d.ts
+out/
+*.tsbuildinfo
 
 # Internal — chat screenshots + WIP scraps not meant for the deployed site
 uploads/

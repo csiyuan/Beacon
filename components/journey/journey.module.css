@@ -1,0 +1,3567 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   <JourneyPage> — flyward.com-inspired vertical timeline used by the two
+   creative pathway pages (/creatives/embedded and /creatives/projects).
+
+   Architecture:
+     • Centered SVG path running top-to-bottom; gold gradient that draws
+       itself in as the user scrolls past each milestone (stroke-dasharray
+       animated by the page's IntersectionObserver).
+     • Milestones are full-viewport grid rows with the marker centered on
+       the path and content alternating left/right around it.
+     • Header + footer chrome is unified with the splash hero so the credit
+       and home affordance reads identically across every route.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.page {
+  --gold: #f0c673;
+  --gold-bright: #ffe2a0;
+  --gold-deep: #c98a3a;
+  --gold-soft: rgba(240, 198, 115, 0.18);
+  --cream: #f3e7c8;
+  --cream-mute: rgba(243, 231, 200, 0.72);
+  --cream-faint: rgba(243, 231, 200, 0.5);
+  --ink: #08070a;
+  --ink-soft: #11100c;
+  --rule: rgba(240, 198, 115, 0.18);
+
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+
+  /* Background lives in .creativesBg (the fixed image + dark overlay
+     painted as the first child). Setting .page transparent lets the
+     image bleed through; the warm radial glow from .page::before stays
+     painted on top of it for the same body-glow feel as /brands. */
+  background: transparent;
+  color: var(--cream);
+  font-family: var(--sans);
+  font-weight: 300;
+  line-height: 1.55;
+  letter-spacing: 0.005em;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ─── Creatives still backdrop ─────────────────────────────────────────
+   Pinned full-viewport image (same still the /creatives landing uses)
+   with a translucent dark overlay on top. Gives the pathway pages the
+   same warm landscape that creatives carries, but darkened enough that
+   the chapter content stays comfortably readable. */
+.creativesBg {
+  position: fixed !important;
+  inset: 0;
+  z-index: 0 !important;
+  pointer-events: none;
+  overflow: hidden;
+  /* Force the fixed backdrop onto its own GPU compositor layer. Safari
+     re-rasterises position:fixed with object-fit:cover on every scroll
+     frame otherwise, and that was the dominant scroll cost on the
+     journey page. translateZ + isolation pins it to its own layer so
+     scroll just translates an already-rasterised texture. */
+  transform: translateZ(0);
+  will-change: transform;
+  isolation: isolate;
+  contain: paint;
+  backface-visibility: hidden;
+}
+.creativesBgImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  /* Promote the image itself to its own layer too - some Safari builds
+     keep the image on the CPU even when the parent is on the GPU. */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+}
+.creativesBgOverlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(7, 6, 10, 0.55) 0%,
+      rgba(7, 6, 10, 0.78) 30%,
+      rgba(7, 6, 10, 0.92) 65%,
+      rgba(7, 6, 10, 0.98) 100%);
+}
+
+/* ─── Pathway-switch brighten wash ─────────────────────────────────────
+   Warm radial flash that fades in when the user clicks the OTHER
+   pathway in the switcher. The route push fires while the wash is
+   ramping toward full opacity, so the new page paints under the
+   brightness and the transition reads as a single bright blink. */
+.pathwayWash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 45%, rgba(255, 240, 200, 0.98) 0%, rgba(255, 220, 150, 0.88) 45%, rgba(255, 200, 110, 0.55) 75%, rgba(255, 200, 110, 0) 100%),
+    rgba(255, 240, 200, 0.4);
+  opacity: 0;
+  animation: pathwayWashIn 420ms cubic-bezier(.22, .65, .21, 1) forwards;
+}
+@keyframes pathwayWashIn {
+  0%   { opacity: 0; }
+  60%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pathwayWash { animation: none; opacity: 1; }
+}
+
+/* Warm radial glow on the body — same idiom as /brands so the journey
+   pages don't read like a foreign sub-site. */
+.page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% -20%, rgba(201, 138, 58, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 40% at 80% 110%, rgba(240, 198, 115, 0.08) 0%, transparent 60%);
+}
+
+.page > * { position: relative; z-index: 1; }
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  /* Min 32px on phones so content doesn't hug the viewport edge. */
+  padding: 0 clamp(32px, 7vw, 44px);
+}
+@media (min-width: 768px) { .container { padding: 0 40px; } }
+@media (min-width: 1100px) { .container { padding: 0 56px; } }
+
+/* ─── Cinematic destination nav (ported from /creatives top-nav) ──────
+   Minimal, no CTA pill, no sticky blur — just a wordmark with hover
+   back-arrow on the left and sans-caps nav links on the right. Reads
+   as a film title card rather than a marketing header. */
+.destNav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  padding: 28px 0;
+}
+.destNavInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.wordmarkBtn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0 0 0 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  color: #fff8e2;
+  text-decoration: none;
+  transition: color 240ms;
+}
+.wmArrow {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: var(--gold-bright);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.9));
+  transition: width 320ms cubic-bezier(.22, .65, .21, 1), opacity 240ms;
+}
+.wordmarkBtn:hover { color: var(--gold-bright); }
+.wordmarkBtn:hover .wmArrow { width: 18px; opacity: 1; }
+.wmLogo {
+  display: block;
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 0 10px rgba(0, 0, 0, 0.55));
+  transition: filter 240ms;
+}
+.wordmarkBtn:hover .wmLogo {
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 0 10px rgba(255, 210, 140, 0.45))
+    drop-shadow(0 0 22px rgba(255, 180, 80, 0.25));
+}
+.wmText {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 18px;
+  letter-spacing: 0.32em;
+  padding-left: 0.32em;
+  color: inherit;
+}
+@media (max-width: 640px) {
+  .wmText { display: none; }
+}
+
+.topNav {
+  display: none;
+  gap: 38px;
+  align-items: center;
+}
+@media (min-width: 720px) { .topNav { display: flex; } }
+.topNavLink {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #fff8e2;
+  text-decoration: none;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    0 0 8px rgba(0, 0, 0, 0.7);
+  transition: color 240ms;
+  position: relative;
+}
+.topNavLink:hover { color: var(--gold-bright); }
+.topNavLinkActive {
+  color: var(--gold-bright);
+}
+.topNavLinkActive::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 1px;
+  background: var(--gold-bright);
+  box-shadow: 0 0 6px rgba(255, 220, 150, 0.5);
+}
+
+/* Hero used to need extra top padding to clear the fixed nav, but the
+   new full-viewport centered hero handles its own vertical positioning
+   via flex centering inside height: 100vh. Forcing padding here would
+   shove the content into the bottom half. Intentionally zero. */
+.page > .hero { padding-top: 0; }
+@media (min-width: 768px) { .page > .hero { padding-top: 0; } }
+
+/* ─── Legacy nav (kept for backward compatibility but unused) ──────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(8, 7, 10, 0.72);
+  border-bottom: 1px solid var(--rule);
+}
+
+.navInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+  gap: 24px;
+}
+
+.navLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--cream);
+  text-decoration: none;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 240ms;
+}
+
+.navLogo img {
+  height: 26px;
+  width: auto;
+  display: block;
+  transition: filter 240ms;
+}
+
+.navLogo:hover { color: var(--gold-bright); }
+.navLogo:hover img {
+  filter: drop-shadow(0 0 10px rgba(255, 210, 140, 0.45));
+}
+
+.navLogoArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: var(--gold-bright);
+  transition: width 320ms cubic-bezier(.22, .65, .21, 1), opacity 240ms;
+}
+
+.navLogo:hover .navLogoArrow {
+  width: 14px;
+  opacity: 1;
+}
+
+.navLinks {
+  display: none;
+  align-items: center;
+  gap: 30px;
+}
+@media (min-width: 880px) { .navLinks { display: flex; } }
+
+.navLink {
+  color: var(--cream-mute);
+  text-decoration: none;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 200ms;
+}
+.navLink:hover { color: var(--gold); }
+.navLink.active { color: var(--gold-bright); }
+
+.navCta {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 11px 20px;
+  background: var(--gold-deep);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+  border: 1px solid var(--gold-deep);
+  cursor: pointer;
+  transition: background 200ms, border-color 200ms;
+}
+.navCta:hover { background: var(--gold); border-color: var(--gold); }
+
+/* ─── Hero ──────────────────────────────────────────────────────────────────
+   First-screen hero - takes the full viewport so the eyebrow / title /
+   sub / CTAs sit centered in the user's view on arrival (matching the
+   creatives landing's centered title card). */
+.hero {
+  /* Full-viewport hero with the title block centred. Padding cleared
+     so `justify-content: center` truly vertically centres the eyebrow
+     / title / sub / CTAs block - any vertical padding would bias the
+     centred content downward and leave a top-heavy gap. The pathway
+     switcher (rule below) is pulled out of the flex flow so it doesn't
+     add mass to the centred block. */
+  position: relative;
+  min-height: 100vh;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+@media (min-width: 768px) { .hero { padding: 0; } }
+
+.hero .heroEyebrow,
+.hero .heroTitle,
+.hero .heroSub,
+.hero .heroActions { margin-left: auto; margin-right: auto; }
+.hero .heroActions { justify-content: center; }
+
+/* Pin the pathway switcher near the top so it doesn't participate in
+   flex centering. Embedded's longer (3-line) title pushes its centred
+   hero block higher than Projects', closing the gap above the eyebrow,
+   so the switcher needs to sit high enough to keep clear breathing
+   room on the tighter of the two pathways. */
+.hero .switcher {
+  position: absolute;
+  top: clamp(60px, 9vh, 100px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+}
+
+.heroEyebrow {
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 28px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.heroEyebrow::before {
+  content: '';
+  width: 36px;
+  height: 1px;
+  background: var(--gold);
+}
+
+.heroTitle {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(2.5rem, 6.5vw, 5rem);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  margin: 0 0 32px;
+  max-width: 22ch;
+  color: #fff3d6;
+  text-shadow: 0 0 60px rgba(255, 170, 80, 0.18);
+}
+.heroTitle em {
+  font-style: italic;
+  color: var(--gold-bright);
+  background: linear-gradient(180deg, #fff3d6, #ffd98a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.heroSub {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.05rem, 1.6vw, 1.375rem);
+  line-height: 1.55;
+  color: var(--cream-mute);
+  max-width: 60ch;
+  margin: 0 0 40px;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cta {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(180deg, #ffd98a, #d28a36);
+  color: #1a1207;
+  border: 0;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 16px 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow:
+    0 0 0 1px rgba(255, 220, 150, 0.4) inset,
+    0 18px 50px -16px rgba(255, 170, 60, 0.55);
+  transition: transform 240ms, box-shadow 240ms;
+}
+.cta:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 180, 0.65) inset,
+    0 22px 60px -16px rgba(255, 180, 70, 0.75);
+}
+
+.ctaGhost {
+  background: transparent;
+  color: #fff3d6;
+  box-shadow: 0 0 0 1px rgba(240, 198, 115, 0.45) inset;
+}
+.ctaGhost:hover {
+  box-shadow: 0 0 0 1px rgba(240, 198, 115, 0.85) inset;
+  background: rgba(240, 198, 115, 0.06);
+}
+
+/* ─── Pathway switcher ──────────────────────────────────────────────────── */
+.switcher {
+  display: flex;
+  /* 20px between the two pills — gives ~10px of breathing room on each
+     button's inner edge so they read as two distinct destinations rather
+     than a single segmented control. */
+  gap: 20px;
+  margin-bottom: 56px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  width: fit-content;
+}
+
+.switcherLink {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 10px 22px;
+  color: var(--cream-mute);
+  text-decoration: none;
+  border-radius: 999px;
+  transition: background 200ms, color 200ms;
+  font-weight: 500;
+}
+.switcherLink:hover { color: var(--cream); }
+.switcherLink.active {
+  background: var(--gold-deep);
+  color: var(--ink);
+}
+
+/* ─── Journey ───────────────────────────────────────────────────────────── */
+.journey {
+  position: relative;
+  padding: 64px 0 96px;
+}
+@media (min-width: 768px) { .journey { padding: 96px 0 128px; } }
+
+/* SVG path lives behind the milestones. Stroke gradient is animated by
+   stroke-dashoffset → 0 as the user scrolls past each milestone (driven
+   by the page's IntersectionObserver). */
+.journeyPath {
+  position: absolute;
+  left: 32px;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  pointer-events: none;
+  z-index: 0;
+}
+@media (min-width: 900px) {
+  .journeyPath {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+  }
+}
+
+.journeyPathSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.journeyPathLine {
+  fill: none;
+  stroke: url(#journeyGrad);
+  stroke-width: 2;
+  stroke-linecap: round;
+  /* dasharray + dashoffset set imperatively in JourneyPage's scroll
+     effect — measured from the path's actual length so the reveal is
+     correct regardless of milestone count. */
+  filter: drop-shadow(0 0 8px rgba(255, 200, 120, 0.45));
+  /* non-scaling-stroke was REMOVED here: with preserveAspectRatio="none"
+     it makes the dash pattern render in pixel user-space while
+     getTotalLength() (used by the scroll handler) returns path-length in
+     viewBox units. The two coordinate systems diverge, so the trail ends
+     up rendered at the wrong segment of the path while the orb (positioned
+     via getPointAtLength) is in the correct place. Letting the stroke
+     scale with the SVG keeps both in the same coordinate system, so the
+     trail always sits directly behind the orb. The slight stroke
+     thickening through the curves (X-scale 1, Y-scale ~1.67) reads as
+     cinematic — not a bug. */
+}
+
+/* Traveling orb — the lighthouse beacon that rides the path. Two
+   circles stacked: a wide soft glow + a bright cinematic core.
+   vector-effect keeps stroke widths constant despite the stretched
+   viewBox so the orb stays a perfect circle on every viewport. */
+/* HTML-rendered traveling orb. The path SVG uses preserveAspectRatio="none"
+   so any <circle> drawn inside would deform into an ellipse. Rendering the
+   orb as an HTML div and translating it via JS keeps it a perfect circle on
+   every viewport, with layered radial glows + drop-shadows for the
+   lighthouse-beacon feel. */
+.journeyOrb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  /* No opacity transition — the JS scroll handler already smooths the
+     fade-in over the first 2% of scroll, and any CSS transition on top
+     of that lags the orb behind the instant stroke-dashoffset reveal,
+     which makes the orb look like it's chasing the line instead of
+     leading it. */
+  /* Bright pinpoint core via a radial gradient on the element itself, then
+     three layered drop-shadows for the soft outer halo. The combined glow
+     reads as a hot light source rather than a flat dot. */
+  background: radial-gradient(circle at 35% 35%,
+    #fff8dc 0%,
+    #ffe2a0 35%,
+    rgba(255, 200, 120, 0.75) 70%,
+    rgba(255, 180, 90, 0) 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 245, 215, 0.6),
+    0 0 12px rgba(255, 220, 150, 0.85),
+    0 0 32px rgba(255, 200, 120, 0.55),
+    0 0 64px rgba(255, 180, 90, 0.35);
+  /* Slow pulsing breath so even at rest the orb feels alive. The pulse
+     stays subtle — opacity oscillates only ~15% so it doesn't compete with
+     the scroll-driven movement. */
+  animation: orbBreath 2.8s ease-in-out infinite;
+}
+@keyframes orbBreath {
+  0%, 100% { box-shadow:
+    0 0 0 1px rgba(255, 245, 215, 0.6),
+    0 0 12px rgba(255, 220, 150, 0.85),
+    0 0 32px rgba(255, 200, 120, 0.55),
+    0 0 64px rgba(255, 180, 90, 0.35); }
+  50%      { box-shadow:
+    0 0 0 1px rgba(255, 245, 215, 0.75),
+    0 0 18px rgba(255, 220, 150, 1),
+    0 0 44px rgba(255, 200, 120, 0.7),
+    0 0 80px rgba(255, 180, 90, 0.45); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journeyOrb { animation: none; }
+}
+
+/* Each milestone — a row with the marker centered on the path and
+   content on the trailing side. On mobile everything stacks to the
+   right of the path. */
+.milestone {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 36px;
+  padding: 64px 0 64px 96px;
+  min-height: 60vh;
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .milestone {
+    /* Symmetric column weights — both text and image get exactly 1fr so
+       every milestone has the same skeleton regardless of which side is
+       text and which is image. The middle 160px column carries the
+       marker on the spine. */
+    grid-template-columns: 1fr 160px 1fr;
+    gap: 64px;
+    /* Fixed-ish stage height per milestone so each row reads as a
+       proper "chapter card" instead of expanding/collapsing based on
+       text length. Matches roughly one viewport so the orb traverses
+       one milestone per screen of scroll. */
+    min-height: 80vh;
+    padding: 80px 0;
+    align-items: center;
+  }
+}
+
+.milestoneMarker {
+  position: absolute;
+  left: 0;
+  top: 80px;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ffefc4 0%, #f5c46a 35%, #c98a3a 100%);
+  color: #1a1207;
+  box-shadow:
+    0 0 0 6px var(--ink),
+    0 0 24px rgba(255, 200, 120, 0.5),
+    0 0 48px rgba(255, 180, 90, 0.25);
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 600ms cubic-bezier(.22, .65, .21, 1), transform 600ms cubic-bezier(.22, .65, .21, 1);
+  z-index: 2;
+}
+
+.milestoneMarkerNum {
+  position: relative;
+  z-index: 2;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 20px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+@media (min-width: 900px) { .milestoneMarkerNum { font-size: 24px; } }
+
+/* Pulse — a second ring that gently fades out from the marker on a slow
+   loop once the milestone is in view. Reads as a heartbeat / lighthouse
+   sweep, ties into the warm brand atmosphere without being intrusive. */
+.milestoneMarkerPulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 220, 150, 0.55);
+  opacity: 0;
+  z-index: 1;
+}
+.milestone.in .milestoneMarkerPulse {
+  animation: markerPulse 3.2s cubic-bezier(.22, .65, .21, 1) infinite;
+}
+@keyframes markerPulse {
+  0%   { transform: scale(0.85); opacity: 0.0; }
+  35%  { opacity: 0.7; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .milestone.in .milestoneMarkerPulse { animation: none; }
+}
+@media (min-width: 900px) {
+  .milestoneMarker {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.7);
+    grid-column: 2;
+    width: 84px;
+    height: 84px;
+    font-size: 24px;
+  }
+}
+
+.milestone.in .milestoneMarker {
+  opacity: 1;
+  transform: scale(1);
+}
+@media (min-width: 900px) {
+  .milestone.in .milestoneMarker {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* `.reached` — applied when the traveling orb has passed this milestone.
+   The marker brightens and grows a softer outer halo, like a waypoint
+   that has been lit by the passing beacon. */
+.milestoneMarker.reached {
+  background: radial-gradient(circle at 32% 28%, #fff5d6 0%, #ffd98a 30%, #d99a3e 100%);
+  box-shadow:
+    0 0 0 6px var(--ink),
+    0 0 28px rgba(255, 220, 150, 0.7),
+    0 0 60px rgba(255, 190, 100, 0.45),
+    0 0 100px rgba(255, 170, 80, 0.25);
+}
+.milestoneMarker.reached .milestoneMarkerPulse {
+  border-color: rgba(255, 235, 180, 0.7);
+}
+
+.milestoneContent {
+  /* Cap text column width so all milestones share the same skeleton
+     regardless of which side the content lands on. Reads as a sturdy
+     editorial column rather than letting the title/body sprawl into
+     the gutter when the grid track is wider than needed. */
+  max-width: 460px;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 800ms cubic-bezier(.22, .65, .21, 1) 120ms, transform 800ms cubic-bezier(.22, .65, .21, 1) 120ms;
+}
+.milestone.in .milestoneContent {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (min-width: 900px) {
+  /* Pin content to the inner edge of its column (closer to the spine)
+     so the text-to-spine gap is consistent on every milestone. */
+  .milestone.right .milestoneContent { grid-column: 3; justify-self: start; }
+  .milestone.left  .milestoneContent { grid-column: 1; justify-self: end; text-align: right; }
+  .milestone.left  .milestoneContent .milestoneFeatures { margin-left: auto; }
+  .milestone.left  .milestoneContent .milestoneFeatures li { padding-left: 0; padding-right: 22px; }
+  .milestone.left  .milestoneContent .milestoneFeatures li::before { left: auto; right: 0; }
+  /* Cap the text column at the same width as the image cap so both sides
+     of every milestone fill the same visual box. Without this the text
+     stretched to fill its grid column on some milestones and was much
+     narrower on others, which is the inconsistency the screenshots
+     showed. */
+  .milestoneContent { max-width: 460px; }
+}
+
+/* ─── Milestone image ──────────────────────────────────────────────────
+   Sits in the column opposite the text. Frame is a thin gold border that
+   slowly fades in alongside the milestone content; the image itself is
+   subtly clipped so it reads as cinematic still rather than a stock-
+   photo block. */
+.milestoneImage {
+  position: relative;
+  margin: 32px 0 0;
+  padding: 0;
+  aspect-ratio: 4 / 5;
+  /* Hard caps on dimensions so the still feels like a consistent
+     "frame" on every milestone regardless of row height or column
+     width. Without these, taller rows let the image balloon and
+     shorter rows squeezed it small — that's the inconsistency the
+     screenshots showed. */
+  max-width: 460px;
+  max-height: 560px;
+  width: 100%;
+  overflow: visible;
+  border-radius: 2px;
+  background: var(--ink-soft);
+  opacity: 0;
+  transform: translateY(36px) scale(0.97);
+  transition:
+    opacity 1100ms cubic-bezier(.22, .65, .21, 1) 200ms,
+    transform 1300ms cubic-bezier(.22, .65, .21, 1) 200ms;
+  will-change: opacity, transform;
+}
+.milestone.in .milestoneImage {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Inner image frame — clips the img to the gold-bordered rectangle so
+   the hover zoom expands INWARD (the picture scales while the frame
+   stays the same size). overflow: hidden here is what stops the image
+   from spilling past its border on hover. */
+.milestoneImageFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+}
+.milestoneImageFrame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.9) brightness(0.85);
+  transition:
+    filter 600ms cubic-bezier(.22, .65, .21, 1),
+    transform 900ms cubic-bezier(.22, .65, .21, 1);
+}
+.milestoneImage:hover .milestoneImageFrame img {
+  filter: saturate(1) brightness(0.95);
+  transform: scale(1.06);
+}
+.milestoneImageBorder {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(240, 198, 115, 0.32);
+  border-radius: 2px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 1px rgba(8, 7, 10, 0.4) inset,
+    0 24px 60px -20px rgba(0, 0, 0, 0.7),
+    0 0 40px -8px rgba(255, 200, 120, 0.18);
+}
+/* Subtle warm vignette tone on top so the image reads as part of the
+   page atmosphere, not a flat rectangle pasted in. */
+.milestoneImage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 2px;
+  background:
+    radial-gradient(ellipse 110% 60% at 50% 0%, transparent 35%, rgba(8, 7, 10, 0.45) 100%),
+    linear-gradient(180deg, transparent 50%, rgba(20, 12, 4, 0.4) 100%);
+}
+
+/* ─── Corner accents — film-still / archival treatment ───────────────── */
+.milestoneImageCorner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms cubic-bezier(.22, .65, .21, 1) 600ms;
+}
+.milestone.in .milestoneImageCorner { opacity: 1; }
+.milestoneImageCornerTL { top: -1px; left: -1px; border-top: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+.milestoneImageCornerTR { top: -1px; right: -1px; border-top: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+.milestoneImageCornerBL { bottom: -1px; left: -1px; border-bottom: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+.milestoneImageCornerBR { bottom: -1px; right: -1px; border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+
+/* ─── Caption — quiet line of context under the still ────────────────── */
+.milestoneImageCaption {
+  position: absolute;
+  bottom: -34px;
+  left: 0;
+  right: 0;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--cream-faint);
+  text-align: center;
+  font-weight: 400;
+  opacity: 0;
+  transition: opacity 700ms cubic-bezier(.22, .65, .21, 1) 700ms;
+}
+.milestone.in .milestoneImageCaption { opacity: 1; }
+
+@media (min-width: 900px) {
+  .milestoneImage { margin: 0; }
+  /* Always pin the image to the inner edge of its column (closer to
+     the marker / spine) so every milestone has the same gap between
+     image and spine — without this, the image floats around inside
+     a column wider than itself and the spacing reads inconsistent. */
+  .milestone.right .milestoneImage { grid-column: 1; justify-self: end; }
+  .milestone.left  .milestoneImage { grid-column: 3; justify-self: start; }
+}
+@media (max-width: 899px) {
+  .milestoneImage { aspect-ratio: 16 / 10; max-width: 420px; }
+}
+
+.milestoneContent { position: relative; }
+
+/* Outsized watermark numeral — chapter mark behind the eyebrow + title.
+   Smaller and quieter than before so it doesn't muscle into the title
+   block; sits just above and on the OUTSIDE edge of the text column so
+   it never collides with the headline regardless of left/right layout. */
+.milestoneStageNum {
+  position: absolute;
+  top: -52px;
+  left: -4px;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(64px, 7vw, 96px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: rgba(240, 198, 115, 0.18);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+@media (min-width: 900px) {
+  /* Right-side milestones (text on right): numeral on the left edge of
+     the text — closer to the spine, so it reads as the chapter that
+     just opened. Left-side milestones flip it to the right edge. */
+  .milestone.right .milestoneStageNum { left: -4px; right: auto; }
+  .milestone.left  .milestoneStageNum { left: auto; right: -4px; }
+}
+.milestone.in .milestoneStageNum {
+  color: rgba(240, 198, 115, 0.28);
+  transition: color 1400ms cubic-bezier(.22, .65, .21, 1) 300ms;
+}
+
+.milestoneEyebrow {
+  position: relative;
+  z-index: 1;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 20px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.milestoneEyebrowTick {
+  display: inline-block;
+  width: 26px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold) 0%, rgba(240, 198, 115, 0) 100%);
+}
+@media (min-width: 900px) {
+  .milestone.left .milestoneEyebrow { flex-direction: row-reverse; }
+  .milestone.left .milestoneEyebrowTick {
+    background: linear-gradient(270deg, var(--gold) 0%, rgba(240, 198, 115, 0) 100%);
+  }
+}
+
+.milestoneTitle {
+  position: relative;
+  z-index: 1;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(2.125rem, 4vw, 3.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  margin: 0 0 22px;
+  color: #fff3d6;
+  max-width: 20ch;
+  text-shadow: 0 0 40px rgba(255, 170, 80, 0.12);
+}
+.milestoneTitle em {
+  font-style: italic;
+  background: linear-gradient(180deg, #fff3d6 0%, #ffd98a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+@media (min-width: 900px) {
+  .milestone.left .milestoneTitle { margin-left: auto; }
+}
+
+.milestoneBody {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1rem, 1.4vw, 1.175rem);
+  line-height: 1.55;
+  color: var(--cream-mute);
+  max-width: 46ch;
+  margin: 0 0 24px;
+}
+@media (min-width: 900px) {
+  .milestone.left .milestoneBody { margin-left: auto; }
+}
+
+.milestoneFeatures {
+  position: relative;
+  z-index: 1;
+  list-style: none;
+  padding: 22px 0 0;
+  margin: 4px 0 0;
+  border-top: 1px solid rgba(240, 198, 115, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 46ch;
+}
+.milestoneFeatures li {
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--cream);
+  padding-left: 22px;
+  position: relative;
+}
+.milestoneFeatures li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 12px;
+  height: 1px;
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(255, 200, 120, 0.4);
+}
+
+/* ─── Extra content sections (guarantees, sectors, FAQ) ────────────────
+   Optional blocks rendered after the milestone journey. Each follows the
+   same label → heading → content pattern so the page reads as one
+   continuous voice instead of a stack of independent modules. */
+.extraSection {
+  padding: 80px 0;
+  border-top: 1px solid var(--rule);
+}
+@media (min-width: 768px) { .extraSection { padding: 120px 0; } }
+
+.extraSectionLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.extraSectionLabel::before {
+  content: '';
+  width: 36px;
+  height: 1px;
+  background: var(--gold);
+}
+
+.extraSectionHeading {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.875rem, 3.6vw, 2.75rem);
+  line-height: 1.06;
+  letter-spacing: -0.005em;
+  margin: 0 0 48px;
+  max-width: 24ch;
+  color: #fff3d6;
+}
+.extraSectionHeading em { font-style: italic; color: var(--gold-bright); }
+
+/* ─── Guarantees grid ──────────────────────────────────────────────────
+   Tight 2- or 3-up cards. Each guarantee is a concrete commitment with
+   a short body — concrete numbers (48hr, NET-15, etc.) live in the
+   title so they catch the eye at a glance. */
+.guaranteeGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 720px) { .guaranteeGrid { grid-template-columns: repeat(2, 1fr); gap: 24px; } }
+@media (min-width: 1100px) { .guaranteeGrid { grid-template-columns: repeat(3, 1fr); } }
+
+.guaranteeCard {
+  background: rgba(20, 17, 12, 0.55);
+  border: 1px solid var(--rule);
+  padding: 32px 28px;
+  border-radius: 4px;
+  transition: border-color 240ms, background 240ms, transform 240ms;
+}
+.guaranteeCard:hover {
+  border-color: rgba(240, 198, 115, 0.42);
+  background: rgba(26, 22, 15, 0.7);
+  transform: translateY(-2px);
+}
+.guaranteeTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+  line-height: 1.15;
+  color: var(--gold-bright);
+  margin: 0 0 14px;
+  letter-spacing: -0.005em;
+}
+.guaranteeBody {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--cream-mute);
+  margin: 0;
+}
+
+/* ─── Sectors strip ────────────────────────────────────────────────────
+   Horizontal list of pill tags — "Tech · Finance · Lifestyle ..." */
+.sectorList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.sectorTag {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 12px 22px;
+  background: rgba(240, 198, 115, 0.06);
+  color: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  transition: background 240ms, border-color 240ms;
+}
+.sectorTag:hover { background: rgba(240, 198, 115, 0.12); border-color: rgba(240, 198, 115, 0.45); }
+
+/* ─── Stats band ───────────────────────────────────────────────────────
+   3-up tile of headline figures. Numbers typeset large in serif so they
+   carry the kind of weight the body text doesn't have to. Each tile has
+   a faint top hairline that lights gold on hover - subtle reward for
+   the eye that lands on it. */
+.statsBand {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 720px) { .statsBand { grid-template-columns: repeat(3, 1fr); gap: 28px; } }
+
+.statTile {
+  position: relative;
+  padding: 36px 28px 32px;
+  background: rgba(20, 17, 12, 0.55);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  text-align: left;
+  transition: border-color 240ms, background 240ms, transform 240ms;
+}
+.statTile::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  opacity: 0.45;
+  transition: opacity 240ms;
+}
+.statTile:hover {
+  border-color: rgba(240, 198, 115, 0.42);
+  background: rgba(26, 22, 15, 0.7);
+  transform: translateY(-2px);
+}
+.statTile:hover::before { opacity: 1; }
+
+.statValue {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(2.75rem, 5.6vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: var(--gold-bright);
+  background: linear-gradient(180deg, #fff3d6, #ffd98a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  margin: 0 0 12px;
+}
+.statLabel {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cream);
+  font-weight: 500;
+}
+.statCaption {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--cream-mute);
+  margin-top: 10px;
+}
+
+/* ─── Fit panel ────────────────────────────────────────────────────────
+   Two-column "built for / not built for" list. The not-for column gets
+   a slightly dimmer treatment so it reads as the honest counterweight
+   without competing for attention. */
+.fitGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 768px) { .fitGrid { grid-template-columns: 1fr 1fr; gap: 32px; } }
+
+.fitCol {
+  padding: 36px 32px;
+  background: rgba(20, 17, 12, 0.55);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.fitColFor { border-color: rgba(240, 198, 115, 0.32); }
+.fitColNot { background: rgba(14, 12, 9, 0.55); }
+
+.fitColHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.fitMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+.fitColFor .fitMark {
+  background: rgba(240, 198, 115, 0.18);
+  color: var(--gold-bright);
+  border: 1px solid rgba(240, 198, 115, 0.45);
+}
+.fitColNot .fitMark {
+  background: rgba(243, 231, 200, 0.06);
+  color: var(--cream-mute);
+  border: 1px solid rgba(243, 231, 200, 0.18);
+}
+.fitColTitle {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--cream);
+}
+.fitColNot .fitColTitle { color: var(--cream-mute); }
+
+.fitList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fitList li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--cream);
+}
+.fitColNot .fitList li { color: var(--cream-mute); }
+.fitList li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 8px;
+  height: 1px;
+  background: var(--gold);
+}
+.fitColNot .fitList li::before { background: rgba(243, 231, 200, 0.4); }
+
+/* ─── Pathway comparison table ─────────────────────────────────────────
+   Row-by-row decision aid. Active column gets a gold ring + brighter
+   background so the reader instantly sees which pathway they're on
+   without having to read every row. Mobile collapses the table into
+   stacked rows so it stays scannable on narrow screens. */
+.compareTable {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 1fr 1fr;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(20, 17, 12, 0.5);
+}
+.compareHead {
+  display: contents;
+}
+.compareCorner {
+  padding: 22px 24px;
+  background: rgba(14, 12, 9, 0.55);
+  border-bottom: 1px solid var(--rule);
+  /* Stretch the corner cell so its background fills the grid row height
+     - the column headers next to it are taller (flex column + two child
+     spans), and without explicit stretch the corner's background
+     collapses to its padding box, creating a visible alignment gap. */
+  align-self: stretch;
+  box-sizing: border-box;
+}
+.compareColHead {
+  padding: 22px 24px;
+  background: rgba(14, 12, 9, 0.55);
+  border-bottom: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.compareColLabel {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+.compareColName {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: -0.005em;
+  color: #fff3d6;
+}
+.compareColActive {
+  background: rgba(240, 198, 115, 0.10);
+  box-shadow: inset 0 0 0 1px rgba(240, 198, 115, 0.42);
+}
+.compareColActive .compareColName { color: var(--gold-bright); }
+
+.compareRow { display: contents; }
+.compareRowLabel {
+  padding: 20px 24px;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cream-mute);
+  font-weight: 500;
+  border-top: 1px solid var(--rule);
+  align-self: center;
+}
+.compareCell {
+  padding: 20px 24px;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--cream);
+  align-self: center;
+}
+.compareCellActive {
+  background: rgba(240, 198, 115, 0.06);
+  color: var(--gold-bright);
+  box-shadow: inset 1px 0 0 rgba(240, 198, 115, 0.32),
+              inset -1px 0 0 rgba(240, 198, 115, 0.32);
+}
+
+.compareSwitch {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .compareTable {
+    grid-template-columns: 1fr;
+  }
+  .compareHead { display: grid; grid-template-columns: 1fr 1fr; }
+  .compareCorner { display: none; }
+  .compareColHead { border-left: 0; }
+  .compareColHead + .compareColHead { border-left: 1px solid var(--rule); }
+  .compareRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--rule);
+  }
+  .compareRowLabel {
+    grid-column: 1 / -1;
+    border-top: 0;
+    padding-bottom: 6px;
+    background: rgba(14, 12, 9, 0.4);
+  }
+  .compareCell { border-top: 0; }
+  .compareCell + .compareCell { border-left: 1px solid var(--rule); }
+}
+
+/* ─── FAQ list ─────────────────────────────────────────────────────────
+   Plain definition list — no accordion mechanics, just typography. The
+   questions are typeset large in serif italic so they read as headings;
+   answers tuck below with comfortable measure. */
+/* ─── FAQ — collapsible <details> rows ────────────────────────────────
+   Each question is a clickable summary that toggles its answer. Native
+   <details>/<summary> handles the open state + keyboard accessibility;
+   CSS just styles the row and rotates the chevron when the row is
+   [open]. Hairline gold dividers between rows + a subtle hover lift
+   on the row text — flyward.com's FAQ pattern in our palette. */
+.faqList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.faqRow {
+  border-top: 1px solid var(--rule);
+  padding: 0;
+  /* Hide the default disclosure triangle that some browsers add to
+     <summary>; the chevron span inside the summary IS the indicator. */
+}
+.faqRow:last-of-type { border-bottom: 1px solid var(--rule); }
+.faqRow summary::-webkit-details-marker { display: none; }
+.faqRow summary { list-style: none; }
+
+.faqQ {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 28px 0;
+  cursor: pointer;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+  line-height: 1.3;
+  color: #fff3d6;
+  margin: 0;
+  letter-spacing: -0.005em;
+  transition: color 240ms cubic-bezier(.22, .65, .21, 1);
+  user-select: none;
+}
+.faqQ:hover { color: var(--gold-bright); }
+.faqRow[open] > .faqQ { color: var(--gold-bright); }
+
+.faqQText { flex: 1; min-width: 0; }
+
+/* Chevron — rotates 180° when the row opens. */
+.faqChevron {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--gold);
+  transition: transform 360ms cubic-bezier(.22, .65, .21, 1), color 240ms;
+}
+.faqRow[open] > .faqQ > .faqChevron {
+  transform: rotate(180deg);
+  color: var(--gold-bright);
+}
+
+/* Answer — sits below the summary, padded so the bottom edge of an
+   open row breathes before the next row's divider. */
+.faqA {
+  margin: 0;
+  padding: 0 0 28px;
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--cream-mute);
+  max-width: 70ch;
+}
+
+/* Smooth open/close animation using the modern ::details-content
+   pseudo-element + interpolate-size: allow-keywords. The pseudo wraps
+   everything after the <summary> and is the only animatable handle
+   the spec gives us on native <details>. block-size transitions from
+   0 -> auto (enabled by interpolate-size), opacity fades in/out, and
+   content-visibility flips with allow-discrete so the children aren't
+   hidden mid-transition. */
+.faqRow::details-content {
+  block-size: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    content-visibility 360ms cubic-bezier(.22, .65, .21, 1) allow-discrete,
+    block-size 360ms cubic-bezier(.22, .65, .21, 1),
+    opacity 280ms cubic-bezier(.22, .65, .21, 1);
+  interpolate-size: allow-keywords;
+}
+.faqRow[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faqRow::details-content,
+  .faqChevron { transition: none; }
+}
+
+/* ─── Application form ────────────────────────────────────────────────
+   Ported from the original creative-destination overlay's intake form.
+   Two-column name/email row, then full-width inputs, two toggle groups
+   (craft + availability), and a textarea. Submit button uses the same
+   .cta pill as the hero so the form lands on the same affordance the
+   page started with. */
+.applicationSection {
+  padding: 80px 0;
+  border-top: 1px solid var(--rule);
+}
+@media (min-width: 768px) { .applicationSection { padding: 120px 0; } }
+
+.applicationIntro {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(17px, 1.5vw, 19px);
+  line-height: 1.55;
+  color: var(--cream-mute);
+  max-width: 56ch;
+  margin: -28px 0 48px;
+}
+
+.applicationForm {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 720px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+@media (min-width: 640px) { .formRow { grid-template-columns: 1fr 1fr; } }
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.formLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+.formField input,
+.formField textarea {
+  appearance: none;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 17px;
+  color: var(--cream);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 12px 0;
+  width: 100%;
+  outline: none;
+  transition: border-color 240ms;
+}
+.formField input::placeholder,
+.formField textarea::placeholder {
+  color: rgba(243, 231, 200, 0.32);
+  font-style: italic;
+}
+.formField input:focus,
+.formField textarea:focus {
+  border-bottom-color: var(--gold-bright);
+}
+.formField textarea {
+  resize: vertical;
+  min-height: 96px;
+  font-family: var(--serif);
+}
+
+.formUpload {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+  color: var(--cream-mute);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 240ms, color 240ms, background 240ms;
+  width: fit-content;
+}
+.formUpload:hover {
+  border-color: rgba(240, 198, 115, 0.45);
+  color: var(--cream);
+  background: rgba(240, 198, 115, 0.04);
+}
+.formUpload input[type="file"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.formUploadText { font-family: var(--sans); }
+
+.formToggleGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.formToggle {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--cream-mute);
+  cursor: pointer;
+  transition: border-color 200ms, color 200ms, background 200ms;
+}
+.formToggle:hover {
+  border-color: rgba(240, 198, 115, 0.45);
+  color: var(--cream);
+}
+.formToggleOn {
+  background: var(--gold-deep);
+  border-color: var(--gold-deep);
+  color: var(--ink);
+}
+.formToggleOn:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+/* ─── Testimonial band ──────────────────────────────────────────────────
+   Carried over from the original creative-destination overlay. Sits
+   between the journey and the end CTA so the pathway lands on a human
+   voice before the final ask. */
+.testimonialBand {
+  padding: 80px 0;
+  text-align: center;
+}
+@media (min-width: 768px) { .testimonialBand { padding: 120px 0; } }
+
+.testimonialQuote {
+  position: relative;
+  max-width: 56ch;
+  margin: 0 auto;
+  padding: 0;
+}
+.testimonialMark {
+  display: block;
+  margin: 0 auto 24px;
+  color: var(--gold);
+  opacity: 0.55;
+}
+.testimonialQuote p {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+  line-height: 1.4;
+  color: #fff3d6;
+  margin: 0 0 24px;
+  letter-spacing: -0.005em;
+}
+.testimonialQuote cite {
+  display: block;
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+/* ─── End of journey: CTA band ──────────────────────────────────────────── */
+.endBand {
+  text-align: center;
+  padding: 80px 0 120px;
+  border-top: 1px solid var(--rule);
+}
+@media (min-width: 768px) { .endBand { padding: 120px 0 160px; } }
+
+.endTitle {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+  margin: 0 auto 24px;
+  max-width: 24ch;
+  color: #fff3d6;
+}
+.endTitle em { font-style: italic; color: var(--gold-bright); }
+
+.endSub {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--cream-mute);
+  max-width: 56ch;
+  margin: 0 auto 40px;
+}
+
+.endActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+/* ─── Footer ────────────────────────────────────────────────────────────── */
+.footer {
+  padding: 64px 0 40px;
+  border-top: 1px solid var(--rule);
+  background: var(--ink);
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--rule);
+}
+@media (min-width: 768px) {
+  .footerGrid { grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 48px; }
+}
+
+.footerBrand { display: flex; flex-direction: column; gap: 12px; }
+
+.footerLogo {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--cream);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 240ms;
+}
+.footerLogo img { height: 24px; transition: filter 240ms; }
+.footerLogo:hover { color: var(--gold-bright); }
+.footerLogo:hover img {
+  filter: drop-shadow(0 0 10px rgba(255, 210, 140, 0.4));
+}
+.footerLogoArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: var(--gold-bright);
+  transition: width 320ms cubic-bezier(.22, .65, .21, 1), opacity 240ms;
+}
+.footerLogo:hover .footerLogoArrow { width: 14px; opacity: 1; }
+
+.footerTag {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--cream-mute);
+  margin: 0;
+}
+
+.footerColTitle {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 16px;
+}
+
+.footerList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footerList a, .footerList span {
+  font-size: 0.875rem;
+  color: var(--cream-mute);
+  text-decoration: none;
+  transition: color 200ms;
+}
+.footerList a:hover { color: var(--gold); }
+
+.footerBase {
+  padding-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footerCopy {
+  font-size: 12px;
+  color: var(--cream-faint);
+  letter-spacing: 0.04em;
+}
+
+/* ─── Cinematic DestFooter (ported from /creatives destination overlay) ─
+   Centered BEACON wordmark with gold spark divider. Same visual idiom
+   the user designed in the original destination view — large serif
+   wordmark at the top, sans-caps tagline, gold hairline + four-point
+   spark divider, then nav columns, connect block, meta line. */
+.destFooter {
+  padding: 10vh 0 6vh;
+  background: linear-gradient(180deg, rgba(8, 5, 2, 0) 0%, rgba(20, 12, 4, 0.45) 100%);
+  margin-top: 6vh;
+  border-top: 1px solid var(--rule);
+}
+
+.ftMark {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(36px, 4.5vw, 56px);
+  letter-spacing: 0.32em;
+  padding-left: 0.32em;
+  text-align: center;
+  color: #ffeab8;
+  text-shadow: 0 0 24px rgba(255, 200, 120, 0.18);
+}
+.ftTagline {
+  margin-top: 14px;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: clamp(11px, 1vw, 13px);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(243, 231, 200, 0.55);
+}
+
+.ftDivider {
+  margin: 56px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: rgba(240, 198, 115, 0.7);
+}
+.ftRuleLeft,
+.ftRuleRight {
+  flex: 1;
+  height: 1px;
+  max-width: 380px;
+  background: linear-gradient(90deg, rgba(240, 198, 115, 0), rgba(240, 198, 115, 0.42));
+}
+.ftRuleRight {
+  background: linear-gradient(90deg, rgba(240, 198, 115, 0.42), rgba(240, 198, 115, 0));
+}
+.ftSpark {
+  flex-shrink: 0;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 10px rgba(255, 200, 120, 0.5));
+}
+
+.ftCols {
+  display: grid;
+  gap: 36px;
+  margin: 0 auto 56px;
+}
+@media (min-width: 760px) {
+  .ftCols { grid-template-columns: 1fr 1fr; gap: 56px; }
+}
+.ftCol {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.ftLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.72);
+  margin-bottom: 6px;
+}
+.ftCol a,
+.ftEmail {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-style: normal;
+  font-size: clamp(20px, 1.8vw, 24px);
+  color: #fff3d6;
+  text-decoration: none;
+  transition: color 240ms, transform 240ms;
+  display: inline-block;
+}
+.ftCol a:hover,
+.ftEmail:hover {
+  color: var(--gold-bright);
+  transform: translateX(3px);
+}
+
+.ftConnect {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 56px;
+}
+.ftLocation {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(15px, 1.3vw, 17px);
+  line-height: 1.7;
+  color: rgba(243, 231, 200, 0.62);
+}
+.ftSocial {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(240, 198, 115, 0.14);
+}
+.ftSocial a {
+  color: rgba(240, 198, 115, 0.55);
+  display: inline-flex;
+  align-items: center;
+  transition: color 240ms, transform 240ms;
+}
+.ftSocial a:hover {
+  color: var(--gold-bright);
+  transform: translateY(-2px);
+}
+
+.ftMeta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 32px;
+  border-top: 1px solid rgba(240, 198, 115, 0.18);
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(243, 231, 200, 0.42);
+}
+
+/* ─── dest static override (mirrors /brands BrandsClient) ──────────────
+   The application-form section wraps its content in `dest show destStatic`
+   so the global .cf-* classes (which are scoped under .dest in
+   globals.css) cascade in. .dest is normally position:fixed at z-index
+   15 inside the 3D scene; .destStatic flips that to static so the form
+   lays out as ordinary scrolling content between the journey and the
+   end CTA. */
+.destStatic {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.destStatic::before { display: none !important; }
+.destStatic :global(.scroll) {
+  position: static !important;
+  inset: auto !important;
+  overflow: visible !important;
+}
+/* Expand the intake card to span the full section width on pathway
+   pages (overrides the global 900px cap that the destination overlay
+   uses inside the 3D scene). */
+.destStatic :global(.contact-form) {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+.destStatic :global(.cf-wrap) {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* ─── Sticky-image scroll journey ───────────────────────────────────────
+   Apple-product-page pattern. The left column pins a stacked image
+   gallery to the viewport; the right column scrolls past it with text
+   for each step. The active image (driven by JS IntersectionObserver)
+   crossfades in over the previous one. No spine, no orb, no markers —
+   the image change itself is the progression cue.
+   ───────────────────────────────────────────────────────────────────── */
+.stickyJourney {
+  position: relative;
+  padding: 0 0 96px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 80px;
+}
+@media (min-width: 900px) {
+  .stickyJourney {
+    grid-template-columns: 1fr 1fr;
+    gap: 96px;
+    padding: 0 0 160px;
+  }
+}
+
+/* ─── Sticky image column ────────────────────────────────────────────── */
+.stickyImageColumn {
+  position: relative;
+}
+.stickyImageStack {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 70vh;
+  margin: 0 auto;
+}
+@media (min-width: 900px) {
+  .stickyImageStack {
+    position: sticky;
+    top: 50%;
+    transform: translateY(-50%);
+    aspect-ratio: 4 / 5;
+    max-height: 70vh;
+  }
+}
+
+.stickyImage {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.02);
+  transition:
+    opacity 900ms cubic-bezier(.22, .65, .21, 1),
+    transform 1400ms cubic-bezier(.22, .65, .21, 1);
+  pointer-events: none;
+}
+.stickyImageActive {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.stickyImageFrame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ink-soft);
+  box-shadow:
+    0 0 0 1px rgba(8, 7, 10, 0.4) inset,
+    0 30px 80px -24px rgba(0, 0, 0, 0.85),
+    0 0 60px -10px rgba(255, 200, 120, 0.22);
+}
+.stickyImageFrame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.95) brightness(0.9);
+  transition: filter 800ms cubic-bezier(.22, .65, .21, 1);
+}
+.stickyImageActive .stickyImageFrame img {
+  filter: saturate(1) brightness(1);
+}
+
+/* Hairline corner accents on the sticky frame — film-still treatment
+   that survives the crossfade because they're outside the frame. */
+.stickyCorner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.stickyCornerTL { top: -1px; left: -1px; border-top: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+.stickyCornerTR { top: -1px; right: -1px; border-top: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+.stickyCornerBL { bottom: -1px; left: -1px; border-bottom: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+.stickyCornerBR { bottom: -1px; right: -1px; border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+
+/* Step counter — small numeral pair pinned to bottom-right of the
+   sticky frame. Shows the current step out of the total, e.g. "02/06". */
+.stickyCounter {
+  position: absolute;
+  bottom: -32px;
+  right: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--serif);
+  font-style: italic;
+  color: rgba(243, 231, 200, 0.7);
+}
+.stickyCounterCurrent {
+  font-size: clamp(22px, 2vw, 30px);
+  color: var(--gold-bright);
+  font-weight: 400;
+}
+.stickyCounterDivider {
+  font-size: clamp(16px, 1.4vw, 22px);
+  color: rgba(240, 198, 115, 0.4);
+  font-weight: 300;
+}
+.stickyCounterTotal {
+  font-size: clamp(16px, 1.4vw, 22px);
+  color: rgba(243, 231, 200, 0.45);
+  font-weight: 300;
+}
+
+/* ─── Scrolling content column ───────────────────────────────────────── */
+.stickyContentColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.stickyStep {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0.35;
+  transition: opacity 700ms cubic-bezier(.22, .65, .21, 1);
+}
+/* Inner card — the actual visual "box". Padding is inside the card,
+   not on the milestone wrapper, so the min-height layout still works
+   for the IntersectionObserver triggers. Dark backdrop with a 1px
+   gold rule + soft inner glow that brightens when this step is the
+   active one. */
+.stickyStep::before {
+  content: '';
+  position: absolute;
+  inset: 12vh 0;
+  /* backdrop-filter removed - tiny 2px blur on a fixed/sticky element
+     was causing Safari to re-rasterise the area behind every scroll
+     frame. Solid translucent background reads almost identically. */
+  background: rgba(14, 12, 8, 0.72);
+  border: 1px solid rgba(240, 198, 115, 0.16);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(8, 7, 10, 0.6) inset,
+    0 32px 80px -32px rgba(0, 0, 0, 0.7);
+  transition:
+    border-color 700ms cubic-bezier(.22, .65, .21, 1),
+    box-shadow 700ms cubic-bezier(.22, .65, .21, 1);
+  z-index: 0;
+}
+/* Active card brightens the border + adds a warm gold glow. */
+.stickyStepActive::before {
+  border-color: rgba(240, 198, 115, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(8, 7, 10, 0.6) inset,
+    0 32px 80px -28px rgba(0, 0, 0, 0.7),
+    0 0 48px -8px rgba(255, 200, 120, 0.22);
+}
+/* All inner content lifts above the ::before card. */
+.stickyStep > * {
+  position: relative;
+  z-index: 1;
+}
+/* Internal padding for the card — applies to every step's content. */
+.stickyStep {
+  padding: 0 clamp(28px, 3vw, 48px);
+}
+.stickyStepActive {
+  opacity: 1;
+}
+/* First step starts visible (otherwise the page lands on a dim block
+   before the user has scrolled — feels broken). */
+.stickyStep:first-of-type { opacity: 1; }
+
+.stickyStepNum {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(48px, 6vw, 88px);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--gold);
+  margin: 0 0 28px;
+  text-shadow: 0 0 40px rgba(255, 170, 80, 0.18);
+}
+
+.stickyStepEyebrow {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 18px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.stickyStepEyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 26px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold), rgba(240, 198, 115, 0));
+}
+
+.stickyStepTitle {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(2.25rem, 4.4vw, 3.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  margin: 0 0 24px;
+  max-width: 20ch;
+  color: #fff3d6;
+  text-shadow: 0 0 50px rgba(255, 170, 80, 0.14);
+}
+.stickyStepTitle em {
+  font-style: italic;
+  background: linear-gradient(180deg, #fff3d6, #ffd98a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.stickyStepBody {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.0625rem, 1.55vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--cream-mute);
+  max-width: 48ch;
+  margin: 0 0 28px;
+}
+
+.stickyStepFeatures {
+  list-style: none;
+  padding: 24px 0 0;
+  margin: 0;
+  border-top: 1px solid rgba(240, 198, 115, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 48ch;
+}
+.stickyStepFeatures li {
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--cream);
+  padding-left: 22px;
+  position: relative;
+}
+.stickyStepFeatures li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 12px;
+  height: 1px;
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(255, 200, 120, 0.4);
+}
+
+/* On mobile, no stickiness — each step shows its image stacked above
+   the text, in normal flow. */
+@media (max-width: 899px) {
+  .stickyImageColumn { display: none; }
+  .stickyStep {
+    min-height: auto;
+    padding: 48px 0;
+    opacity: 1;
+  }
+  /* Inline image per step on mobile — surfaces an image alongside each
+     block since the sticky column is hidden. Pulled in via a CSS
+     ::before pseudo-element won't work for an actual <img>, so on
+     mobile we accept the simpler single-column layout without
+     repeating per-step images. The first sticky image still shows at
+     the top of the section as a header still. */
+}
+
+/* ─── Sticky spine — vertical progress line + numbered markers ───────
+   Flyward-style progression cue, adapted into our warm gold palette.
+   The dim background line is always visible. The bright progress line
+   grows from top → current scroll position (JS sets its height). At
+   each step's vertical anchor, a small gold disc with a numbered label
+   marks the milestone; it brightens as the scroll passes it. */
+.stickySpine {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Constrained to the column-gap so it doesn't bleed into either the
+     image or the text column. Width matches the typical gap (~96px) so
+     the curve swings within the gutter and markers don't end up inside
+     the text. Centered on the gap, not on the page — shifted slightly
+     left of true centre because the grid weights are 1fr : 1.05fr (text
+     column slightly wider). */
+  left: 49%;
+  transform: translateX(-50%);
+  width: 96px;
+  pointer-events: none;
+  z-index: 2;
+}
+@media (min-width: 900px) { .stickySpine { display: block; } }
+
+/* SVG fills the spine container. preserveAspectRatio="none" stretches
+   the path vertically to fill the journey height while keeping the
+   horizontal swing tied to viewBox x. */
+.stickySpineSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.stickySpinePathDim {
+  fill: none;
+  stroke: rgba(240, 198, 115, 0.32);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+}
+
+.stickySpinePathProgress {
+  fill: none;
+  stroke: url(#stickySpineGrad);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(255, 200, 120, 0.5));
+}
+
+.stickySpineMarker {
+  position: absolute;
+  /* `left` + `top` are set inline per marker (curve peak positions);
+     transform centres the marker on those coordinates. */
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(240, 198, 115, 0.22);
+  border: 1px solid rgba(240, 198, 115, 0.45);
+  box-shadow: 0 0 0 4px var(--ink);
+  transition:
+    background 600ms cubic-bezier(.22, .65, .21, 1),
+    border-color 600ms cubic-bezier(.22, .65, .21, 1),
+    box-shadow 600ms cubic-bezier(.22, .65, .21, 1),
+    transform 600ms cubic-bezier(.22, .65, .21, 1);
+}
+.stickySpineMarkerLit {
+  background: radial-gradient(circle at 32% 28%, #ffefc4 0%, #f5c46a 50%, #c98a3a 100%);
+  border-color: rgba(255, 235, 180, 0.85);
+  box-shadow:
+    0 0 0 4px var(--ink),
+    0 0 18px rgba(255, 220, 150, 0.7),
+    0 0 36px rgba(255, 180, 90, 0.35);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.stickySpineMarkerLabel {
+  position: absolute;
+  /* Numerals sit just to the right of the marker so they hover beside
+     the spine without colliding with the bright line. The text column
+     starts ~24px to the right of the spine, so the numeral lives in
+     that gutter. */
+  left: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: rgba(240, 198, 115, 0.45);
+  transition: color 600ms cubic-bezier(.22, .65, .21, 1);
+}
+.stickySpineMarkerLit .stickySpineMarkerLabel {
+  color: var(--gold-bright);
+  text-shadow: 0 0 8px rgba(255, 200, 120, 0.4);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FULL-BLEED CHAPTER PAGES
+   Each milestone is its own viewport. The image fills the section as a
+   cinematic backdrop; a warm-dark gradient overlays so the centred text
+   stays readable. Scrolling moves between chapters one screen at a time.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.fullJourney {
+  position: relative;
+  padding: 0;
+}
+
+/* ─── Meandering connector SVG ───────────────────────────────────────
+   Spans the entire journey section as an absolute overlay. Path snakes
+   between alternating left/right anchors at each chapter's vertical
+   centre. Dim full route always visible behind the bright progress
+   path that draws itself in via stroke-dashoffset on scroll. */
+.fullSpine {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+/* Ambient sparkle streak - now a TAPERED comet: three stacked paths
+   share the same dash animation but the trailing two start ~70ms later
+   each, so they lag behind the head. CSS tapers the look (stroke-width
+   + opacity descend) so the lag reads as head -> body -> tail. */
+.fullSpineSparkle {
+  fill: none;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  /* Default hidden until JS sets the dash; without this the full path
+     would render as one long bright line for one frame on mount. */
+  stroke-dasharray: 0 99999;
+  pointer-events: none;
+  will-change: stroke-dashoffset, opacity;
+}
+/* Comet head - brightest, thickest. Single small drop-shadow only;
+   stacked drop-shadows were rasterising the whole SVG bbox per frame
+   on Safari and tanking scroll perf. */
+.fullSpineSparkleHead {
+  stroke: rgba(255, 248, 220, 1);
+  stroke-width: 2.8;
+  filter: drop-shadow(0 0 6px rgba(255, 220, 150, 0.85));
+}
+/* Comet body - half-bright, slightly thinner. mix-blend-mode and the
+   drop-shadow filter were Safari killers; switched to a plain bright
+   gold stroke at higher opacity to compensate visually. */
+.fullSpineSparkleMid {
+  stroke: rgba(255, 230, 170, 0.7);
+  stroke-width: 1.9;
+}
+/* Comet tail - faint, thin. Plain stroke only - same reasoning. */
+.fullSpineSparkleTail {
+  stroke: rgba(255, 220, 150, 0.38);
+  stroke-width: 1.3;
+}
+
+/* Dotted full-path guide - flyward-style trace that's always visible as
+   the underlying route. The bright progress path draws over it as the
+   user scrolls. Bumped up from rgba 0.16 / width 1 to rgba 0.48 / width
+   1.4 so the dots read clearly against the dark backdrop. */
+.fullSpinePathDim {
+  fill: none;
+  /* Brighter base stroke compensates for the dropped drop-shadow glow.
+     Safari was rasterising the filter on every scroll frame across the
+     full SVG bbox - hugely expensive. Brighter stroke + a wider second
+     "halo" stroke (rendered as a duplicate path? overkill) - simpler:
+     just bump the alpha + width so the dots still pop without filters. */
+  stroke: rgba(240, 198, 115, 0.6);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 4 6;
+}
+.fullSpinePathProgress {
+  fill: none;
+  stroke: url(#fullSpineGrad);
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  /* Hide the full path by default - JS sets the real dash values once
+     the path is mounted and its length is known. Without this fallback
+     the entire spine flashes for one frame before the effect runs. */
+  stroke-dasharray: 0 99999;
+  /* drop-shadow filter omitted - it repainted the entire spine SVG on
+     every scroll frame. Gradient stroke alone reads as glowing. */
+}
+
+/* Halo arc — a short bright segment that tracks the orb's current
+   position along the path. Brighter stroke + heavy drop-shadow bloom
+   reads as the section "lighting up" right where the reader is. The
+   scroll handler sets stroke-dasharray and stroke-dashoffset each frame
+   to position the arc; this rule provides only the visual treatment. */
+.fullSpineHalo {
+  fill: none;
+  stroke: rgba(255, 240, 200, 0.95);
+  stroke-width: 3.8;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  /* Hide the full path by default - JS sets the real dash values once
+     the path is mounted and its length is known. Without this fallback
+     the entire spine flashes for one frame before the effect runs. */
+  stroke-dasharray: 0 99999;
+  filter: drop-shadow(0 0 10px rgba(255, 210, 140, 0.8));
+  transition: opacity 320ms cubic-bezier(.22, .65, .21, 1);
+  will-change: stroke-dashoffset, opacity;
+  pointer-events: none;
+}
+
+/* ─── Side branches — small horizontal ticks inward from each peak ──── */
+.fullSpineBranch {
+  fill: none;
+  stroke: rgba(240, 198, 115, 0.22);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 600ms cubic-bezier(.22, .65, .21, 1);
+}
+.fullSpineBranchLit {
+  stroke: rgba(255, 220, 150, 0.85);
+  filter: drop-shadow(0 0 4px rgba(255, 200, 120, 0.6));
+}
+
+/* ─── Knots — glowing waypoints at each chapter's peak on the path ───
+   Hidden by default. When the orb arrives, the knot plays a quick
+   IGNITION BURST: scales past its rest size (overshoot) with a brief
+   extra glow, then settles. A separate expanding ring pseudo-element
+   (::before) flashes outward at the same moment, like a ripple from
+   the impact, then fades. */
+/* Wrapper is a 0x0 anchor at the knot's path position. Holding zero
+   size means the ::before/::after ripples can expand outward without
+   inheriting any size from the wrapper, and they're not children of
+   the dot, so the dot's scale-overshoot doesn't drag them along. */
+.fullSpineKnot {
+  position: absolute;
+  width: 0;
+  height: 0;
+  /* Lifted above the spine SVG (z-index 3) and chapter images so the
+     burst halo + expanding ripples paint over everything, not behind
+     the dotted line. Without this lift the impact glow was being
+     visually clipped by the SVG above it and the user couldn't see the
+     animation fire when the orb crossed the point. */
+  z-index: 5;
+  pointer-events: none;
+}
+/* Inner core - this is the visible dot. Owns the burst keyframe.
+   Centred on the wrapper via translate(-50%, -50%). */
+.fullSpineKnotCore {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  background: radial-gradient(circle at 32% 28%, #fff5d6 0%, #ffd98a 45%, #c98a3a 100%);
+  border: 1px solid rgba(255, 235, 180, 0.9);
+  box-shadow:
+    0 0 0 4px var(--ink),
+    0 0 18px rgba(255, 220, 150, 0.75),
+    0 0 36px rgba(255, 180, 90, 0.4);
+  opacity: 0;
+  pointer-events: none;
+}
+/* Two expanding ripples - siblings of the core, not children, so they
+   keep their own scale independent of the dot's burst. ::before is
+   the inner bright ring; ::after is a slower, softer outer ring. */
+.fullSpineKnot::before,
+.fullSpineKnot::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+.fullSpineKnot::before {
+  border: 2px solid rgba(255, 240, 200, 0.95);
+  box-shadow: 0 0 12px rgba(255, 220, 150, 0.7);
+}
+.fullSpineKnot::after {
+  border: 1.5px solid rgba(255, 210, 140, 0.55);
+}
+/* When the orb crosses, fire all three keyframes in parallel. */
+.fullSpineKnotLit .fullSpineKnotCore {
+  animation: knotIgniteBurst 950ms cubic-bezier(.22, .85, .3, 1) forwards;
+}
+.fullSpineKnotLit::before {
+  animation: knotRippleInner 950ms cubic-bezier(.22, .85, .3, 1) forwards;
+}
+.fullSpineKnotLit::after {
+  animation: knotRippleOuter 1200ms cubic-bezier(.22, .85, .3, 1) forwards;
+}
+@keyframes knotIgniteBurst {
+  0%   {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+    box-shadow:
+      0 0 0 4px var(--ink),
+      0 0 6px rgba(255, 220, 150, 0.4),
+      0 0 16px rgba(255, 180, 90, 0.2);
+  }
+  40%  {
+    opacity: 1;
+    /* Big overshoot for an unmissable "impact" pop. */
+    transform: translate(-50%, -50%) scale(2.1);
+    box-shadow:
+      0 0 0 4px var(--ink),
+      0 0 36px rgba(255, 248, 220, 1),
+      0 0 72px rgba(255, 210, 130, 0.85),
+      0 0 120px rgba(255, 180, 90, 0.55);
+  }
+  70%  {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow:
+      0 0 0 4px var(--ink),
+      0 0 20px rgba(255, 230, 170, 0.85),
+      0 0 44px rgba(255, 190, 110, 0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.25);
+    box-shadow:
+      0 0 0 4px var(--ink),
+      0 0 22px rgba(255, 220, 150, 0.8),
+      0 0 42px rgba(255, 180, 90, 0.45);
+  }
+}
+/* Ripple keyframes - each frame keeps the translate(-50%, -50%)
+   centering applied via the base rule, scaling outward from there.
+   Without re-stating the translate in each frame the scale would
+   apply from the top-left of the wrapper and the ring would expand
+   off-centre. */
+@keyframes knotRippleInner {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(0.5); border-width: 2px; }
+  8%   { opacity: 1;   transform: translate(-50%, -50%) scale(0.9); border-width: 2px; }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(5);   border-width: 0.5px; }
+}
+@keyframes knotRippleOuter {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.5); border-width: 1.5px; }
+  15%  { opacity: 0;    transform: translate(-50%, -50%) scale(0.6); border-width: 1.5px; }
+  25%  { opacity: 0.75; transform: translate(-50%, -50%) scale(1);   border-width: 1.5px; }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(7);   border-width: 0.4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fullSpineKnotLit .fullSpineKnotCore,
+  .fullSpineKnotLit::before,
+  .fullSpineKnotLit::after { animation: none; }
+  .fullSpineKnotLit .fullSpineKnotCore {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+}
+
+/* ─── Traveling orb — rides the spine path at the bright trail's edge ──
+   HTML element overlaid on the spine SVG. Position is set imperatively
+   by the JourneyPage scroll handler via transform: translate3d(...).
+   Two stacked radial gradients give the orb a tight bright core plus a
+   wider soft halo without needing multiple DOM nodes. */
+.fullSpineOrb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 30% 30%, #fff8d9 0%, #ffd98a 35%, rgba(201, 138, 58, 0) 80%);
+  box-shadow:
+    0 0 8px rgba(255, 220, 150, 0.85),
+    0 0 18px rgba(255, 200, 120, 0.65),
+    0 0 36px rgba(255, 180, 90, 0.4),
+    0 0 60px rgba(255, 170, 80, 0.22);
+  will-change: transform, opacity;
+}
+/* Orb pulse animation removed - was animating box-shadow on every
+   frame, which forces Safari to re-rasterise the shadow's blur radius
+   continuously and was a major scroll-lag contributor. The static
+   box-shadow halo above gives the orb enough glow on its own. */
+
+.fullChapter {
+  position: relative;
+  width: 100%;
+  /* Continuous scrolling — each chapter is sized to its content (with a
+     comfortable min height) rather than locking to one full viewport.
+     The meander line is continuous across them so the page reads as one
+     long journey instead of slide-by-slide pages. */
+  min-height: 68vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* ─── Background image (full-bleed) ─────────────────────────────────── */
+.fullChapterBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.fullChapterBg img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.85) brightness(0.42);
+  transform: scale(1.04);
+  transition: filter 1400ms cubic-bezier(.22, .65, .21, 1), transform 8s cubic-bezier(.22, .65, .21, 1);
+}
+.fullChapterActive .fullChapterBg img {
+  filter: saturate(1) brightness(0.55);
+  transform: scale(1.10);
+}
+
+/* ─── Warm-dark gradient overlay ────────────────────────────────────── */
+.fullChapterOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 50%, rgba(8, 7, 10, 0.35) 0%, rgba(8, 7, 10, 0.85) 75%),
+    linear-gradient(180deg, rgba(8, 7, 10, 0.55) 0%, rgba(8, 7, 10, 0.7) 100%);
+}
+
+/* ─── Step counter (top-right corner) ────────────────────────────────── */
+.fullChapterCounter {
+  position: absolute;
+  top: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--serif);
+  font-style: italic;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transform: translate(0, -50%);
+  transition: opacity 900ms cubic-bezier(.22, .65, .21, 1) 200ms;
+}
+/* Step counter rides the side of the line — left for even chapters,
+   right for odd. Reads as a numbered waypoint on the journey rather
+   than a fixed corner UI element. */
+.fullChapterLeft .fullChapterCounter {
+  left: clamp(28px, 5vw, 56px);
+}
+.fullChapterRight .fullChapterCounter {
+  right: clamp(28px, 5vw, 56px);
+  flex-direction: row-reverse;
+}
+.fullChapterActive .fullChapterCounter {
+  opacity: 1;
+  transform: translateY(0);
+}
+.fullChapterCounterNum {
+  font-size: clamp(36px, 4vw, 56px);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--gold-bright);
+  text-shadow:
+    0 0 24px rgba(255, 200, 120, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.7);
+}
+.fullChapterCounterDivider {
+  font-size: clamp(16px, 1.5vw, 20px);
+  color: rgba(243, 231, 200, 0.45);
+  margin: 0 4px;
+}
+.fullChapterCounterTotal {
+  font-size: clamp(16px, 1.5vw, 20px);
+  color: rgba(243, 231, 200, 0.6);
+}
+
+/* ─── Side-anchored content ──────────────────────────────────────────
+   Each chapter's content sits on the SAME side as its meander marker
+   (left for even chapters, right for odd). The opposite side is left
+   open so the line peak is visible without colliding with the text. */
+.fullChapterContent {
+  position: relative;
+  z-index: 2;
+  max-width: 560px;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 1200ms cubic-bezier(.22, .65, .21, 1) 240ms,
+    transform 1200ms cubic-bezier(.22, .65, .21, 1) 240ms;
+  padding: 0 clamp(28px, 5vw, 80px);
+}
+@media (min-width: 760px) {
+  .fullChapterLeft .fullChapterContent {
+    margin: 0 auto 0 0;
+    /* Sits in the left ~half, leaves room for the line + right marker */
+    max-width: 48%;
+  }
+  .fullChapterRight .fullChapterContent {
+    margin: 0 0 0 auto;
+    max-width: 48%;
+    text-align: right;
+  }
+  .fullChapterRight .fullChapterEyebrow {
+    flex-direction: row-reverse;
+  }
+  .fullChapterRight .fullChapterEyebrow::before {
+    background: linear-gradient(270deg, var(--gold) 0%, rgba(240, 198, 115, 0) 100%);
+  }
+  .fullChapterRight .fullChapterTitle,
+  .fullChapterRight .fullChapterBody {
+    margin-left: auto;
+  }
+  .fullChapterRight .fullChapterFeatures {
+    margin-left: auto;
+  }
+  .fullChapterRight .fullChapterFeatures li {
+    padding-left: 0;
+    padding-right: 22px;
+  }
+  .fullChapterRight .fullChapterFeatures li::before {
+    left: auto;
+    right: 0;
+  }
+}
+.fullChapterActive .fullChapterContent {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fullChapterEyebrow {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 24px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.fullChapterEyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 36px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold) 0%, rgba(240, 198, 115, 0) 100%);
+}
+
+.fullChapterTitle {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  margin: 0 0 28px;
+  max-width: 18ch;
+  color: #fff3d6;
+  text-shadow:
+    0 0 60px rgba(255, 170, 80, 0.25),
+    0 2px 14px rgba(0, 0, 0, 0.6);
+}
+.fullChapterTitle em {
+  font-style: italic;
+  background: linear-gradient(180deg, #fff3d6 0%, #ffd98a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.fullChapterBody {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.125rem, 1.55vw, 1.375rem);
+  line-height: 1.55;
+  color: rgba(243, 231, 200, 0.85);
+  max-width: 56ch;
+  margin: 0 0 36px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.fullChapterFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 52ch;
+}
+.fullChapterFeatures li {
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--cream);
+  padding-left: 22px;
+  position: relative;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.fullChapterFeatures li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 12px;
+  height: 1px;
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(255, 200, 120, 0.45);
+}
+
+/* ─── Scroll cue (bottom-centre) ─────────────────────────────────────── */
+.fullChapterScrollCue {
+  position: absolute;
+  bottom: clamp(32px, 5vh, 56px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(243, 231, 200, 0.55);
+  opacity: 0;
+  transition: opacity 900ms cubic-bezier(.22, .65, .21, 1) 600ms;
+  pointer-events: none;
+}
+.fullChapterActive .fullChapterScrollCue {
+  opacity: 1;
+  animation: scrollCueFloat 2.4s ease-in-out infinite alternate 1.4s;
+}
+@keyframes scrollCueFloat {
+  0%   { transform: translate(-50%, 0); }
+  100% { transform: translate(-50%, 6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fullChapterActive .fullChapterScrollCue { animation: none; }
+}
+
+/* ─── Mobile tweaks ──────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .fullChapterCounter {
+    top: 88px;
+    right: 24px;
+  }
+  .fullChapterContent {
+    padding: 0 24px;
+  }
+  .fullChapterTitle { max-width: 14ch; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FLOW JOURNEY — continuous scroll with meandering line
+   Each chapter sits at alternating left/right anchors that match the
+   meander SVG's peakX, so the line visibly "lands" at each chapter's
+   content as you scroll past it. No full-bleed images, no chapter snap;
+   just one long journey with the gold thread guiding the eye.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Scroll-snap context — global rule lives in app/globals.css (CSS modules
+   forbid a bare :global(html) selector). Per-chapter scroll-snap-align
+   on .flowChapter below provides the snap stops; html sets snap-type. */
+
+.flowJourneyInner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 24vh;
+  padding: 18vh 0;
+  /* Wider container for the journey than the rest of the page — each
+     chapter needs room for an image + content side-by-side without
+     either feeling cramped. Overrides the inherited 1180px from the
+     shared .container. */
+  max-width: 1440px;
+  margin: 0 auto;
+  padding-left: clamp(28px, 4vw, 64px);
+  padding-right: clamp(28px, 4vw, 64px);
+}
+@media (max-width: 760px) {
+  .flowJourneyInner { gap: 12vh; padding: 12vh 0; }
+}
+
+.flowChapter {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  opacity: 0.42;
+  transition: opacity 900ms cubic-bezier(.22, .65, .21, 1);
+  /* scroll-snap removed - even in proximity mode it fought the user's
+     scroll velocity on this long page and made the whole journey feel
+     laggy. Free-form scrolling reads as smoother. */
+  /* Every chapter is exactly one viewport tall — gives all six rows
+     the same fixed height so the SVG curve's peak position (which is
+     anchored at (i+0.5)/N of the section) lands at the visual centre
+     of each chapter regardless of how many bullets or how much text
+     the milestone has. align-items: center on the grid (below) then
+     pins the content group to that same centre. */
+  min-height: 100vh;
+}
+/* On mobile the alternating-side layout is gone (everything stacks in
+   one column) so the snaking SVG spine + orb + knots can't anchor to
+   anything meaningful. Hide them - they were paired with the desktop
+   layout. Also drop the 100vh-per-chapter constraint so each milestone
+   sizes to content and the journey doesn't become 5+ viewports of
+   scroll on a phone. */
+@media (max-width: 759px) {
+  .flowChapter { min-height: 0; }
+  .fullSpine, .fullSpineOrb, .fullSpineKnot { display: none !important; }
+  .flowJourneyInner { gap: 60px; padding: 32px 0; }
+}
+.flowChapter.in,
+.flowChapterActive { opacity: 1; }
+
+@media (min-width: 760px) {
+  .flowChapter {
+    /* Asymmetric grid — the column that holds the group (image +
+       content side-by-side) gets MORE of the row (1.4fr) than the
+       column the curve sweeps through (1fr). That gives the image
+       cinematic size without crowding the path. The per-chapter
+       rules below place the group in the bigger column based on the
+       chapter's curve direction. */
+    grid-template-columns: 1fr 1.4fr;
+    align-items: center;
+    gap: 48px;
+  }
+  /* For peak-right chapters (group on LEFT), invert the columns so
+     the LEFT column is the bigger one. */
+  .flowRight { grid-template-columns: 1.4fr 1fr; }
+  .flowChapterGroup {
+    /* Side-by-side layout — image sits beside the content text rather
+       than above it. Image always on the OUTER edge of the chapter
+       (away from the curve); content sits between the image and the
+       curve. row-reverse for peak-right chapters flips the DOM order
+       so the image lands on the left of the group when the group is
+       positioned in the left column.
+       Width bumped up so the image is cinematic, not a thumbnail, and
+       the text has room to breathe at a comfortable measure. */
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 56px;
+    width: 100%;
+    max-width: 760px;
+    /* Explicit grid-item alignment — pins the group to the chapter's
+       vertical centre even though the chapter is now a fixed 100vh.
+       Without align-self the grid item would stretch to fill the row
+       height and the content text would anchor to the top of the
+       group instead of sitting at the curve's peak. */
+    align-self: center;
+  }
+  /* Peak-right chapters: group on left column. Reverse so image (last
+     in DOM) lands on the LEFT (outer edge) and content lands on the
+     RIGHT (inner, near the curve). Extra right padding so the content
+     edge doesn't kiss the curve at the chapter's vertical mid-point. */
+  .flowRight .flowChapterGroup { flex-direction: row-reverse; padding-right: clamp(24px, 4vw, 56px); }
+  /* Mirror padding on peak-left chapters — content sits on the left of
+     the group, so we add LEFT padding to push it away from the curve. */
+  .flowLeft .flowChapterGroup { padding-left: clamp(24px, 4vw, 56px); }
+  /* Peak-left chapters: group on right column. Default DOM order →
+     content on LEFT (inner, near curve), image on RIGHT (outer edge). */
+
+  /* Image cell — pulled back to ~42% of the group so the content text
+     beside it has more horizontal room. Text was wrapping too narrow
+     before and stacking tall; trading a bit of image width for content
+     measure makes each chapter read in fewer lines. */
+  .flowChapterImage {
+    flex: 0 0 42%;
+    aspect-ratio: 4 / 5;
+    max-width: none;
+    max-height: 64vh;
+  }
+  .flowChapterContent {
+    flex: 1 1 58%;
+    min-width: 0;
+  }
+  /* Image + content live together inside a single .flowChapterGroup,
+     which sits on the INSIDE of the curve (the concave side, opposite
+     the path peak). The other half of the chapter row is empty — the
+     meander path passes through it.
+       • peak-left chapters (.flowLeft, peak at 30%)  → group on the RIGHT
+       • peak-right chapters (.flowRight, peak at 70%) → group on the LEFT
+     Inside the group, image stacks on top of the content text. */
+  .flowLeft  .flowChapterGroup { grid-column: 2; justify-self: start; }
+  .flowRight .flowChapterGroup { grid-column: 1; justify-self: end; }
+  .flowChapterContent {
+    grid-column: auto;
+    text-align: left;
+    max-width: 38ch;
+  }
+  .flowChapterImage { grid-column: auto; justify-self: stretch; }
+  /* Right-side mirrored typography rules removed — now that image +
+     content are grouped into one container on the inside-of-curve side,
+     the text inside the group is consistently left-aligned regardless
+     of which half of the chapter the group lives in. The old rules
+     (flipping the eyebrow tick, right-padding the bullets) were for the
+     earlier alternating-content layout and would break the readable
+     left-aligned flow inside the new group. */
+}
+
+.flowChapterContent {
+  position: relative;
+  max-width: 52ch;
+}
+
+.flowChapterNum {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(56px, 6vw, 84px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--gold);
+  margin: 0 0 22px;
+  text-shadow: 0 0 32px rgba(255, 200, 120, 0.28);
+  position: relative;
+}
+/* Hairline gold tick beside the numeral — visually links the number
+   to the knot/branch on the path so the eye reads "this chapter lives
+   at this curve". On right-side chapters the tick flips direction. */
+.flowChapterNum::before {
+  content: '';
+  display: block;
+  width: clamp(36px, 4vw, 56px);
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold) 0%, rgba(240, 198, 115, 0) 100%);
+  box-shadow: 0 0 6px rgba(255, 200, 120, 0.45);
+}
+/* Removed the right-side numeral flip — the chapter numeral is always
+   on the left of the content text now that image + content live in a
+   shared group on the inside-of-curve side. */
+
+.flowChapterEyebrow {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 18px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.flowChapterEyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 36px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold) 0%, rgba(240, 198, 115, 0) 100%);
+}
+
+.flowChapterTitle {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(2rem, 4.2vw, 3.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  margin: 0 0 22px;
+  color: #fff3d6;
+  /* Wider max-width so the title doesn't break onto extra lines when
+     the chapter column is wide. 28ch lets the typical 3-5 word
+     opening clause sit on one line on desktop. */
+  max-width: 28ch;
+  text-shadow: 0 0 40px rgba(255, 170, 80, 0.15);
+}
+.flowChapterTitle em {
+  font-style: italic;
+  background: linear-gradient(180deg, #fff3d6 0%, #ffd98a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.flowChapterBody {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+  line-height: 1.55;
+  color: var(--cream-mute);
+  /* Body measure widened from 48ch → 62ch so the paragraph stretches
+     across the column instead of column-wrapping early. Still inside
+     the optimal-reading-measure range (~45-75 chars per line). */
+  max-width: 62ch;
+  margin: 0 0 24px;
+}
+
+.flowChapterFeatures {
+  list-style: none;
+  padding: 20px 0 0;
+  margin: 6px 0 0;
+  border-top: 1px solid rgba(240, 198, 115, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* Match the body measure so the bullets stay aligned with the
+     paragraph above them. */
+  max-width: 62ch;
+}
+.flowChapterFeatures li {
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--cream);
+  padding-left: 22px;
+  position: relative;
+}
+.flowChapterFeatures li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 12px;
+  height: 1px;
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(255, 200, 120, 0.4);
+}
+
+/* ─── Inline image (small frame next to text) ────────────────────────── */
+.flowChapterImage {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 4 / 5;
+  overflow: visible;
+  border-radius: 2px;
+}
+.flowChapterImageFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ink-soft);
+  box-shadow:
+    0 0 0 1px rgba(240, 198, 115, 0.25) inset,
+    0 24px 60px -20px rgba(0, 0, 0, 0.7),
+    0 0 40px -8px rgba(255, 200, 120, 0.16);
+}
+.flowChapterImageFrame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.9) brightness(0.82);
+  transition: filter 700ms cubic-bezier(.22, .65, .21, 1), transform 900ms cubic-bezier(.22, .65, .21, 1);
+}
+.flowChapterImage:hover .flowChapterImageFrame img,
+.flowChapterActive .flowChapterImageFrame img {
+  filter: saturate(1) brightness(0.95);
+  transform: scale(1.04);
+}
+.flowChapterImageFrame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 110% 60% at 50% 0%, transparent 40%, rgba(8, 7, 10, 0.4) 100%),
+    linear-gradient(180deg, transparent 55%, rgba(20, 12, 4, 0.35) 100%);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. STICKY CHAPTER INDEX
+   Pinned to the bottom-right while the user is reading the journey;
+   fades + slides in on enter, out on exit. Shows the current step
+   number + total + the active chapter's eyebrow as a quiet anchor.
+   ───────────────────────────────────────────────────────────────────────── */
+.chapterIndex {
+  position: fixed;
+  bottom: clamp(24px, 4vh, 56px);
+  right: clamp(24px, 4vw, 56px);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 16px 28px;
+  background: rgba(8, 7, 10, 0.88);
+  border: 1px solid rgba(240, 198, 115, 0.22);
+  border-radius: 4px;
+  /* backdrop-filter removed - blurring the area behind a fixed element
+     on every scroll frame is one of the most expensive things you can
+     do on the GPU. Replaced with a more opaque background so the card
+     still reads as a contained chip. */
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+  transition:
+    opacity 600ms cubic-bezier(.22, .65, .21, 1),
+    transform 600ms cubic-bezier(.22, .65, .21, 1);
+  box-shadow:
+    0 24px 60px -28px rgba(0, 0, 0, 0.7),
+    0 0 30px -8px rgba(255, 200, 120, 0.18);
+}
+.chapterIndexVisible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.chapterIndexNumRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--serif);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+.chapterIndexNum {
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 400;
+  color: var(--gold-bright);
+  text-shadow: 0 0 18px rgba(255, 220, 150, 0.5);
+}
+.chapterIndexDivider {
+  font-size: 14px;
+  color: rgba(243, 231, 200, 0.4);
+}
+.chapterIndexTotal {
+  font-size: 14px;
+  color: rgba(243, 231, 200, 0.55);
+}
+.chapterIndexLabel {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.85);
+  font-weight: 500;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chapterIndex { transition: opacity 200ms ease; transform: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. ACTIVE TEXT-REVEAL ANIMATION
+   When a chapter becomes active, its content lands in stages:
+   eyebrow → title → body → bullets (cascade with stagger).
+   ───────────────────────────────────────────────────────────────────────── */
+.flowChapterEyebrow,
+.flowChapterTitle,
+.flowChapterBody,
+.flowChapterFeatures li {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+  transition:
+    opacity 700ms cubic-bezier(.22, .65, .21, 1),
+    transform 800ms cubic-bezier(.22, .65, .21, 1);
+}
+.flowChapterActive .flowChapterEyebrow {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition-delay: 80ms;
+}
+.flowChapterActive .flowChapterTitle {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition-delay: 180ms;
+}
+.flowChapterActive .flowChapterBody {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition-delay: 320ms;
+}
+.flowChapterActive .flowChapterFeatures li {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.flowChapterActive .flowChapterFeatures li:nth-child(1) { transition-delay: 460ms; }
+.flowChapterActive .flowChapterFeatures li:nth-child(2) { transition-delay: 520ms; }
+.flowChapterActive .flowChapterFeatures li:nth-child(3) { transition-delay: 580ms; }
+.flowChapterActive .flowChapterFeatures li:nth-child(4) { transition-delay: 640ms; }
+.flowChapterActive .flowChapterFeatures li:nth-child(5) { transition-delay: 700ms; }
+.flowChapterActive .flowChapterFeatures li:nth-child(6) { transition-delay: 760ms; }
+@media (prefers-reduced-motion: reduce) {
+  .flowChapterEyebrow,
+  .flowChapterTitle,
+  .flowChapterBody,
+  .flowChapterFeatures li {
+    opacity: 1; transform: none; transition: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. PER-CHAPTER ATMOSPHERIC TINT
+   Each chapter gets a subtle warm-tone overlay that deepens through
+   the journey. First chapter coolest gold, last chapter deepest
+   amber — gives the scroll a sense of "descending into" something
+   without screaming about it.
+   ───────────────────────────────────────────────────────────────────────── */
+.flowChapter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1200ms cubic-bezier(.22, .65, .21, 1);
+}
+.flowChapterActive::after { opacity: 1; }
+.flowChapter:nth-of-type(1)::after { background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 210, 140, 0.03) 0%, transparent 70%); }
+.flowChapter:nth-of-type(2)::after { background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 195, 120, 0.045) 0%, transparent 70%); }
+.flowChapter:nth-of-type(3)::after { background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 180, 100, 0.06) 0%, transparent 70%); }
+.flowChapter:nth-of-type(4)::after { background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 165, 80, 0.075) 0%, transparent 70%); }
+.flowChapter:nth-of-type(5)::after { background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 150, 60, 0.09) 0%, transparent 70%); }
+.flowChapter:nth-of-type(6)::after { background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 135, 50, 0.105) 0%, transparent 70%); }
+
+/* Make sure the chapter content sits above the tint overlay. */
+.flowChapter > * { position: relative; z-index: 1; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. SHADCN-STYLE FAQ ACCORDION
+   Card-style rows replacing the hairline-divider FAQ. Each row gets
+   a soft border + warm-dark background + rounded corners (first row
+   rounded top, last row rounded bottom, stacks share borders so they
+   read as one connected list). Native <details>/<summary> handles
+   open state + a11y. No close animation — content vanishes instantly
+   on close (per user request) but a smooth fade-in on open.
+   ───────────────────────────────────────────────────────────────────────── */
+/* Two-column FAQ section: head (label + heading) on the left, accordion
+   list on the right. Title sticks to the top of its column so it stays
+   in view while the reader scans the questions. Falls back to a stacked
+   single column under 900px so mobile gets the full-width list. */
+.faqSection {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .faqSection {
+    grid-template-columns: minmax(280px, 360px) 1fr;
+    gap: 64px;
+  }
+}
+.faqHead {
+  /* Heading column - on wide screens it sticks to the top of its grid
+     cell so it stays visible while the reader scrolls the questions on
+     the right. Margin reset on the inner heading/label so they sit at
+     the top of the column without their default flow gap. */
+  align-self: start;
+}
+@media (min-width: 900px) {
+  .faqHead {
+    position: sticky;
+    top: clamp(96px, 14vh, 140px);
+  }
+}
+.faqHead .extraSectionLabel,
+.faqHead .extraSectionHeading {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Contact fallback under the heading - small prompt + mailto link
+   with a slide-in arrow on hover. Sits in the left column so it fills
+   the dead space the heading alone left behind. */
+.faqContact {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.faqContactPrompt {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cream-faint);
+  margin: 0;
+}
+.faqContactLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  color: var(--gold);
+  text-decoration: none;
+  width: fit-content;
+  transition: color 240ms cubic-bezier(.22, .65, .21, 1);
+}
+.faqContactLink svg {
+  transition:
+    transform 240ms cubic-bezier(.22, .65, .21, 1),
+    color 240ms cubic-bezier(.22, .65, .21, 1);
+}
+.faqContactLink:hover { color: var(--gold-bright); }
+.faqContactLink:hover svg { transform: translateX(4px); }
+
+.faqList {
+  /* Stretches the right column. Removed the previous 860px max-width +
+     auto centring - the column itself is already the right width now,
+     and centering inside the grid track would re-introduce the dead
+     right-side gap we just got rid of. */
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+/* Hide the legacy hairline divider rules — the new card style draws
+   its own borders. */
+.faqRow {
+  border: 1px solid var(--rule);
+  background: rgba(14, 12, 8, 0.5);
+  padding: 0 clamp(16px, 2.4vw, 24px);
+  transition: background 200ms cubic-bezier(.22, .65, .21, 1), border-color 200ms;
+  /* Stacked-card border collapse — share borders between adjacent rows
+     so the stack reads as one connected list rather than six floating
+     pills. */
+  margin-top: -1px;
+}
+.faqRow:first-of-type {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  margin-top: 0;
+}
+.faqRow:last-of-type {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+.faqRow:hover {
+  background: rgba(20, 17, 12, 0.65);
+  border-color: rgba(240, 198, 115, 0.32);
+  z-index: 1;
+}
+.faqRow[open] {
+  background: rgba(20, 17, 12, 0.7);
+  border-color: rgba(240, 198, 115, 0.42);
+  z-index: 1;
+}

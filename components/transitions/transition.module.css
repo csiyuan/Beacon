@@ -1,0 +1,82 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   <TransitionOverlay> — full-viewport cinematic transition.
+   Plays the path-specific MP4, then fades a color wash to full opacity
+   just before the route change so the destination's arrivalWash can hand
+   off without a visible seam.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+  background: #000;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Hide native video controls everywhere (esp. iOS) */
+  pointer-events: none;
+}
+
+.wash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  will-change: opacity;
+}
+
+.washVisible { opacity: 1; }
+
+/* Bottom-right vignette that hides the AI-tool watermark burned into the
+   source MP4. Sized to comfortably cover the watermark plus a safety
+   margin; the soft radial fade keeps it reading as an atmospheric vignette
+   rather than a hard-edged mask. Warm-dark to blend with the video's
+   dominant tones (the warm dusk landscape). */
+/* Full-width dark band at the bottom of the transition video — matches
+   the splash hero's .heroWatermarkCover approach. Reads as cinematic
+   letterboxing / atmospheric falloff rather than a spotlit patch in the
+   corner (the previous radial-gradient version drew the eye to the
+   exact area we were trying to hide). */
+.watermarkCover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 160px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(10, 6, 4, 0.55) 22%,
+    rgba(10, 6, 4, 0.95) 45%,
+    rgba(10, 6, 4, 1) 60%,
+    rgba(10, 6, 4, 1) 100%
+  );
+}
+
+@media (max-width: 640px) {
+  .watermarkCover { height: 120px; }
+}
+
+/* Mobile + reduced-motion fallback: a solid-color overlay that just
+   fades from 0 to 1 over the configured duration. No video, no compositing
+   cost. The video element is conditionally not rendered in those modes. */
+.fallbackWash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: fallbackFadeIn var(--fallback-duration, 600ms) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: opacity;
+}
+
+@keyframes fallbackFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
