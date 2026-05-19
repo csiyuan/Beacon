@@ -1,7 +1,7 @@
 /* ─────────────────────────────────────────────────────────────────────────
    Brands corporate page styles. Uses the existing site's warm-gold tokens
    (Cormorant Garamond / #f0c673 / #c98a3a / deep ink) but with a calmer,
-   more disciplined B2B layout — more whitespace, clearer hierarchy, less
+   more disciplined B2B layout - more whitespace, clearer hierarchy, less
    atmospheric chrome than the cinematic creative site.
    ───────────────────────────────────────────────────────────────────────── */
 
@@ -34,7 +34,7 @@
   overflow-x: hidden;
 }
 
-/* Subtle warm radial glow on the body backdrop — calmer than the cinematic
+/* Subtle warm radial glow on the body backdrop - calmer than the cinematic
    site's matte. Just enough warmth to feel like the same brand. */
 .page::before {
   content: '';
@@ -55,14 +55,12 @@
 .container {
   max-width: 1180px;
   margin: 0 auto;
-  /* Mobile clamp bumped +5px on each side (37px min, 49px max) so
-     content has more breathing room from the viewport edge on phones.
-     Desktop rules (@768/@1100) unchanged. */
-  padding: 0 clamp(37px, 7vw, 49px);
+  /* Flat 30px gutter on every viewport - the wider tablet/desktop
+     paddings (40/56) were making cards and section content feel
+     pinched. 30px is the same as journey pages so the whole pathway
+     surface feels consistent. */
+  padding: 0 30px;
 }
-
-@media (min-width: 768px) { .container { padding: 0 40px; } }
-@media (min-width: 1100px) { .container { padding: 0 56px; } }
 
 /* ─── Nav ───────────────────────────────────────────────────────────────── */
 .nav {
@@ -104,7 +102,7 @@
   transition: filter 240ms;
 }
 
-/* Hover state — matches the splash hero logo affordance so the home
+/* Hover state - matches the splash hero logo affordance so the home
    button reads identically across the site (warm gold glow + a back-
    arrow that slides out from the left). */
 .navLogo:hover { color: var(--gold-bright); }
@@ -869,7 +867,7 @@
   inset: 0;
   z-index: 200;
   pointer-events: none;
-  /* Flat cream — seam-matched to the splash's brand-transition end frame
+  /* Flat cream - seam-matched to the splash's brand-transition end frame
      so the hand-off has no visible colour shift. */
   background: #F5E6D3;
   animation: arrivalWashOut 1100ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
@@ -1495,8 +1493,15 @@
   .compareTable { grid-template-columns: 1fr 1fr; }
   .compareLabel {
     grid-column: 1 / -1;
+    /* Centered label sits between the row-divider above (border-top)
+       and a matching hairline below (border-bottom), so each section's
+       title separates cleanly from its two info cells - same divider
+       treatment as the rest of the table rows. */
+    text-align: center;
+    justify-content: center;
     border-top: 1px solid rgba(240, 198, 115, 0.18);
-    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(240, 198, 115, 0.18);
+    padding: 16px 24px;
   }
   .compareColHead { border-left: 0; }
   .compareColHead + .compareColHead { border-left: 1px solid rgba(240, 198, 115, 0.18); }

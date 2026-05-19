@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────
-   <JourneyPage> — flyward.com-inspired vertical timeline used by the two
+   <JourneyPage> - flyward.com-inspired vertical timeline used by the two
    creative pathway pages (/creatives/embedded and /creatives/projects).
 
    Architecture:
@@ -111,7 +111,7 @@
   .pathwayWash { animation: none; opacity: 1; }
 }
 
-/* Warm radial glow on the body — same idiom as /brands so the journey
+/* Warm radial glow on the body - same idiom as /brands so the journey
    pages don't read like a foreign sub-site. */
 .page::before {
   content: '';
@@ -129,14 +129,137 @@
 .container {
   max-width: 1180px;
   margin: 0 auto;
-  /* Min 32px on phones so content doesn't hug the viewport edge. */
-  padding: 0 clamp(32px, 7vw, 44px);
+  /* 30px mobile gutter. */
+  padding: 0 30px;
 }
 @media (min-width: 768px) { .container { padding: 0 40px; } }
 @media (min-width: 1100px) { .container { padding: 0 56px; } }
 
+/* ─── Mobile hamburger + side menu ───────────────────────────────────────
+   Ported from app/brands/brands.module.css. Under 760px the inline
+   top-nav hides and a hamburger button reveals a right-side slide-in
+   sheet with the same nav links + a connect block. Keeps mobile chrome
+   consistent across /brands and the journey pathway pages. */
+.topNavDesktop {}
+.hamburger {
+  display: none;
+  background: transparent;
+  border: 1px solid rgba(240, 198, 115, 0.32);
+  border-radius: 4px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 240ms, background 240ms;
+}
+.hamburger:hover { border-color: rgba(240, 198, 115, 0.7); background: rgba(240, 198, 115, 0.06); }
+.hamburger span {
+  display: block;
+  width: 18px;
+  height: 1.5px;
+  background: #fff3d6;
+  transition: background 240ms;
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 280ms cubic-bezier(.22, .65, .21, 1);
+  z-index: 90;
+}
+.menuBackdropOpen { opacity: 1; pointer-events: auto; }
+
+.sideMenu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(85vw, 340px);
+  background: rgba(10, 8, 5, 0.98);
+  border-left: 1px solid rgba(240, 198, 115, 0.18);
+  padding: 80px 32px 32px;
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 320ms cubic-bezier(.22, .65, .21, 1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.sideMenuOpen { transform: translateX(0); }
+.sideMenuClose {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(240, 198, 115, 0.32);
+  border-radius: 4px;
+  cursor: pointer;
+  color: #fff3d6;
+  transition: border-color 240ms, background 240ms;
+}
+.sideMenuClose:hover { border-color: rgba(240, 198, 115, 0.7); background: rgba(240, 198, 115, 0.06); }
+.sideMenuNav {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+.sideMenuNav a {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 22px;
+  color: #fff3d6;
+  text-decoration: none;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(240, 198, 115, 0.16);
+  transition: color 240ms, transform 240ms;
+  letter-spacing: -0.005em;
+}
+.sideMenuNav a:hover {
+  color: #ffe2a0;
+  transform: translateX(4px);
+}
+.sideMenuConnect {
+  margin-top: auto;
+  padding-top: 24px;
+}
+.sideMenuLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.72);
+  margin: 0 0 10px;
+  font-weight: 500;
+}
+.sideMenuConnect a {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: #fff3d6;
+  text-decoration: none;
+}
+.sideMenuConnect a:hover { color: #ffe2a0; }
+
+@media (max-width: 759px) {
+  /* Swap the inline desktop nav for the hamburger toggle on mobile. */
+  .topNavDesktop { display: none !important; }
+  .hamburger { display: inline-flex; }
+}
+
 /* ─── Cinematic destination nav (ported from /creatives top-nav) ──────
-   Minimal, no CTA pill, no sticky blur — just a wordmark with hover
+   Minimal, no CTA pill, no sticky blur - just a wordmark with hover
    back-arrow on the left and sans-caps nav links on the right. Reads
    as a film title card rather than a marketing header. */
 .destNav {
@@ -355,15 +478,16 @@
    sub / CTAs sit centered in the user's view on arrival (matching the
    creatives landing's centered title card). */
 .hero {
-  /* Full-viewport hero with the title block centred. Padding cleared
-     so `justify-content: center` truly vertically centres the eyebrow
-     / title / sub / CTAs block - any vertical padding would bias the
-     centred content downward and leave a top-heavy gap. The pathway
-     switcher (rule below) is pulled out of the flex flow so it doesn't
-     add mass to the centred block. */
+  /* Full-viewport hero. The pathway switcher, eyebrow, title, sub, and
+     CTAs all live in the centered flex column so the layout stays
+     responsive across viewports without anything overlapping. Top
+     padding keeps the switcher clear of the fixed nav bar (~64-80px
+     tall); bottom padding gives the CTAs breathing room. The block is
+     vertically centered between those bounds. */
   position: relative;
   min-height: 100vh;
-  padding: 0;
+  padding-top: clamp(110px, 14vh, 160px);
+  padding-bottom: clamp(48px, 8vh, 96px);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -371,30 +495,23 @@
   justify-content: center;
   text-align: center;
 }
-@media (min-width: 768px) { .hero { padding: 0; } }
 
 .hero .heroEyebrow,
 .hero .heroTitle,
 .hero .heroSub,
-.hero .heroActions { margin-left: auto; margin-right: auto; }
+.hero .heroActions,
+.hero .switcher { margin-left: auto; margin-right: auto; }
 .hero .heroActions { justify-content: center; }
-
-/* Pin the pathway switcher near the top so it doesn't participate in
-   flex centering. Embedded's longer (3-line) title pushes its centred
-   hero block higher than Projects', closing the gap above the eyebrow,
-   so the switcher needs to sit high enough to keep clear breathing
-   room on the tighter of the two pathways. */
-.hero .switcher {
-  position: absolute;
-  top: clamp(60px, 9vh, 100px);
-  left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
+.hero .switcher { margin-bottom: 32px; }
+@media (max-width: 720px) {
+  .hero .switcher { margin-bottom: 24px; }
 }
 
 .heroEyebrow {
   font-size: 11px;
-  letter-spacing: 0.32em;
+  /* Letter-spacing + dash width tightened to match the brands hero
+     eyebrow so the two pages read as one typographic system. */
+  letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--gold);
   margin: 0 0 28px;
@@ -405,17 +522,19 @@
 }
 .heroEyebrow::before {
   content: '';
-  width: 36px;
+  width: 32px;
   height: 1px;
   background: var(--gold);
 }
 
 .heroTitle {
   font-family: var(--serif);
-  font-weight: 300;
+  /* Weight + tracking matched to brands hero so headings feel like
+     the same product across both surfaces. */
+  font-weight: 400;
   font-size: clamp(2.5rem, 6.5vw, 5rem);
   line-height: 1.04;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.012em;
   margin: 0 0 32px;
   max-width: 22ch;
   color: #fff3d6;
@@ -457,7 +576,9 @@
   border: 0;
   font-family: var(--sans);
   font-weight: 500;
-  font-size: 12px;
+  /* 13px matches brands .ctaPrimary so primary actions look identical
+     across both surfaces. */
+  font-size: 13px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   padding: 16px 28px;
@@ -488,17 +609,16 @@
 
 /* ─── Pathway switcher ──────────────────────────────────────────────────── */
 .switcher {
-  display: flex;
-  /* 20px between the two pills — gives ~10px of breathing room on each
-     button's inner edge so they read as two distinct destinations rather
-     than a single segmented control. */
-  gap: 20px;
+  display: inline-flex;
+  /* Tight segmented-control feel - the visible "gap" is the cushion
+     inside each pill rather than space between them. */
+  gap: 4px;
   margin-bottom: 56px;
   border: 1px solid var(--rule);
   border-radius: 999px;
   padding: 4px;
   background: rgba(255, 255, 255, 0.02);
-  width: fit-content;
+  max-width: 100%;
 }
 
 .switcherLink {
@@ -511,6 +631,16 @@
   border-radius: 999px;
   transition: background 200ms, color 200ms;
   font-weight: 500;
+  /* Keep "PROJECT-BASED" on one line - without this it wraps to two
+     lines on narrow viewports, breaking the pill geometry. */
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .switcherLink {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    padding: 9px 16px;
+  }
 }
 .switcherLink:hover { color: var(--cream); }
 .switcherLink.active {
@@ -558,7 +688,7 @@
   stroke-width: 2;
   stroke-linecap: round;
   /* dasharray + dashoffset set imperatively in JourneyPage's scroll
-     effect — measured from the path's actual length so the reveal is
+     effect - measured from the path's actual length so the reveal is
      correct regardless of milestone count. */
   filter: drop-shadow(0 0 8px rgba(255, 200, 120, 0.45));
   /* non-scaling-stroke was REMOVED here: with preserveAspectRatio="none"
@@ -570,10 +700,10 @@
      scale with the SVG keeps both in the same coordinate system, so the
      trail always sits directly behind the orb. The slight stroke
      thickening through the curves (X-scale 1, Y-scale ~1.67) reads as
-     cinematic — not a bug. */
+     cinematic - not a bug. */
 }
 
-/* Traveling orb — the lighthouse beacon that rides the path. Two
+/* Traveling orb - the lighthouse beacon that rides the path. Two
    circles stacked: a wide soft glow + a bright cinematic core.
    vector-effect keeps stroke widths constant despite the stretched
    viewBox so the orb stays a perfect circle on every viewport. */
@@ -592,7 +722,7 @@
   pointer-events: none;
   opacity: 0;
   will-change: transform, opacity;
-  /* No opacity transition — the JS scroll handler already smooths the
+  /* No opacity transition - the JS scroll handler already smooths the
      fade-in over the first 2% of scroll, and any CSS transition on top
      of that lags the orb behind the instant stroke-dashoffset reveal,
      which makes the orb look like it's chasing the line instead of
@@ -611,7 +741,7 @@
     0 0 32px rgba(255, 200, 120, 0.55),
     0 0 64px rgba(255, 180, 90, 0.35);
   /* Slow pulsing breath so even at rest the orb feels alive. The pulse
-     stays subtle — opacity oscillates only ~15% so it doesn't compete with
+     stays subtle - opacity oscillates only ~15% so it doesn't compete with
      the scroll-driven movement. */
   animation: orbBreath 2.8s ease-in-out infinite;
 }
@@ -631,7 +761,7 @@
   .journeyOrb { animation: none; }
 }
 
-/* Each milestone — a row with the marker centered on the path and
+/* Each milestone - a row with the marker centered on the path and
    content on the trailing side. On mobile everything stacks to the
    right of the path. */
 .milestone {
@@ -645,7 +775,7 @@
 }
 @media (min-width: 900px) {
   .milestone {
-    /* Symmetric column weights — both text and image get exactly 1fr so
+    /* Symmetric column weights - both text and image get exactly 1fr so
        every milestone has the same skeleton regardless of which side is
        text and which is image. The middle 160px column carries the
        marker on the spine. */
@@ -693,7 +823,7 @@
 }
 @media (min-width: 900px) { .milestoneMarkerNum { font-size: 24px; } }
 
-/* Pulse — a second ring that gently fades out from the marker on a slow
+/* Pulse - a second ring that gently fades out from the marker on a slow
    loop once the milestone is in view. Reads as a heartbeat / lighthouse
    sweep, ties into the warm brand atmosphere without being intrusive. */
 .milestoneMarkerPulse {
@@ -737,7 +867,7 @@
   }
 }
 
-/* `.reached` — applied when the traveling orb has passed this milestone.
+/* `.reached` - applied when the traveling orb has passed this milestone.
    The marker brightens and grows a softer outer halo, like a waypoint
    that has been lit by the passing beacon. */
 .milestoneMarker.reached {
@@ -797,7 +927,7 @@
   /* Hard caps on dimensions so the still feels like a consistent
      "frame" on every milestone regardless of row height or column
      width. Without these, taller rows let the image balloon and
-     shorter rows squeezed it small — that's the inconsistency the
+     shorter rows squeezed it small - that's the inconsistency the
      screenshots showed. */
   max-width: 460px;
   max-height: 560px;
@@ -817,7 +947,7 @@
   transform: translateY(0) scale(1);
 }
 
-/* Inner image frame — clips the img to the gold-bordered rectangle so
+/* Inner image frame - clips the img to the gold-bordered rectangle so
    the hover zoom expands INWARD (the picture scales while the frame
    stays the same size). overflow: hidden here is what stops the image
    from spilling past its border on hover. */
@@ -866,7 +996,7 @@
     linear-gradient(180deg, transparent 50%, rgba(20, 12, 4, 0.4) 100%);
 }
 
-/* ─── Corner accents — film-still / archival treatment ───────────────── */
+/* ─── Corner accents - film-still / archival treatment ───────────────── */
 .milestoneImageCorner {
   position: absolute;
   width: 22px;
@@ -881,7 +1011,7 @@
 .milestoneImageCornerBL { bottom: -1px; left: -1px; border-bottom: 1px solid var(--gold); border-left: 1px solid var(--gold); }
 .milestoneImageCornerBR { bottom: -1px; right: -1px; border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
 
-/* ─── Caption — quiet line of context under the still ────────────────── */
+/* ─── Caption - quiet line of context under the still ────────────────── */
 .milestoneImageCaption {
   position: absolute;
   bottom: -34px;
@@ -903,7 +1033,7 @@
   .milestoneImage { margin: 0; }
   /* Always pin the image to the inner edge of its column (closer to
      the marker / spine) so every milestone has the same gap between
-     image and spine — without this, the image floats around inside
+     image and spine - without this, the image floats around inside
      a column wider than itself and the spacing reads inconsistent. */
   .milestone.right .milestoneImage { grid-column: 1; justify-self: end; }
   .milestone.left  .milestoneImage { grid-column: 3; justify-self: start; }
@@ -914,7 +1044,7 @@
 
 .milestoneContent { position: relative; }
 
-/* Outsized watermark numeral — chapter mark behind the eyebrow + title.
+/* Outsized watermark numeral - chapter mark behind the eyebrow + title.
    Smaller and quieter than before so it doesn't muscle into the title
    block; sits just above and on the OUTSIDE edge of the text column so
    it never collides with the headline regardless of left/right layout. */
@@ -935,7 +1065,7 @@
 }
 @media (min-width: 900px) {
   /* Right-side milestones (text on right): numeral on the left edge of
-     the text — closer to the spine, so it reads as the chapter that
+     the text - closer to the spine, so it reads as the chapter that
      just opened. Left-side milestones flip it to the right edge. */
   .milestone.right .milestoneStageNum { left: -4px; right: auto; }
   .milestone.left  .milestoneStageNum { left: auto; right: -4px; }
@@ -950,10 +1080,12 @@
   z-index: 1;
   font-family: var(--sans);
   font-size: 11px;
-  letter-spacing: 0.42em;
+  /* Tracking + margin matched to brands sectionLabel - tighter caps
+     style reads as the same product family. */
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--gold);
-  margin: 0 0 20px;
+  margin: 0 0 24px;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
@@ -976,7 +1108,9 @@
   position: relative;
   z-index: 1;
   font-family: var(--serif);
-  font-weight: 300;
+  /* 400 matches brands section/heading weight for consistent typographic
+     authority across the two surfaces. */
+  font-weight: 400;
   font-size: clamp(2.125rem, 4vw, 3.25rem);
   line-height: 1.04;
   letter-spacing: -0.012em;
@@ -1047,33 +1181,43 @@
    same label → heading → content pattern so the page reads as one
    continuous voice instead of a stack of independent modules. */
 .extraSection {
-  padding: 80px 0;
+  /* Vertical-only padding so .container's horizontal padding flows
+     through (shorthand `padding: 96px 0` would wipe out the 20px
+     mobile gutter). Padding matched to brands .section (96 / 128). */
+  padding-top: 96px;
+  padding-bottom: 96px;
   border-top: 1px solid var(--rule);
 }
-@media (min-width: 768px) { .extraSection { padding: 120px 0; } }
+@media (min-width: 768px) {
+  .extraSection { padding-top: 128px; padding-bottom: 128px; }
+}
 
 .extraSectionLabel {
   font-family: var(--sans);
   font-size: 11px;
-  letter-spacing: 0.42em;
+  /* Tighter tracking + larger bottom margin matches brands
+     .sectionLabel. */
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--gold);
   font-weight: 500;
-  margin: 0 0 18px;
+  margin: 0 0 24px;
   display: inline-flex;
   align-items: center;
   gap: 14px;
 }
 .extraSectionLabel::before {
   content: '';
-  width: 36px;
+  width: 32px;
   height: 1px;
   background: var(--gold);
 }
 
 .extraSectionHeading {
   font-family: var(--serif);
-  font-weight: 300;
+  /* 400 matches brands .sectionHeading - heavier reads as primary
+     section authority instead of a quiet subhead. */
+  font-weight: 400;
   font-size: clamp(1.875rem, 3.6vw, 2.75rem);
   line-height: 1.06;
   letter-spacing: -0.005em;
@@ -1085,22 +1229,27 @@
 
 /* ─── Guarantees grid ──────────────────────────────────────────────────
    Tight 2- or 3-up cards. Each guarantee is a concrete commitment with
-   a short body — concrete numbers (48hr, NET-15, etc.) live in the
+   a short body - concrete numbers (48hr, NET-15, etc.) live in the
    title so they catch the eye at a glance. */
 .guaranteeGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  /* Gap + padding match brands .services / .serviceCard so multi-card
+     grids have the same breathing room across both surfaces. */
+  gap: 28px;
 }
-@media (min-width: 720px) { .guaranteeGrid { grid-template-columns: repeat(2, 1fr); gap: 24px; } }
+@media (min-width: 720px) { .guaranteeGrid { grid-template-columns: repeat(2, 1fr); gap: 32px; } }
 @media (min-width: 1100px) { .guaranteeGrid { grid-template-columns: repeat(3, 1fr); } }
 
 .guaranteeCard {
   background: rgba(20, 17, 12, 0.55);
   border: 1px solid var(--rule);
-  padding: 32px 28px;
+  padding: 40px 32px;
   border-radius: 4px;
   transition: border-color 240ms, background 240ms, transform 240ms;
+}
+@media (min-width: 768px) {
+  .guaranteeCard { padding: 56px 44px; gap: 24px; }
 }
 .guaranteeCard:hover {
   border-color: rgba(240, 198, 115, 0.42);
@@ -1125,7 +1274,7 @@
 }
 
 /* ─── Sectors strip ────────────────────────────────────────────────────
-   Horizontal list of pill tags — "Tech · Finance · Lifestyle ..." */
+   Horizontal list of pill tags - "Tech · Finance · Lifestyle ..." */
 .sectorList {
   list-style: none;
   padding: 0;
@@ -1308,18 +1457,25 @@
    without having to read every row. Mobile collapses the table into
    stacked rows so it stays scannable on narrow screens. */
 .compareTable {
-  display: grid;
-  grid-template-columns: minmax(120px, 1fr) 1fr 1fr;
+  /* Stacked rows; each row owns its own equal-column grid. Simpler
+     and more predictable than display:contents subgrid - col widths
+     are forced identical on every row, value columns get equal share,
+     row label stays compact. */
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--rule);
   border-radius: 4px;
   overflow: hidden;
   background: rgba(20, 17, 12, 0.5);
 }
 .compareHead {
-  display: contents;
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2.4fr) minmax(0, 2.4fr);
 }
 .compareCorner {
-  padding: 22px 24px;
+  /* Padding matches the row labels below so the corner cell and the
+     label column share a consistent left inset. */
+  padding: 22px 20px;
   background: rgba(14, 12, 9, 0.55);
   border-bottom: 1px solid var(--rule);
   /* Stretch the corner cell so its background fills the grid row height
@@ -1330,13 +1486,14 @@
   box-sizing: border-box;
 }
 .compareColHead {
-  padding: 22px 24px;
+  padding: 22px 20px;
   background: rgba(14, 12, 9, 0.55);
   border-bottom: 1px solid var(--rule);
   border-left: 1px solid var(--rule);
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 .compareColLabel {
   font-family: var(--sans);
@@ -1360,9 +1517,14 @@
 }
 .compareColActive .compareColName { color: var(--gold-bright); }
 
-.compareRow { display: contents; }
+.compareRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2.4fr) minmax(0, 2.4fr);
+}
 .compareRowLabel {
-  padding: 20px 24px;
+  /* Consistent left inset matches the cell padding so labels and
+     values share the same column rhythm. */
+  padding: 20px 20px;
   font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.18em;
@@ -1371,9 +1533,10 @@
   font-weight: 500;
   border-top: 1px solid var(--rule);
   align-self: center;
+  min-width: 0;
 }
 .compareCell {
-  padding: 20px 24px;
+  padding: 20px 20px;
   border-top: 1px solid var(--rule);
   border-left: 1px solid var(--rule);
   font-family: var(--serif);
@@ -1381,6 +1544,8 @@
   line-height: 1.5;
   color: var(--cream);
   align-self: center;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 .compareCellActive {
   background: rgba(240, 198, 115, 0.06);
@@ -1395,39 +1560,54 @@
   justify-content: center;
 }
 
-@media (max-width: 720px) {
-  .compareTable {
-    grid-template-columns: 1fr;
+@media (max-width: 860px) {
+  .compareHead {
+    grid-template-columns: 1fr 1fr;
   }
-  .compareHead { display: grid; grid-template-columns: 1fr 1fr; }
   .compareCorner { display: none; }
-  .compareColHead { border-left: 0; }
+  .compareColHead { border-left: 0; padding: 18px 16px; }
   .compareColHead + .compareColHead { border-left: 1px solid var(--rule); }
+  .compareColName { font-size: 1.25rem; }
   .compareRow {
-    display: grid;
     grid-template-columns: 1fr 1fr;
     border-top: 1px solid var(--rule);
   }
   .compareRowLabel {
     grid-column: 1 / -1;
+    /* Center the title with a divider above + below so it separates
+       cleanly from the two info cells - same treatment as the brands
+       comparison table on mobile. */
+    text-align: center;
+    justify-content: center;
+    padding: 14px 20px;
     border-top: 0;
-    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
     background: rgba(14, 12, 9, 0.4);
   }
-  .compareCell { border-top: 0; }
+  .compareCell {
+    border-top: 0;
+    padding: 16px 16px;
+    font-size: 0.95rem;
+  }
   .compareCell + .compareCell { border-left: 1px solid var(--rule); }
+}
+@media (max-width: 480px) {
+  .compareColLabel { font-size: 9px; letter-spacing: 0.24em; }
+  .compareColName { font-size: 1.05rem; }
+  .compareCell { font-size: 0.9rem; padding: 14px 12px; }
+  .compareColHead { padding: 14px 12px; }
 }
 
 /* ─── FAQ list ─────────────────────────────────────────────────────────
-   Plain definition list — no accordion mechanics, just typography. The
+   Plain definition list - no accordion mechanics, just typography. The
    questions are typeset large in serif italic so they read as headings;
    answers tuck below with comfortable measure. */
-/* ─── FAQ — collapsible <details> rows ────────────────────────────────
+/* ─── FAQ - collapsible <details> rows ────────────────────────────────
    Each question is a clickable summary that toggles its answer. Native
    <details>/<summary> handles the open state + keyboard accessibility;
    CSS just styles the row and rotates the chevron when the row is
    [open]. Hairline gold dividers between rows + a subtle hover lift
-   on the row text — flyward.com's FAQ pattern in our palette. */
+   on the row text - flyward.com's FAQ pattern in our palette. */
 .faqList {
   margin: 0;
   display: flex;
@@ -1466,7 +1646,7 @@
 
 .faqQText { flex: 1; min-width: 0; }
 
-/* Chevron — rotates 180° when the row opens. */
+/* Chevron - rotates 180° when the row opens. */
 .faqChevron {
   flex-shrink: 0;
   display: inline-flex;
@@ -1482,7 +1662,7 @@
   color: var(--gold-bright);
 }
 
-/* Answer — sits below the summary, padded so the bottom edge of an
+/* Answer - sits below the summary, padded so the bottom edge of an
    open row breathes before the next row's divider. */
 .faqA {
   margin: 0;
@@ -1528,10 +1708,14 @@
    .cta pill as the hero so the form lands on the same affordance the
    page started with. */
 .applicationSection {
-  padding: 80px 0;
+  /* Vertical-only so .container's horizontal padding flows through. */
+  padding-top: 80px;
+  padding-bottom: 80px;
   border-top: 1px solid var(--rule);
 }
-@media (min-width: 768px) { .applicationSection { padding: 120px 0; } }
+@media (min-width: 768px) {
+  .applicationSection { padding-top: 120px; padding-bottom: 120px; }
+}
 
 .applicationIntro {
   font-family: var(--serif);
@@ -1667,10 +1851,14 @@
    between the journey and the end CTA so the pathway lands on a human
    voice before the final ask. */
 .testimonialBand {
-  padding: 80px 0;
+  /* Vertical-only so .container's horizontal padding flows through. */
+  padding-top: 80px;
+  padding-bottom: 80px;
   text-align: center;
 }
-@media (min-width: 768px) { .testimonialBand { padding: 120px 0; } }
+@media (min-width: 768px) {
+  .testimonialBand { padding-top: 120px; padding-bottom: 120px; }
+}
 
 .testimonialQuote {
   position: relative;
@@ -1707,11 +1895,16 @@
 
 /* ─── End of journey: CTA band ──────────────────────────────────────────── */
 .endBand {
+  /* Vertical-only so .container's horizontal padding flows through.
+     (Inner wrapper uses .container - that's what supplies the gutter.) */
   text-align: center;
-  padding: 80px 0 120px;
+  padding-top: 80px;
+  padding-bottom: 120px;
   border-top: 1px solid var(--rule);
 }
-@media (min-width: 768px) { .endBand { padding: 120px 0 160px; } }
+@media (min-width: 768px) {
+  .endBand { padding-top: 120px; padding-bottom: 160px; }
+}
 
 .endTitle {
   font-family: var(--serif);
@@ -1843,7 +2036,7 @@
 
 /* ─── Cinematic DestFooter (ported from /creatives destination overlay) ─
    Centered BEACON wordmark with gold spark divider. Same visual idiom
-   the user designed in the original destination view — large serif
+   the user designed in the original destination view - large serif
    wordmark at the top, sans-caps tagline, gold hairline + four-point
    spark divider, then nav columns, connect block, meta line. */
 .destFooter {
@@ -1851,6 +2044,7 @@
   background: linear-gradient(180deg, rgba(8, 5, 2, 0) 0%, rgba(20, 12, 4, 0.45) 100%);
   margin-top: 6vh;
   border-top: 1px solid var(--rule);
+  text-align: center;
 }
 
 .ftMark {
@@ -1899,16 +2093,19 @@
 
 .ftCols {
   display: grid;
-  gap: 36px;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
   margin: 0 auto 56px;
 }
 @media (min-width: 760px) {
-  .ftCols { grid-template-columns: 1fr 1fr; gap: 56px; }
+  .ftCols { gap: 56px; }
 }
 .ftCol {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  align-items: center;
+  text-align: center;
 }
 .ftLabel {
   font-family: var(--sans);
@@ -1932,7 +2129,6 @@
 .ftCol a:hover,
 .ftEmail:hover {
   color: var(--gold-bright);
-  transform: translateX(3px);
 }
 
 .ftConnect {
@@ -1940,6 +2136,8 @@
   flex-direction: column;
   gap: 18px;
   margin-bottom: 56px;
+  align-items: center;
+  text-align: center;
 }
 .ftLocation {
   font-family: var(--serif);
@@ -1950,27 +2148,43 @@
 }
 .ftSocial {
   display: flex;
-  gap: 18px;
+  gap: 12px;
   align-items: center;
+  justify-content: center;
   margin-top: 20px;
   padding-top: 22px;
   border-top: 1px solid rgba(240, 198, 115, 0.14);
 }
 .ftSocial a {
-  color: rgba(240, 198, 115, 0.55);
+  /* 44x44 minimum tap target plus a subtle gold-outline pill so the
+     icons read as deliberate buttons - matches the brands footer. */
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(240, 198, 115, 0.22);
+  color: rgba(240, 198, 115, 0.7);
   display: inline-flex;
   align-items: center;
-  transition: color 240ms, transform 240ms;
+  justify-content: center;
+  transition: color 240ms, transform 240ms, background 240ms, border-color 240ms;
 }
 .ftSocial a:hover {
   color: var(--gold-bright);
+  border-color: rgba(240, 198, 115, 0.55);
+  background: rgba(240, 198, 115, 0.08);
   transform: translateY(-2px);
+}
+.ftSocial a svg {
+  width: 18px;
+  height: 18px;
 }
 
 .ftMeta {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
   padding-top: 32px;
   border-top: 1px solid rgba(240, 198, 115, 0.18);
   font-family: var(--sans);
@@ -2017,7 +2231,7 @@
    Apple-product-page pattern. The left column pins a stacked image
    gallery to the viewport; the right column scrolls past it with text
    for each step. The active image (driven by JS IntersectionObserver)
-   crossfades in over the previous one. No spine, no orb, no markers —
+   crossfades in over the previous one. No spine, no orb, no markers -
    the image change itself is the progression cue.
    ───────────────────────────────────────────────────────────────────── */
 .stickyJourney {
@@ -2095,7 +2309,7 @@
   filter: saturate(1) brightness(1);
 }
 
-/* Hairline corner accents on the sticky frame — film-still treatment
+/* Hairline corner accents on the sticky frame - film-still treatment
    that survives the crossfade because they're outside the frame. */
 .stickyCorner {
   position: absolute;
@@ -2109,7 +2323,7 @@
 .stickyCornerBL { bottom: -1px; left: -1px; border-bottom: 1px solid var(--gold); border-left: 1px solid var(--gold); }
 .stickyCornerBR { bottom: -1px; right: -1px; border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
 
-/* Step counter — small numeral pair pinned to bottom-right of the
+/* Step counter - small numeral pair pinned to bottom-right of the
    sticky frame. Shows the current step out of the total, e.g. "02/06". */
 .stickyCounter {
   position: absolute;
@@ -2153,7 +2367,7 @@
   opacity: 0.35;
   transition: opacity 700ms cubic-bezier(.22, .65, .21, 1);
 }
-/* Inner card — the actual visual "box". Padding is inside the card,
+/* Inner card - the actual visual "box". Padding is inside the card,
    not on the milestone wrapper, so the min-height layout still works
    for the IntersectionObserver triggers. Dark backdrop with a 1px
    gold rule + soft inner glow that brightens when this step is the
@@ -2189,7 +2403,7 @@
   position: relative;
   z-index: 1;
 }
-/* Internal padding for the card — applies to every step's content. */
+/* Internal padding for the card - applies to every step's content. */
 .stickyStep {
   padding: 0 clamp(28px, 3vw, 48px);
 }
@@ -2197,7 +2411,7 @@
   opacity: 1;
 }
 /* First step starts visible (otherwise the page lands on a dim block
-   before the user has scrolled — feels broken). */
+   before the user has scrolled - feels broken). */
 .stickyStep:first-of-type { opacity: 1; }
 
 .stickyStepNum {
@@ -2291,7 +2505,7 @@
   box-shadow: 0 0 6px rgba(255, 200, 120, 0.4);
 }
 
-/* On mobile, no stickiness — each step shows its image stacked above
+/* On mobile, no stickiness - each step shows its image stacked above
    the text, in normal flow. */
 @media (max-width: 899px) {
   .stickyImageColumn { display: none; }
@@ -2300,7 +2514,7 @@
     padding: 48px 0;
     opacity: 1;
   }
-  /* Inline image per step on mobile — surfaces an image alongside each
+  /* Inline image per step on mobile - surfaces an image alongside each
      block since the sticky column is hidden. Pulled in via a CSS
      ::before pseudo-element won't work for an actual <img>, so on
      mobile we accept the simpler single-column layout without
@@ -2308,7 +2522,7 @@
      the top of the section as a header still. */
 }
 
-/* ─── Sticky spine — vertical progress line + numbered markers ───────
+/* ─── Sticky spine - vertical progress line + numbered markers ───────
    Flyward-style progression cue, adapted into our warm gold palette.
    The dim background line is always visible. The bright progress line
    grows from top → current scroll position (JS sets its height). At
@@ -2322,7 +2536,7 @@
   /* Constrained to the column-gap so it doesn't bleed into either the
      image or the text column. Width matches the typical gap (~96px) so
      the curve swings within the gutter and markers don't end up inside
-     the text. Centered on the gap, not on the page — shifted slightly
+     the text. Centered on the gap, not on the page - shifted slightly
      left of true centre because the grid weights are 1fr : 1.05fr (text
      column slightly wider). */
   left: 49%;
@@ -2504,7 +2718,7 @@
      every scroll frame. Gradient stroke alone reads as glowing. */
 }
 
-/* Halo arc — a short bright segment that tracks the orb's current
+/* Halo arc - a short bright segment that tracks the orb's current
    position along the path. Brighter stroke + heavy drop-shadow bloom
    reads as the section "lighting up" right where the reader is. The
    scroll handler sets stroke-dasharray and stroke-dashoffset each frame
@@ -2526,7 +2740,7 @@
   pointer-events: none;
 }
 
-/* ─── Side branches — small horizontal ticks inward from each peak ──── */
+/* ─── Side branches - small horizontal ticks inward from each peak ──── */
 .fullSpineBranch {
   fill: none;
   stroke: rgba(240, 198, 115, 0.22);
@@ -2540,7 +2754,7 @@
   filter: drop-shadow(0 0 4px rgba(255, 200, 120, 0.6));
 }
 
-/* ─── Knots — glowing waypoints at each chapter's peak on the path ───
+/* ─── Knots - glowing waypoints at each chapter's peak on the path ───
    Hidden by default. When the orb arrives, the knot plays a quick
    IGNITION BURST: scales past its rest size (overshoot) with a brief
    extra glow, then settles. A separate expanding ring pseudo-element
@@ -2676,7 +2890,7 @@
   }
 }
 
-/* ─── Traveling orb — rides the spine path at the bright trail's edge ──
+/* ─── Traveling orb - rides the spine path at the bright trail's edge ──
    HTML element overlaid on the spine SVG. Position is set imperatively
    by the JourneyPage scroll handler via transform: translate3d(...).
    Two stacked radial gradients give the orb a tight bright core plus a
@@ -2708,7 +2922,7 @@
 .fullChapter {
   position: relative;
   width: 100%;
-  /* Continuous scrolling — each chapter is sized to its content (with a
+  /* Continuous scrolling - each chapter is sized to its content (with a
      comfortable min height) rather than locking to one full viewport.
      The meander line is continuous across them so the page reads as one
      long journey instead of slide-by-slide pages. */
@@ -2765,7 +2979,7 @@
   transform: translate(0, -50%);
   transition: opacity 900ms cubic-bezier(.22, .65, .21, 1) 200ms;
 }
-/* Step counter rides the side of the line — left for even chapters,
+/* Step counter rides the side of the line - left for even chapters,
    right for odd. Reads as a numbered waypoint on the journey rather
    than a fixed corner UI element. */
 .fullChapterLeft .fullChapterCounter {
@@ -2979,14 +3193,14 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   FLOW JOURNEY — continuous scroll with meandering line
+   FLOW JOURNEY - continuous scroll with meandering line
    Each chapter sits at alternating left/right anchors that match the
    meander SVG's peakX, so the line visibly "lands" at each chapter's
    content as you scroll past it. No full-bleed images, no chapter snap;
    just one long journey with the gold thread guiding the eye.
    ───────────────────────────────────────────────────────────────────────── */
 
-/* Scroll-snap context — global rule lives in app/globals.css (CSS modules
+/* Scroll-snap context - global rule lives in app/globals.css (CSS modules
    forbid a bare :global(html) selector). Per-chapter scroll-snap-align
    on .flowChapter below provides the snap stops; html sets snap-type. */
 
@@ -2997,7 +3211,7 @@
   flex-direction: column;
   gap: 24vh;
   padding: 18vh 0;
-  /* Wider container for the journey than the rest of the page — each
+  /* Wider container for the journey than the rest of the page - each
      chapter needs room for an image + content side-by-side without
      either feeling cramped. Overrides the inherited 1180px from the
      shared .container. */
@@ -3020,7 +3234,7 @@
   /* scroll-snap removed - even in proximity mode it fought the user's
      scroll velocity on this long page and made the whole journey feel
      laggy. Free-form scrolling reads as smoother. */
-  /* Every chapter is exactly one viewport tall — gives all six rows
+  /* Every chapter is exactly one viewport tall - gives all six rows
      the same fixed height so the SVG curve's peak position (which is
      anchored at (i+0.5)/N of the section) lands at the visual centre
      of each chapter regardless of how many bullets or how much text
@@ -3035,16 +3249,141 @@
    sizes to content and the journey doesn't become 5+ viewports of
    scroll on a phone. */
 @media (max-width: 759px) {
-  .flowChapter { min-height: 0; }
+  .flowChapter { min-height: 0; position: relative; }
+
+  /* Mobile journey - kills the desktop SVG curve + orb + knots (they
+     compress poorly into a side column) and replaces them with a
+     simpler "numbered chapter + scribble-connector" idiom that still
+     reads as one continuous journey. */
   .fullSpine, .fullSpineOrb, .fullSpineKnot { display: none !important; }
-  .flowJourneyInner { gap: 60px; padding: 32px 0; }
+
+  /* Symmetric 30px gutter matches every other section. */
+  .flowJourneyInner {
+    gap: 0;
+    padding: 32px 30px;
+    position: relative;
+  }
+
+  /* Chapter number is the journey marker - prominent serif italic
+     gold prefix that reads like a chapter heading. Replaces the inline
+     small number from the desktop layout. !important is needed because
+     the base .flowChapterNum rule is declared LATER in the file and
+     would otherwise win the cascade for equal-specificity selectors. */
+  .flowChapterNum {
+    display: block !important;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 36px !important;
+    line-height: 1;
+    color: var(--gold-bright, #ffd98a);
+    margin-bottom: 18px !important;
+    letter-spacing: -0.01em;
+    gap: 0 !important;
+  }
+  /* Hide the desktop tick line beside the number - it makes no sense
+     when the number is a block-level chapter heading. */
+  .flowChapterNum::before { display: none !important; }
+
+  /* Chapter images on mobile match the brands page slot-frame
+     treatment - square aspect, warm-brown gradient backdrop, soft gold
+     hairline border. Quieter than the desktop's full portrait 4:5
+     drop-shadow card; reads as a sealed editorial tile. */
+  .flowChapterImage {
+    aspect-ratio: 1 / 1 !important;
+    max-width: 100% !important;
+    /* 10px gap between the chapter text block above and the image. */
+    margin-top: 10px !important;
+  }
+  .flowChapterImageFrame {
+    background: linear-gradient(180deg, rgba(40, 26, 10, 0.5) 0%, rgba(18, 12, 6, 0.5) 100%);
+    border-radius: 4px;
+    /* Real 1px gold border matches brands .workCard + .slot-frame
+       exactly (color: rgba(240,198,115,0.18) - the --rule token).
+       Soft drop shadow kept underneath for depth. */
+    border: 1px solid rgba(240, 198, 115, 0.18);
+    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.55);
+  }
+  .flowChapterImageFrame img {
+    filter: saturate(1) brightness(0.92);
+    transform: none !important;
+  }
+  /* Drop the top-darken overlay - the cleaner brands-style frame
+     doesn't need it. */
+  .flowChapterImageFrame::after { display: none; }
+
+  /* Mobile-only journey connector between consecutive chapters.
+     SVG path with two bends (S-curve) + a glowing gold ball that
+     follows the curve as the user scrolls (ball pos driven by JS in
+     JourneyPage.tsx via path.getPointAtLength). Hidden on desktop. */
+  .flowConnector {
+    position: relative;
+    align-self: center;
+    /* Tall + wide enough for two pronounced bends. 240px gives the
+       ball a slow, deliberate travel; 72px container lets the curve
+       swing close to the edges (peaks at x=3/x=37 of a 40-unit viewBox
+       map to ~5.4px and ~66.6px from the container left, giving an
+       ~61px visible swing). */
+    width: 72px;
+    height: 240px;
+    margin: 56px 0 40px;
+    pointer-events: none;
+  }
+  .flowConnectorSvg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .flowConnectorPath {
+    fill: none;
+    stroke: var(--gold, #f0c673);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    /* Dotted - 1.5px dot + 7px gap. opacity softens the path so the
+       ball reads as the brightest element on the curve. */
+    stroke-dasharray: 1.5 7;
+    opacity: 0.7;
+    /* preserveAspectRatio:none on the SVG means stroke-width gets
+       scaled non-uniformly. vector-effect keeps the stroke 1.5px wide
+       regardless of axis scale. */
+    vector-effect: non-scaling-stroke;
+  }
+  .flowConnectorBall {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    /* Transform is set by JS every frame:
+         translate3d(px, py, 0) translate(-50%, -50%)
+       Pre-set to (0, 0) with the centring offset so the ball isn't
+       visible at the corner before the first scroll-handler tick. */
+    transform: translate3d(0, 0, 0) translate(-50%, -50%);
+    background: radial-gradient(circle at 32% 28%, #fff8e2 0%, #ffd98a 45%, rgba(201, 138, 58, 0.55) 100%);
+    border: 1px solid rgba(255, 235, 180, 0.9);
+    box-shadow:
+      0 0 0 3px rgba(7, 6, 10, 0.95),
+      0 0 12px rgba(255, 220, 150, 0.75),
+      0 0 28px rgba(255, 200, 120, 0.45);
+    opacity: 0;
+    will-change: transform, opacity;
+    pointer-events: none;
+  }
+}
+/* Desktop hides the mobile connector - the desktop SVG curve + orb
+   already covers this role. */
+@media (min-width: 760px) {
+  .flowConnector { display: none; }
 }
 .flowChapter.in,
 .flowChapterActive { opacity: 1; }
 
 @media (min-width: 760px) {
   .flowChapter {
-    /* Asymmetric grid — the column that holds the group (image +
+    /* Asymmetric grid - the column that holds the group (image +
        content side-by-side) gets MORE of the row (1.4fr) than the
        column the curve sweeps through (1fr). That gives the image
        cinematic size without crowding the path. The per-chapter
@@ -3058,7 +3397,7 @@
      the LEFT column is the bigger one. */
   .flowRight { grid-template-columns: 1.4fr 1fr; }
   .flowChapterGroup {
-    /* Side-by-side layout — image sits beside the content text rather
+    /* Side-by-side layout - image sits beside the content text rather
        than above it. Image always on the OUTER edge of the chapter
        (away from the curve); content sits between the image and the
        curve. row-reverse for peak-right chapters flips the DOM order
@@ -3072,7 +3411,7 @@
     gap: 56px;
     width: 100%;
     max-width: 760px;
-    /* Explicit grid-item alignment — pins the group to the chapter's
+    /* Explicit grid-item alignment - pins the group to the chapter's
        vertical centre even though the chapter is now a fixed 100vh.
        Without align-self the grid item would stretch to fill the row
        height and the content text would anchor to the top of the
@@ -3084,13 +3423,13 @@
      RIGHT (inner, near the curve). Extra right padding so the content
      edge doesn't kiss the curve at the chapter's vertical mid-point. */
   .flowRight .flowChapterGroup { flex-direction: row-reverse; padding-right: clamp(24px, 4vw, 56px); }
-  /* Mirror padding on peak-left chapters — content sits on the left of
+  /* Mirror padding on peak-left chapters - content sits on the left of
      the group, so we add LEFT padding to push it away from the curve. */
   .flowLeft .flowChapterGroup { padding-left: clamp(24px, 4vw, 56px); }
   /* Peak-left chapters: group on right column. Default DOM order →
      content on LEFT (inner, near curve), image on RIGHT (outer edge). */
 
-  /* Image cell — pulled back to ~42% of the group so the content text
+  /* Image cell - pulled back to ~42% of the group so the content text
      beside it has more horizontal room. Text was wrapping too narrow
      before and stacking tall; trading a bit of image width for content
      measure makes each chapter read in fewer lines. */
@@ -3106,7 +3445,7 @@
   }
   /* Image + content live together inside a single .flowChapterGroup,
      which sits on the INSIDE of the curve (the concave side, opposite
-     the path peak). The other half of the chapter row is empty — the
+     the path peak). The other half of the chapter row is empty - the
      meander path passes through it.
        • peak-left chapters (.flowLeft, peak at 30%)  → group on the RIGHT
        • peak-right chapters (.flowRight, peak at 70%) → group on the LEFT
@@ -3119,7 +3458,7 @@
     max-width: 38ch;
   }
   .flowChapterImage { grid-column: auto; justify-self: stretch; }
-  /* Right-side mirrored typography rules removed — now that image +
+  /* Right-side mirrored typography rules removed - now that image +
      content are grouped into one container on the inside-of-curve side,
      the text inside the group is consistently left-aligned regardless
      of which half of the chapter the group lives in. The old rules
@@ -3148,7 +3487,7 @@
   text-shadow: 0 0 32px rgba(255, 200, 120, 0.28);
   position: relative;
 }
-/* Hairline gold tick beside the numeral — visually links the number
+/* Hairline gold tick beside the numeral - visually links the number
    to the knot/branch on the path so the eye reads "this chapter lives
    at this curve". On right-side chapters the tick flips direction. */
 .flowChapterNum::before {
@@ -3159,7 +3498,7 @@
   background: linear-gradient(90deg, var(--gold) 0%, rgba(240, 198, 115, 0) 100%);
   box-shadow: 0 0 6px rgba(255, 200, 120, 0.45);
 }
-/* Removed the right-side numeral flip — the chapter numeral is always
+/* Removed the right-side numeral flip - the chapter numeral is always
    on the left of the content text now that image + content live in a
    shared group on the inside-of-curve side. */
 
@@ -3421,7 +3760,7 @@
    3. PER-CHAPTER ATMOSPHERIC TINT
    Each chapter gets a subtle warm-tone overlay that deepens through
    the journey. First chapter coolest gold, last chapter deepest
-   amber — gives the scroll a sense of "descending into" something
+   amber - gives the scroll a sense of "descending into" something
    without screaming about it.
    ───────────────────────────────────────────────────────────────────────── */
 .flowChapter::after {
@@ -3450,7 +3789,7 @@
    a soft border + warm-dark background + rounded corners (first row
    rounded top, last row rounded bottom, stacks share borders so they
    read as one connected list). Native <details>/<summary> handles
-   open state + a11y. No close animation — content vanishes instantly
+   open state + a11y. No close animation - content vanishes instantly
    on close (per user request) but a smooth fade-in on open.
    ───────────────────────────────────────────────────────────────────────── */
 /* Two-column FAQ section: head (label + heading) on the left, accordion
@@ -3534,14 +3873,14 @@
   flex-direction: column;
   gap: 0;
 }
-/* Hide the legacy hairline divider rules — the new card style draws
+/* Hide the legacy hairline divider rules - the new card style draws
    its own borders. */
 .faqRow {
   border: 1px solid var(--rule);
   background: rgba(14, 12, 8, 0.5);
   padding: 0 clamp(16px, 2.4vw, 24px);
   transition: background 200ms cubic-bezier(.22, .65, .21, 1), border-color 200ms;
-  /* Stacked-card border collapse — share borders between adjacent rows
+  /* Stacked-card border collapse - share borders between adjacent rows
      so the stack reads as one connected list rather than six floating
      pills. */
   margin-top: -1px;

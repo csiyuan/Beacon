@@ -3,7 +3,7 @@ import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Beacon — Empowering creatives. Elevating brands.',
+  title: 'Beacon - Empowering creatives. Elevating brands.',
 };
 
 export const viewport: Viewport = {
@@ -19,13 +19,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Inter:wght@300;400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>
       <body>
         {/* image-slot.js registers the <image-slot> custom element used by
-            CreativesApp's destination overlay. Must load on every route —
+            CreativesApp's destination overlay. Must load on every route -
             /about and /contact render the same overlay, so loading this
             only on /creatives/layout broke their image rendering. */}
         <Script src="/image-slot.js" strategy="beforeInteractive" />

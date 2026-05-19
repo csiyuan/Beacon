@@ -1,9 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, type FormEvent } from 'react';
 import s from './brands.module.css';
 import BrandsArrivalWash from './BrandsArrivalWash';
+import { FORM_ENDPOINT, submitForm } from '@/lib/forms';
+import ThanksPopup from '@/components/ThanksPopup';
+import { useNavWash } from '@/components/transitions/NavWash';
+
+// Option lists for the toggle groups. Tuple is [internal code, human label].
+// The hidden inputs send the LABEL (so the email reads "1-3 months" instead
+// of "1-3m"); the state holds the code for compactness.
+const BRAND_SERVICE = [
+  ['embedded', 'Embedded talent'],
+  ['production', 'Project delivery'],
+  ['both', 'Both'],
+] as const;
+const BRAND_TIMELINE = [
+  ['asap', 'ASAP'],
+  ['1-3m', '1-3 months'],
+  ['3-6m', '3-6 months'],
+  ['flexible', 'Flexible'],
+] as const;
+const labelFor = <T extends readonly (readonly [string, string])[]>(list: T, code: string): string =>
+  list.find(([v]) => v === code)?.[1] ?? code;
 
 // Static-page port of the brand destination overlay from the immersive
 // /creatives scene. Uses the global `.dest` design language verbatim, with
@@ -13,12 +33,33 @@ import BrandsArrivalWash from './BrandsArrivalWash';
 export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
   const year = new Date().getFullYear();
 
-  // Brand intake form state — ported from CreativesApp.jsx Destination()
+  // Brand intake form state - ported from CreativesApp.jsx Destination()
   const [brandService, setBrandService] = useState<'embedded' | 'production' | 'both'>('embedded');
   const [brandRoles, setBrandRoles] = useState<string[]>([]);
   const [brandTimeline, setBrandTimeline] = useState<'asap' | '1-3m' | '3-6m' | 'flexible'>('flexible');
+  const [submitting, setSubmitting] = useState(false);
+  const [thanksOpen, setThanksOpen] = useState(false);
+  const { trigger: navWash, overlay: navWashOverlay } = useNavWash();
   const toggleBrandRole = (role: string) =>
     setBrandRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+
+  const handleBrandSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (submitting) return;
+    const formEl = e.currentTarget;
+    setSubmitting(true);
+    const ok = await submitForm(formEl, 'brand');
+    if (ok) {
+      formEl.reset();
+      setBrandService('embedded');
+      setBrandRoles([]);
+      setBrandTimeline('flexible');
+      setThanksOpen(true);
+    } else {
+      alert('Sorry - something went wrong. Please email info@beaconmediasolutions.com directly.');
+    }
+    setSubmitting(false);
+  };
 
   // Mobile sidebar menu state. On screens < 760px the inline top-nav is
   // hidden in favour of a hamburger toggle that slides in a right-side
@@ -70,6 +111,8 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
 
   return (
     <main className={s.page}>
+      <ThanksPopup open={thanksOpen} onClose={() => setThanksOpen(false)} />
+      {navWashOverlay}
       {fromSplash && <BrandsArrivalWash />}
 
       {/* Top bar - unified with the creative pathway pages (.bar / .wordmark /
@@ -77,18 +120,50 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
           (< 760px) hides the inline nav and shows a hamburger button instead;
           tapping it opens a slide-in side sheet with the same links. */}
       <div className="bar">
-        <Link href="/" className="wordmark wordmark-btn" aria-label="Back to home">
+        <button
+          type="button"
+          className="wordmark wordmark-btn"
+          aria-label="Back to home"
+          onClick={() => navWash('/')}
+        >
           <span className="wm-arrow" aria-hidden="true">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 6l-6 6 6 6" />
             </svg>
           </span>
           <img className="wm-logo" src="/assets/beacon-logo.png" alt="Beacon Media Solutions" />
-        </Link>
+        </button>
         <nav className={`top-nav ${s.topNavDesktop}`} aria-label="Primary">
-          <Link href="/creatives/embedded">For Creatives</Link>
-          <Link href="/about?from=brands">About</Link>
-          <Link href="/contact?from=brands">Contact</Link>
+          <Link
+            href="/creatives/embedded"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/creatives/embedded');
+            }}
+          >
+            For Creatives
+          </Link>
+          <Link
+            href="/about?from=brands"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/about?from=brands');
+            }}
+          >
+            About
+          </Link>
+          <Link
+            href="/contact?from=brands"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/contact?from=brands');
+            }}
+          >
+            Contact
+          </Link>
         </nav>
         <button
           type="button"
@@ -126,9 +201,39 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
           </svg>
         </button>
         <nav className={s.sideMenuNav} aria-label="Primary mobile">
-          <Link href="/creatives/embedded" onClick={() => setMenuOpen(false)}>For Creatives</Link>
-          <Link href="/about?from=brands" onClick={() => setMenuOpen(false)}>About</Link>
-          <Link href="/contact?from=brands" onClick={() => setMenuOpen(false)}>Contact</Link>
+          <Link
+            href="/creatives/embedded"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              setMenuOpen(false);
+              navWash('/creatives/embedded');
+            }}
+          >
+            For Creatives
+          </Link>
+          <Link
+            href="/about?from=brands"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              setMenuOpen(false);
+              navWash('/about?from=brands');
+            }}
+          >
+            About
+          </Link>
+          <Link
+            href="/contact?from=brands"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              setMenuOpen(false);
+              navWash('/contact?from=brands');
+            }}
+          >
+            Contact
+          </Link>
         </nav>
         <div className={s.sideMenuConnect}>
           <p className={s.sideMenuLabel}>Connect</p>
@@ -150,7 +255,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                 One partner. <em>Two ways</em> to scale your creative output.
               </h1>
               <p className="lead anim" style={{ transitionDelay: '380ms' }}>
-                Some teams need ongoing, in-house creative capability. Others need a full project delivered, end-to-end. Beacon does both — without the agency layer, the freelancer churn, or the cost of building a creative team from scratch.
+                Some teams need ongoing, in-house creative capability. Others need a full project delivered, end-to-end. Beacon does both - without the agency layer, the freelancer churn, or the cost of building a creative team from scratch.
               </p>
               <div className="actions anim" style={{ transitionDelay: '560ms' }}>
                 <button type="button" className="cta" onClick={scrollToForm}>
@@ -162,7 +267,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             </div>
           </section>
 
-          {/* SERVICE 01 — Embedded Solutions */}
+          {/* SERVICE 01 - Embedded Solutions */}
           <div id="services" className="container">
             <div className="section-rule anim">
               <div className="label">01 · Embedded Solutions</div>
@@ -180,14 +285,14 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                 <div className="meta">Beacon Media Solutions</div>
                 <h3>A dedicated creative <em>inside your team</em>. None of the hiring overhead.</h3>
                 <p>
-                  We place full-time creatives directly into your organisation — across video, design, photography, web, and content. They work as part of your internal brand, aligned to your workflows, your tone, your goals, while Beacon handles payroll, HR, training, and admin.
+                  We place full-time creatives directly into your organisation - across video, design, photography, web, and content. They work as part of your internal brand, aligned to your workflows, your tone, your goals, while Beacon handles payroll, HR, training, and admin.
                 </p>
                 <p>
                   The result is in-house consistency without the cost of building in-house, and zero churn from unreliable freelancers.
                 </p>
                 <ul className="features anim">
                   <li>Full-time creatives matched on skill set AND organisational fit.</li>
-                  <li>End-to-end backend support — hiring, onboarding, day-to-day operations.</li>
+                  <li>End-to-end backend support - hiring, onboarding, day-to-day operations.</li>
                   <li>Scalable as you grow: start with one creative, build to a regional team.</li>
                 </ul>
                 <div className="actions">
@@ -200,7 +305,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             </div>
           </div>
 
-          {/* SERVICE 02 — Media Production */}
+          {/* SERVICE 02 - Media Production */}
           <div className="container">
             <div className="section-rule anim">
               <div className="label">02 · Media Production</div>
@@ -209,7 +314,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             <div className="case split-flip anim">
               <div>
                 <div className="meta">Beacon Media Productions</div>
-                <h3>End-to-end media projects — <em>delivered.</em></h3>
+                <h3>End-to-end media projects - <em>delivered.</em></h3>
                 <p>
                   When you need a project shipped at scale, our in-house production team takes it from brief to final cut. Thoughtful creative direction. Disciplined execution. Built for organisations that need consistency without managing the people who produce it.
                 </p>
@@ -257,7 +362,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             </div>
           </div>
 
-          {/* Embedded vs Projects — decision-aid table. Sits right after
+          {/* Embedded vs Projects - decision-aid table. Sits right after
               the two service blocks so a reader who's just absorbed both
               can decide which fits before diving into How It Works. */}
           <div className="container">
@@ -336,7 +441,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             </div>
           </div>
 
-          {/* The Vetting — 3-card grid (overrides the 4-col pillars layout) */}
+          {/* The Vetting - 3-card grid (overrides the 4-col pillars layout) */}
           <div className="container">
             <div className="section-rule anim">
               <div className="label">The Vetting</div>
@@ -354,7 +459,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
               <div className="pillar anim">
                 <div className="pillar-n">02</div>
                 <h4>Brand-aligned</h4>
-                <p>We match based on aesthetic, discipline, and working style — not just availability.</p>
+                <p>We match based on aesthetic, discipline, and working style - not just availability.</p>
               </div>
               <div className="pillar anim">
                 <div className="pillar-n">03</div>
@@ -430,7 +535,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
               </div>
               <div className={`${s.fitCol} ${s.fitNot}`}>
                 <div className={s.fitHead}>
-                  <span className={s.fitMark} aria-hidden="true">—</span>
+                  <span className={s.fitMark} aria-hidden="true">-</span>
                   <span className={s.fitTitle}>Not built for</span>
                 </div>
                 <ul className={s.fitList}>
@@ -451,22 +556,16 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
               <div className="line"></div>
             </div>
             <div className="brand-stats anim">
-              {/* Stats reconciled with the creative pathway pages so the same
-                  numbers tell the same story across the whole site. Replace
-                  with real figures once available; the previous values
-                  (100+ / 50+ / 5 yrs) overclaimed against the honest figures
-                  used on /creatives/embedded. */}
+              {/* Stats unified across brands, /creatives/embedded, and
+                  /creatives/projects so the same numbers tell the same
+                  story everywhere on the site. */}
               <div className="brand-stat">
-                <span className="brand-stat-num">12+</span>
-                <span className="brand-stat-label">Creatives placed</span>
+                <span className="brand-stat-num">50+</span>
+                <span className="brand-stat-label">Creatives engaged</span>
               </div>
               <div className="brand-stat">
-                <span className="brand-stat-num">8</span>
+                <span className="brand-stat-num">6+</span>
                 <span className="brand-stat-label">Brand partners</span>
-              </div>
-              <div className="brand-stat">
-                <span className="brand-stat-num">2+ yrs</span>
-                <span className="brand-stat-label">Avg placement tenure</span>
               </div>
               <div className="brand-stat">
                 <span className="brand-stat-num">SG / SEA</span>
@@ -601,7 +700,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                   <span className="cf-label">For brands</span>
                   <p className="cf-info-title">One partner. Two ways to scale your creative output.</p>
                   <p className="cf-info-body">
-                    Tell us what you&rsquo;re building. We&rsquo;ll match you with the right creative talent — embedded in your team or delivered as a project.
+                    Tell us what you&rsquo;re building. We&rsquo;ll match you with the right creative talent - embedded in your team or delivered as a project.
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
                     <div className="cf-detail">
@@ -614,34 +713,41 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                     </div>
                   </div>
                   <div className="cf-social">
-                    <a href="#" aria-label="Instagram"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></svg></a>
-                    <a href="#" aria-label="LinkedIn"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
-                    <a href="#" aria-label="TikTok"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.55V6.79a4.85 4.85 0 0 1-1.07-.1z"/></svg></a>
-                    <a href="#" aria-label="YouTube"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none"/></svg></a>
+                    <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></svg></a>
+                    <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
                   </div>
                 </div>
-                <form className="cf-fields" onSubmit={(e) => e.preventDefault()}>
+                <form
+                  className="cf-fields"
+                  action={FORM_ENDPOINT}
+                  method="POST"
+                  onSubmit={handleBrandSubmit}
+                >
+                  {/* Form-kind discriminator. /api/contact uses this to
+                      pick the right subject line + email preset. */}
+                  <input type="hidden" name="form" value="brand" />
                   <div className="cf-row two">
                     <div className="cf-field">
                       <span className="cf-label">Name</span>
-                      <input type="text" placeholder="Your name" />
+                      <input type="text" name="name" placeholder="Your name" required />
                     </div>
                     <div className="cf-field">
                       <span className="cf-label">Email</span>
-                      <input type="email" placeholder="your@email.com" />
+                      <input type="email" name="email" placeholder="your@email.com" required />
                     </div>
                   </div>
                   <div className="cf-field">
                     <span className="cf-label">Organisation</span>
-                    <input type="text" placeholder="Your company or brand name" />
+                    <input type="text" name="organisation" placeholder="Your company or brand name" />
                   </div>
                   <div className="cf-field">
                     <span className="cf-label">I need</span>
                     <div className="cf-toggle wide">
-                      {([['embedded', 'Embedded talent'], ['production', 'Project delivery'], ['both', 'Both']] as const).map(([v, l]) => (
+                      {BRAND_SERVICE.map(([v, l]) => (
                         <button key={v} type="button" className={`cf-toggle-btn${brandService === v ? ' on' : ''}`} onClick={() => setBrandService(v)}>{l}</button>
                       ))}
                     </div>
+                    <input type="hidden" name="service" value={labelFor(BRAND_SERVICE, brandService)} />
                   </div>
                   <div className="cf-field">
                     <span className="cf-label">Creative roles needed</span>
@@ -650,22 +756,24 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                         <button key={role} type="button" className={`cf-toggle-btn${brandRoles.includes(role) ? ' on' : ''}`} onClick={() => toggleBrandRole(role)}>{role}</button>
                       ))}
                     </div>
+                    <input type="hidden" name="roles" value={brandRoles.join(', ')} />
                   </div>
                   <div className="cf-field">
                     <span className="cf-label">Timeline</span>
                     <div className="cf-toggle wide">
-                      {([['asap', 'ASAP'], ['1-3m', '1–3 months'], ['3-6m', '3–6 months'], ['flexible', 'Flexible']] as const).map(([v, l]) => (
+                      {BRAND_TIMELINE.map(([v, l]) => (
                         <button key={v} type="button" className={`cf-toggle-btn${brandTimeline === v ? ' on' : ''}`} onClick={() => setBrandTimeline(v)}>{l}</button>
                       ))}
                     </div>
+                    <input type="hidden" name="timeline" value={labelFor(BRAND_TIMELINE, brandTimeline)} />
                   </div>
                   <div className="cf-field">
                     <span className="cf-label">Tell us more</span>
-                    <textarea rows={4} placeholder="What are you trying to build, and what's the context?" />
+                    <textarea name="message" rows={4} placeholder="What are you trying to build, and what's the context?" />
                   </div>
                   <div>
-                    <button type="submit" className="cta">
-                      Submit enquiry
+                    <button type="submit" className="cta" disabled={submitting} aria-busy={submitting}>
+                      {submitting ? 'Sending…' : 'Submit enquiry'}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </button>
                   </div>
@@ -676,7 +784,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
 
           {/* Closing */}
           <div className="container narrow closing">
-            <h2 className="anim">One creative or a regional team — we make it seamless, strategic, and scalable.</h2>
+            <h2 className="anim">One creative or a regional team - we make it seamless, strategic, and scalable.</h2>
           </div>
 
           {/* Cinematic footer - unified with the creative pathway pages. Lives
@@ -700,15 +808,59 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
               <div className="ft-cols">
                 <div className="ft-col">
                   <div className="ft-label">Navigate</div>
-                  <Link href="/">Home</Link>
-                  <Link href="/about?from=brands">About</Link>
-                  <Link href="/contact?from=brands">Contact</Link>
+                  <Link
+                    href="/"
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                      e.preventDefault();
+                      navWash('/');
+                    }}
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    href="/about?from=brands"
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                      e.preventDefault();
+                      navWash('/about?from=brands');
+                    }}
+                  >
+                    About
+                  </Link>
+                  <Link
+                    href="/contact?from=brands"
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                      e.preventDefault();
+                      navWash('/contact?from=brands');
+                    }}
+                  >
+                    Contact
+                  </Link>
                 </div>
                 <div className="ft-col">
                   <div className="ft-label">Pathways</div>
-                  <Link href="/creatives/embedded">Embedded</Link>
-                  <Link href="/creatives/projects">Project-based</Link>
-                  <Link href="/creatives">For Creatives</Link>
+                  <Link
+                    href="/brands"
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                      e.preventDefault();
+                      navWash('/brands');
+                    }}
+                  >
+                    For Brands
+                  </Link>
+                  <Link
+                    href="/creatives/embedded"
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                      e.preventDefault();
+                      navWash('/creatives/embedded');
+                    }}
+                  >
+                    For Creatives
+                  </Link>
                 </div>
               </div>
 
@@ -721,17 +873,11 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                   Singapore 069541
                 </div>
                 <div className="ft-social">
-                  <a href="#" aria-label="Instagram">
+                  <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg>
                   </a>
-                  <a href="#" aria-label="LinkedIn">
+                  <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
-                  </a>
-                  <a href="#" aria-label="TikTok">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.55V6.79a4.85 4.85 0 0 1-1.07-.1z" /></svg>
-                  </a>
-                  <a href="#" aria-label="YouTube">
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" /><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none" /></svg>
                   </a>
                 </div>
               </div>

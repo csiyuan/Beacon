@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import s from './creatives.module.css';
+import { useResponsiveSrc } from '@/lib/useResponsiveSrc';
 
 const CreativesApp = dynamic(() => import('./CreativesApp'), { ssr: false });
 
@@ -14,7 +15,7 @@ const CreativesApp = dynamic(() => import('./CreativesApp'), { ssr: false });
 const INTRO_SEEN_KEY = 'beacon.creatives.introSeen.v1';
 // sessionStorage key used to suppress a double-play within a single tab
 // session for *direct* nav (back from /about, /contact, or a refresh). The
-// fromBeam splash CTA and the replay button both bypass this — clicking
+// fromBeam splash CTA and the replay button both bypass this - clicking
 // "I'm a Creative" on the splash is a strong intent signal, so the intro
 // should replay every time it's chosen explicitly.
 const INTRO_SESSION_KEY = 'beacon.creatives.introSession.v1';
@@ -31,10 +32,15 @@ function IntroOverlay({
   const [show, setShow] = useState(true);
   const [fadingOut, setFadingOut] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Phone variant is ~252KB; desktop is 8.9MB. Big mobile-data win.
+  const introVideoSrc = useResponsiveSrc(
+    '/assets/beacon-creative-landing-page-entry-mobile.mp4',
+    '/assets/beacon-creative-landing-page-entry.mp4',
+  );
 
   // Decision tree on mount:
   //   • reduced-motion              → skip (accessibility)
-  //   • forceReplay OR fromBeam     → PLAY (explicit user intent —
+  //   • forceReplay OR fromBeam     → PLAY (explicit user intent -
   //                                     splash CTA or replay button)
   //   • sessionStorage flag set     → skip (returning via SPA nav from
   //                                     /about or /contact, or refresh)
@@ -74,7 +80,7 @@ function IntroOverlay({
   const handleEnded = () => {
     // Mark as seen only when the user lets the intro play through. People
     // who hit Skip will see the intro again on their next visit, which
-    // mirrors the YouTube/Netflix model — skipping is a "not this time"
+    // mirrors the YouTube/Netflix model - skipping is a "not this time"
     // signal, not a permanent dismissal.
     try { window.localStorage.setItem(INTRO_SEEN_KEY, '1'); } catch {}
     dismiss();
@@ -88,19 +94,19 @@ function IntroOverlay({
     if (videoRef.current) {
       try { videoRef.current.pause(); } catch {}
     }
-    // No video seek needed anymore — the background is now a static JPG
+    // No video seek needed anymore - the background is now a static JPG
     // extracted from the intro's final frame, so the handoff is pixel-
     // identical without any cross-decoding work.
     setFadingOut(true);
     // Decoupled reveal timeline:
     //   • T+0     overlay starts its 2400ms fade-out
-    //   • T+1400  body.intro-active flips off — fires the page hero
+    //   • T+1400  body.intro-active flips off - fires the page hero
     //             stagger 1s before the overlay is fully gone, so the
     //             BEACON title cascade materialises *through* the dimming
     //             overlay instead of waiting for it to clear completely
     //   • T+1500  dawn vignette begins its longer fade
     //   • T+2400  overlay fully transparent
-    //   • T+6900  unmount — dawn vignette has had time to clear too
+    //   • T+6900  unmount - dawn vignette has had time to clear too
     window.setTimeout(() => {
       document.body.classList.remove('intro-active');
       onDismissed();
@@ -112,7 +118,7 @@ function IntroOverlay({
 
   return (
     <>
-      {/* Dawn vignette — sits below the overlay (z-index 8999). Becomes
+      {/* Dawn vignette - sits below the overlay (z-index 8999). Becomes
           visible only as the overlay fades out, then lingers and clears
           its own dark edges so the world feels like it's lighting up
           rather than just being uncovered. */}
@@ -128,7 +134,7 @@ function IntroOverlay({
         <video
           ref={videoRef}
           className={s.introVideo}
-          src="/assets/beacon-creative-landing-page-entry.mp4"
+          src={introVideoSrc}
           autoPlay
           muted
           playsInline
@@ -162,17 +168,17 @@ export default function CreativesClient({
   bgFrom?: 'splash' | 'brands' | 'creatives';
 }) {
   // When initialScene is not 'descent' we're mounting on a standalone
-  // route (/about or /contact). Skip the cinematic intro entirely — the
-  // intro belongs to the creatives landing, not to utility pages — and
+  // route (/about or /contact). Skip the cinematic intro entirely - the
+  // intro belongs to the creatives landing, not to utility pages - and
   // start the hero reveal immediately so the in-page animations fire.
   const skipIntro = initialScene !== 'descent';
   // Held false while the intro overlay is still on screen. Flipped true
-  // once the overlay has fully faded — that's the signal for CreativesApp
+  // once the overlay has fully faded - that's the signal for CreativesApp
   // to start its original staggered hero reveal (title letter-by-letter,
   // then tagline, then hint) instead of running on mount where it would
   // finish while the intro is still covering everything.
   const [introDismissed, setIntroDismissed] = useState(skipIntro);
-  // Bumped each time the user hits "Replay intro" — remounts the
+  // Bumped each time the user hits "Replay intro" - remounts the
   // IntroOverlay with a fresh key so the video starts from frame 0 and
   // the dismiss state resets. forcePlay=true skips the localStorage
   // check so the replay always runs even for returning visitors.
@@ -183,11 +189,11 @@ export default function CreativesClient({
   };
 
   // Strip ?from=beam from the URL after the initial load. The query param
-  // means "the user just arrived from the splash CTA" — it forces the
+  // means "the user just arrived from the splash CTA" - it forces the
   // intro to play. If we leave it in the URL, refreshing the page would
   // re-trigger the force-play because the URL still says "just arrived".
   // history.replaceState is used (not router.replace) so we don't bump
-  // a new history entry — the back button still goes to / cleanly.
+  // a new history entry - the back button still goes to / cleanly.
   const router = useRouter();
   useEffect(() => {
     if (fromBeam && typeof window !== 'undefined') {
@@ -252,7 +258,7 @@ export default function CreativesClient({
           </filter>
         </defs>
       </svg>
-      {/* Persistent background — the exact final frame of the intro video,
+      {/* Persistent background - the exact final frame of the intro video,
           extracted to a JPG so the intro→page handoff is pixel-identical
           and seams invisibly. Replaces the previous AI-generated loop
           video which had a visible mismatch with the intro's end frame.
@@ -264,31 +270,45 @@ export default function CreativesClient({
           /about or /contact is opened from the splash or the brand page,
           we paint the matching context image instead so the user feels
           like the destination overlay is sitting on top of the page they
-          came from. Brand path renders no image — a plain dark color is
+          came from. Brand path renders no image - a plain dark color is
           painted by the body so the corporate palette reads through. */}
+      {/* Responsive backdrop. <picture> with media-query <source> serves
+          a ~150-400KB mobile variant to phones (max-width 768) and the
+          full 4K-class JPG to desktop. The plain <img> is both the
+          fallback and the actual rendered element. */}
       {bgFrom !== 'brands' && (
-        <img
-          id="main-loop"
-          className={s.mainLoop}
-          src={
-            bgFrom === 'splash'
-              ? '/assets/beacon-landing-page.png'
-              : '/assets/beacon-creative-landing-page-still.png'
-          }
-          alt=""
-          aria-hidden="true"
-        />
+        <picture>
+          <source
+            media="(max-width: 768px)"
+            srcSet={
+              bgFrom === 'splash'
+                ? '/assets/beacon-landing-page-mobile.jpg'
+                : '/assets/beacon-creative-landing-page-still-mobile.jpg'
+            }
+          />
+          <img
+            id="main-loop"
+            className={s.mainLoop}
+            src={
+              bgFrom === 'splash'
+                ? '/assets/beacon-landing-page.jpg'
+                : '/assets/beacon-creative-landing-page-still.jpg'
+            }
+            alt=""
+            aria-hidden="true"
+          />
+        </picture>
       )}
       {bgFrom === 'brands' && (
         <div className={s.brandBackdrop} aria-hidden="true" />
       )}
 
-      {/* Drifting wisps overlay — fakes clouds and smoke moving through the
+      {/* Drifting wisps overlay - fakes clouds and smoke moving through the
           scene since the video itself is nearly static. Sits just above the
           loop video, below the vignette. */}
       <div className={s.cloudWisps} aria-hidden="true" />
 
-      {/* Cinematic motion — vertical light beams + floating motes, same
+      {/* Cinematic motion - vertical light beams + floating motes, same
           treatment as the splash. Sit between the still image (z 0) and
           the hero text (z 20). Use globals.css .creatives-beams / .mote
           classes so they share rendering with the rest of the creatives
@@ -351,7 +371,7 @@ export default function CreativesClient({
             //   flag, ALWAYS plays).
             // fromBeam → user just arrived from the splash CTA (bypasses
             //   localStorage "seen ever" check, but still honors the
-            //   sessionStorage "seen this session" flag — so a refresh
+            //   sessionStorage "seen this session" flag - so a refresh
             //   after arrival doesn't replay the intro).
             forceReplay={replayKey > 0}
             fromBeam={fromBeam}

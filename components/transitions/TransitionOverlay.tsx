@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import t from './transition.module.css';
+import { useResponsiveSrc } from '@/lib/useResponsiveSrc';
 
 export type TransitionPath = 'brand' | 'creative';
 
@@ -10,19 +11,20 @@ type Mode = 'desktop' | 'mobile' | 'reduced';
 
 interface Spec {
   videoSrc: string;
+  videoSrcMobile: string;
   href: string;
   washColor: string;
   /** When (ms into the transition) the color wash starts fading in over the video. */
   washFadeInStartMs: number;
   /** Duration of the wash fade-in. */
   washFadeInMs: number;
-  /** Total transition length on the splash side — at this beat we router.push(). */
+  /** Total transition length on the splash side - at this beat we router.push(). */
   totalMs: number;
   /** Fallback transition length (mobile / reduced-motion). */
   fallbackMs: number;
   /** When false, skip the 3s transition video and always use the fast color
    *  wash. Used for paths where the destination has its own cinematic intro
-   *  (e.g. /creatives) — two videos back-to-back read as the intro playing
+   *  (e.g. /creatives) - two videos back-to-back read as the intro playing
    *  twice. The wash hands off cleanly to the destination's dark intro
    *  overlay on arrival. */
   useVideo: boolean;
@@ -31,6 +33,7 @@ interface Spec {
 const SPECS: Record<TransitionPath, Spec> = {
   brand: {
     videoSrc: '/assets/beacon-brand-transition.mp4',
+    videoSrcMobile: '/assets/beacon-brand-transition-mobile.mp4',
     href: '/brands?from=splash',
     washColor: '#F5E6D3',
     washFadeInStartMs: 2700,
@@ -41,6 +44,7 @@ const SPECS: Record<TransitionPath, Spec> = {
   },
   creative: {
     videoSrc: '/assets/beacon-creative-transition.mp4',
+    videoSrcMobile: '/assets/beacon-creative-transition-mobile.mp4',
     href: '/creatives?from=beam',
     /* Dark wash seam-matches the creatives intro's #07060a backdrop so
        the transition → intro handoff has no visible colour shift. */
@@ -53,13 +57,12 @@ const SPECS: Record<TransitionPath, Spec> = {
   },
 };
 
-function pickMode(videoEl: HTMLVideoElement | null): Mode {
+function pickMode(_videoEl: HTMLVideoElement | null): Mode {
   if (typeof window === 'undefined') return 'desktop';
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 'reduced';
-  if (window.innerWidth < 768) return 'mobile';
-  // If the video metadata isn't ready by the time we mount, fall back so the
-  // user isn't staring at a frozen first frame. readyState >= 2 = HAVE_CURRENT_DATA.
-  if (videoEl && videoEl.readyState < 2) return 'mobile';
+  // Phones get the video too - object-fit:cover on the same video
+  // element center-crops the widescreen source to fill the portrait
+  // viewport without needing a separate portrait asset.
   return 'desktop';
 }
 
@@ -69,6 +72,9 @@ export default function TransitionOverlay({ path }: { path: TransitionPath }) {
   const [washVisible, setWashVisible] = useState(false);
   const [mode, setMode] = useState<Mode | null>(null);
   const spec = SPECS[path];
+  // ~150KB mobile, full 1080p on desktop. Cuts the cinematic transition
+  // payload by ~12x on phones without changing the feel.
+  const videoSrc = useResponsiveSrc(spec.videoSrcMobile, spec.videoSrc);
 
   useEffect(() => {
     // Decide mode on mount once we can peek at the (possibly cached) video
@@ -122,7 +128,7 @@ export default function TransitionOverlay({ path }: { path: TransitionPath }) {
         <video
           ref={videoRef}
           className={t.video}
-          src={spec.videoSrc}
+          src={videoSrc}
           autoPlay
           muted
           playsInline

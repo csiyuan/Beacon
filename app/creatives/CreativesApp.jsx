@@ -1,7 +1,7 @@
 'use client';
 
 // ============================================================================
-// Beacon — Empowering creatives. Elevating brands.
+// Beacon - Empowering creatives. Elevating brands.
 // A cinematic 3D landing built with React Three Fiber.
 //
 // Hybrid approach:
@@ -19,6 +19,11 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { FORM_ENDPOINT, submitForm } from '@/lib/forms';
+import ThanksPopup from '@/components/ThanksPopup';
+import { useNavWash } from '@/components/transitions/NavWash';
+import { usePathwayWash } from '@/components/transitions/PathwayWash';
+import ArrivalWash from '@/components/transitions/ArrivalWash';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const GOLD = new THREE.Color('#f0c673');
@@ -136,7 +141,7 @@ const streamVS = /* glsl */`
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
-// Wiggly waveform shader — keeps the sin-wave streak technique from the
+// Wiggly waveform shader - keeps the sin-wave streak technique from the
 // reference but tunes for distinct, crisp wavy STRANDS rather than a soft glow.
 // Several strands per channel at different vertical offsets give parallel wavy
 // lines, like an oscilloscope trace painted in gold.
@@ -146,8 +151,8 @@ const streamFS = /* glsl */`
   uniform vec2  uResolution;
   uniform float uTime;
   uniform float uOpacity;
-  uniform float uBias;      // -0.4 .. 0.4 — vertical bias of the strand stack
-  uniform float uProgress;  // 0..1 — flight progress drives speed/freq/sharpness
+  uniform float uBias;      // -0.4 .. 0.4 - vertical bias of the strand stack
+  uniform float uProgress;  // 0..1 - flight progress drives speed/freq/sharpness
 
   // One wavy strand. lineSlot = vertical offset of this strand from center.
   // sharpness controls how crisp the line reads (higher = thinner).
@@ -163,7 +168,7 @@ const streamFS = /* glsl */`
     p.y += uBias;
 
     float prog = clamp(uProgress, 0.0, 1.0);
-    // Speed/scale ramps — slow → fast across the flight
+    // Speed/scale ramps - slow → fast across the flight
     float accel  = smoothstep(0.0, 0.35, prog) * (1.0 - smoothstep(0.85, 1.0, prog));
     float speed     = mix(1.6, 8.5, accel);
     float xScale    = mix(1.2, 2.4, accel);
@@ -178,11 +183,11 @@ const streamFS = /* glsl */`
     float gx = p.x;
     float bx = p.x * (1.0 - d);
 
-    // STRAND STACK — multiple parallel wavy strands across the screen.
+    // STRAND STACK - multiple parallel wavy strands across the screen.
     // Slight vertical offsets + phase shifts = independent wiggles.
     float r = 0.0, g = 0.0, b = 0.0;
 
-    // Inner cluster (around bias) — the main bright wave strands
+    // Inner cluster (around bias) - the main bright wave strands
     r += strand(vec2(rx, p.y), -0.32, phase * 1.00, xScale * 1.00, yAmp,        sharpness);
     g += strand(vec2(gx, p.y), -0.30, phase * 1.08, xScale * 1.13, yAmp * 0.93, sharpness * 0.92);
     b += strand(vec2(bx, p.y), -0.28, phase * 0.93, xScale * 0.87, yAmp * 1.08, sharpness * 0.65);
@@ -202,11 +207,11 @@ const streamFS = /* glsl */`
     // Warm gold ramp
     vec3 col = vec3(r * 1.10, g * 0.74, b * 0.18) * 1.5;
 
-    // Edge vignette — keep wavy lines crisper in the center
+    // Edge vignette - keep wavy lines crisper in the center
     float vig = smoothstep(1.6, 0.25, length(p));
     col *= mix(0.45, 1.05, vig);
 
-    // Convergence bloom at (0, -uBias) grows in the second half — destination cue
+    // Convergence bloom at (0, -uBias) grows in the second half - destination cue
     vec2 fp = vec2(0.0, -uBias);
     float dist = length(p - fp);
     float arrive = smoothstep(0.4, 1.0, prog);
@@ -278,12 +283,12 @@ function LightStream({ active, bias, progress }){
 // ─── Meteor shower (Scene 2 → Scene 3 transition) ────────────────────────────
 //
 // Story:
-//   1. Convergence (0-32%) — sparks of light stream in from across the sky
+//   1. Convergence (0-32%) - sparks of light stream in from across the sky
 //      toward the marker you chose, gathering into a single point.
-//   2. Formation flash (28-36%) — they fuse into a luminous orb at the marker.
-//   3. Rise & fall (36-96%) — the orb shoots up to the apex, then crashes
+//   2. Formation flash (28-36%) - they fuse into a luminous orb at the marker.
+//   3. Rise & fall (36-96%) - the orb shoots up to the apex, then crashes
 //      down to the valley floor as a full meteor with a fiery trail.
-//   4. Impact (96-100%) — ground shockwave + screen flash + page shake.
+//   4. Impact (96-100%) - ground shockwave + screen flash + page shake.
 
 const TRAIL_LEN = 12;
 
@@ -293,7 +298,7 @@ function getMarkerPos(choice){
   return new THREE.Vector3(sx, 0.3, -12);
 }
 
-// Shared trajectory — sampled by both meteor mesh AND camera so they sync.
+// Shared trajectory - sampled by both meteor mesh AND camera so they sync.
 // Brand and Creative have DIFFERENT trajectories that match their identity:
 //   • Brand    → the orb forms low, soars UP and away into the sky (elevation)
 //   • Creative → the orb forms high, arcs DOWN into an intimate impact (descent
@@ -352,7 +357,7 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
   const lastPos = useRef(new THREE.Vector3());
   const triggered = useRef(false);
 
-  // Ember particle definitions — emitted relative to the meteor head.
+  // Ember particle definitions - emitted relative to the meteor head.
   const embers = useMemo(() => {
     const arr = [];
     let s = 13;
@@ -418,7 +423,7 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
       headRef.current.material.opacity = opacity;
     }
 
-    // Fire layers — only during fall. Two sprites: a bright inner fire (smaller,
+    // Fire layers - only during fall. Two sprites: a bright inner fire (smaller,
     // hotter color) and a wider amber halo. Both billboard behind the head.
     const fireT = phase === 'fall' ? (progress - 0.6) / 0.36 : 0;
     if (fireRef.current){
@@ -445,7 +450,7 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
       flashRef.current.material.opacity = haloOp;
     }
 
-    // Streak trail — much more vivid during fall
+    // Streak trail - much more vivid during fall
     const trailMul = phase === 'fall' ? 1.0 : phase === 'rise' ? 0.3 : 0.0;
     for (let i = 0; i < TRAIL_LEN; i++){
       const ref = trailRefs.current[i];
@@ -457,7 +462,7 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
       ref.scale.setScalar(Math.max(0.05, sz));
     }
 
-    // Ember particles — scatter behind the meteor during fall
+    // Ember particles - scatter behind the meteor during fall
     if (phase === 'fall'){
       const fallT = (progress - 0.6) / 0.36;
       embers.forEach((e, i) => {
@@ -494,11 +499,11 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
 
   return (
     <group renderOrder={520}>
-      {/* Outer amber halo — softest, biggest */}
+      {/* Outer amber halo - softest, biggest */}
       <sprite ref={fireOuterRef} scale={0.001}>
         <spriteMaterial map={glowTex} transparent depthWrite={false} blending={THREE.AdditiveBlending} color={'#ff8c2a'} opacity={0} />
       </sprite>
-      {/* Inner fire — hotter color, brighter */}
+      {/* Inner fire - hotter color, brighter */}
       <sprite ref={fireRef} scale={0.001}>
         <spriteMaterial map={glowTex} transparent depthWrite={false} blending={THREE.AdditiveBlending} color={'#ffc46a'} opacity={0} />
       </sprite>
@@ -679,7 +684,7 @@ function ImpactRing({ progress, choice }){
   const pos = isBrand ? [0, 9.5, -16] : [0, -0.4, -2.5];
   return (
     <group position={pos} renderOrder={600}>
-      {/* For Brand, the ring is billboard (camera-facing — like a halo around a sun);
+      {/* For Brand, the ring is billboard (camera-facing - like a halo around a sun);
           for Creative, it's flat on the ground. */}
       {isBrand ? (
         <sprite ref={ringRef} scale={[1, 1, 1]}>
@@ -750,7 +755,7 @@ function Beam({ x, delay, height = 5.2, width = 0.28, y, opacity = 1.0, paused }
     const t = clock.getElapsedTime();
     if (start.current === null) start.current = t;
     const local = Math.max(0, t - start.current - delay);
-    // Slower fall — was 0.85s, now 1.4s — gives each beam more weight/breath
+    // Slower fall - was 0.85s, now 1.4s - gives each beam more weight/breath
     const k = Math.min(1, local / 1.4);
     const eased = 1 - Math.pow(1 - k, 3);
     matRef.current.uniforms.uReveal.value = paused ? 1 : eased;
@@ -817,7 +822,7 @@ function Motes({ count = 240, scene, fadeMul = 1 }){
       if (arr[i*3+1] > 5.0) arr[i*3+1] = 0.0;
     }
     ref.current.geometry.attributes.position.needsUpdate = true;
-    // Base is non-zero in any descent scene (arrival/fork/etc) — the actual
+    // Base is non-zero in any descent scene (arrival/fork/etc) - the actual
     // visibility is driven by fadeMul from the parent (scroll-based).
     const base = (scene === 'arrival' || scene === 'fork') ? 0.9 : 0.0;
     // Smooth the opacity in case fadeMul updates faster than the eye can follow.
@@ -850,7 +855,7 @@ function StrikeFlare({ active, scene, fadeMul = 1 }){
     if (!ref.current || !matRef.current) return;
     const t = clock.getElapsedTime();
     const pulse = 0.5 + 0.5 * Math.sin(t * 1.4);
-    // Softer, wider — acts as bottom dissolve rather than hard strike point
+    // Softer, wider - acts as bottom dissolve rather than hard strike point
     const target = active ? (0.32 + pulse * 0.12) * Math.max(0, fadeMul) : 0.0;
     matRef.current.opacity += (target - matRef.current.opacity) * 0.05;
     const s = active ? 1 + pulse * 0.04 : 0.9;
@@ -1039,13 +1044,13 @@ function CameraRig({ scene, choice, brandCurve, creativeCurve, reduced }){
       targetLook = new THREE.Vector3(0, 0.2, -2);
     } else if (scene === 'flying'){
       // Clean single-beam camera dive: ease forward through the chosen path
-      // direction toward the destination camera. No meteor, no particles —
+      // direction toward the destination camera. No meteor, no particles -
       // restraint over spectacle.
       if (s.flightStart === null) s.flightStart = clock.getElapsedTime();
       const elapsed = clock.getElapsedTime() - s.flightStart;
       const T = reduced ? 0.6 : 1.6;
       const k = Math.min(1, elapsed / T);
-      // ease in-out cubic — quick acceleration, smooth settle
+      // ease in-out cubic - quick acceleration, smooth settle
       const e = k < 0.5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3) / 2;
 
       const sx = choice === 'brand' ? -0.5 : 0.5;
@@ -1091,7 +1096,7 @@ function CameraRig({ scene, choice, brandCurve, creativeCurve, reduced }){
 function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false, choice, hover, setHover, onChoose, reduced, flightProgress = 0, onMeteorImpact }){
   const inFlight = phase === 'flight';
   // Path curves (in xz plane). Both paths start at the markers (far) and bend INWARD
-  // toward an apex offscreen-behind the camera — but we trim the ribbon UVs so only
+  // toward an apex offscreen-behind the camera - but we trim the ribbon UVs so only
   // the upper portion renders. This avoids the bright glow at the convergence point.
   const brandCurve = useMemo(() => new THREE.QuadraticBezierCurve3(
     new THREE.Vector3(-4.8, 0, -12),  // far end (marker, left)
@@ -1103,7 +1108,7 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
     new THREE.Vector3( 3.0, 0, -8.5),
     new THREE.Vector3( 0.9, 0, -5.5),
   ), []);
-  // Central river removed — was creating a bright column at scene center.
+  // Central river removed - was creating a bright column at scene center.
 
   const flying = scene === 'flying';
   const inDest = scene === 'brand' || scene === 'creative';
@@ -1119,7 +1124,7 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
         ? Math.max(0, 1 - Math.pow(scrollProgress / 0.7, 1.6))
         : flying ? 0.25 : 0;
 
-  // Particles fade OUT slowly between scrollProgress 0.35 → 0.6 — i.e. they
+  // Particles fade OUT slowly between scrollProgress 0.35 → 0.6 - i.e. they
   // persist throughout the early descent and finish fading just BEFORE the beams
   // fully disappear at ~0.7. Coming back up, this reverses smoothly.
   // Particles fade OUT during 0.40 → 0.65 going down, fade BACK IN symmetrically
@@ -1153,17 +1158,17 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
       <fog attach="fog" args={[scene === 'creative' ? '#3a2516' : '#3a2918', scene === 'brand' ? 28 : 18, 80]} />
       <ambientLight intensity={0.25} color={'#f7c270'} />
 
-      {/* Soft column halo BEHIND the beams — small, tucked into the cloud break,
+      {/* Soft column halo BEHIND the beams - small, tucked into the cloud break,
           purely a backlight. No more vertical glow stretching toward the words. */}
       <sprite position={[0, 4.8, -0.7]} scale={[2.2, 1.6, 1]} renderOrder={1}>
         <spriteMaterial map={glowTex} transparent depthWrite={false} opacity={beamOp * 0.35} color={'#ffd28a'} blending={THREE.AdditiveBlending} />
       </sprite>
-      {/* Top sun-burst at the cloud break — very subtle, barely there. */}
+      {/* Top sun-burst at the cloud break - very subtle, barely there. */}
       <sprite position={[0, 5.0, -0.5]} scale={[3.6, 2.2, 1]} renderOrder={1}>
         <spriteMaterial map={glowTex} transparent depthWrite={false} opacity={beamOp * 0.25} color={'#fff2c8'} blending={THREE.AdditiveBlending} />
       </sprite>
 
-      {/* Beams — short (height=2.0), uniform width/opacity. Staggered briefly
+      {/* Beams - short (height=2.0), uniform width/opacity. Staggered briefly
           on first reveal so the eye reads the cascade, then they settle into
           one coordinated cluster. */}
       <Beam x={-0.44} delay={0.00} width={0.20} height={2.0} y={4.2} opacity={beamOp * 0.75} paused={reduced} />
@@ -1173,9 +1178,9 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
       <Beam x={ 0.44} delay={0.40} width={0.20} height={2.0} y={4.2} opacity={beamOp * 0.75} paused={reduced} />
 
       <Motes count={reduced ? 0 : 180} scene={scene} fadeMul={moteOp} />
-      {/* StrikeFlare disabled — its bottom sprite was reading as a "comet" through the beam stack */}
+      {/* StrikeFlare disabled - its bottom sprite was reading as a "comet" through the beam stack */}
 
-      {/* Central river removed — was the bright vertical column at scene center */}
+      {/* Central river removed - was the bright vertical column at scene center */}
 
       {/* Two diverging paths */}
       <PathRibbon
@@ -1201,7 +1206,7 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
         onClick={() => forkActive && onChoose('creative')}
       />
 
-      {/* Marker lights removed — the HTML fork labels (ring + name) are clearer.
+      {/* Marker lights removed - the HTML fork labels (ring + name) are clearer.
           The 3D sprites at the path endpoints were appearing as horizontal streaks
           ("eyebrows") because the radial-gradient texture, scaled with intensity,
           can read as a slash when viewed near edge-on. */}
@@ -1210,7 +1215,7 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
       <SkyGlow scene={scene} />
       {inDest && (scene === 'brand' ? <BrandWorld /> : <CreativeWorld />)}
 
-      {/* Meteor shower disabled — replaced with a clean single-beam camera dive.
+      {/* Meteor shower disabled - replaced with a clean single-beam camera dive.
           Kept in the codebase for now in case we want it back behind a tweak.
           <MeteorShower active={inFlight} progress={flightProgress} choice={choice} onImpact={onMeteorImpact} /> */}
 
@@ -1232,7 +1237,7 @@ function Marker({ position, intensity = 0, hot }){
   useFrame(({ clock }) => {
     if (!ref.current || !matRef.current) return;
     const t = clock.getElapsedTime();
-    // Direct intensity — no slow lerp, so markers don't "follow" on scroll-up
+    // Direct intensity - no slow lerp, so markers don't "follow" on scroll-up
     const base = (hot ? 1.0 : 0.55) * Math.max(0, Math.min(1, intensity));
     matRef.current.opacity += (base - matRef.current.opacity) * 0.18;
     const pulse = 1 + Math.sin(t * 1.8) * (hot ? 0.18 : 0.06);
@@ -1300,7 +1305,7 @@ function CreativeWorld(){
     }
     return arr;
   }, []);
-  // Glowing "embers" — particles drifting upward
+  // Glowing "embers" - particles drifting upward
   const ref = useRef();
   const N = 180;
   const positions = useMemo(() => {
@@ -1403,10 +1408,10 @@ function useAmbientAudio(muted){
   useEffect(() => () => { try { ctxRef.current && ctxRef.current.close(); } catch(e){} }, []);
 }
 
-// ─── Custom cursor — dot + ring move together; click spawns a ripple pulse ──
+// ─── Custom cursor - dot + ring move together; click spawns a ripple pulse ──
 // No mount on touch devices (no `pointer: fine`). Position is driven via
 // refs to avoid React re-renders on every mousemove. The dot and ring both
-// track the cursor at the same time (no lag) — click anywhere and a gold
+// track the cursor at the same time (no lag) - click anywhere and a gold
 // ripple spawns at that point.
 function CustomCursor(){
   const dotRef = useRef(null);
@@ -1420,7 +1425,7 @@ function CustomCursor(){
       if (dotRef.current)  dotRef.current.style.transform  = t;
       if (ringRef.current) ringRef.current.style.transform = t;
     };
-    // Hover detection — any clickable / interactive element flips body.cursor-hover.
+    // Hover detection - any clickable / interactive element flips body.cursor-hover.
     const HOVER_SELECTOR = 'a, button, [role="button"], .fork-label, .cta, input, textarea, label.cf-upload, image-slot';
     const onOver = (e) => {
       if (e.target && e.target.closest && e.target.closest(HOVER_SELECTOR)) {
@@ -1433,7 +1438,7 @@ function CustomCursor(){
         document.body.classList.remove('cursor-hover');
       }
     };
-    // Click ripple — spawn a div at the click point, animate it scale+fade,
+    // Click ripple - spawn a div at the click point, animate it scale+fade,
     // self-cleanup after the keyframe finishes. Multiple rapid clicks each
     // get their own pulse, so quick double-clicks read correctly.
     const onDown = (e) => {
@@ -1467,14 +1472,38 @@ function CustomCursor(){
 // ─── Top-level App ──────────────────────────────────────────────────────────
 function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null }){
   const router = useRouter();
+  // Cinematic cream-wash transition shared with the splash and the brands
+  // page. `trigger(href)` paints a cream overlay over the page, fades it
+  // in, then router.push - the destination's <ArrivalWash> picks up where
+  // it left off so the cut feels seamless. Used for top-left logo clicks.
+  const { trigger: navWash, overlay: navWashOverlay } = useNavWash();
+  // Dark wash + gold beam scan - reserved for the two pathway options on
+  // this page (Embedded / Projects). Feels like "crossing the threshold"
+  // into the chosen journey instead of just nav.
+  const { trigger: pathwayWash, overlay: pathwayWashOverlay } = usePathwayWash();
+  // Mobile hamburger - the top-nav links wrap awkwardly on phones, so
+  // below 760px we hide them and reveal a right-side slide-in sheet.
+  // Same UX pattern as the splash, brands, and journey pages.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (menuOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
   // initialPhase lets this component be reused on standalone /about and
-  // /contact routes — we mount directly into the about/contact view rather
+  // /contact routes - we mount directly into the about/contact view rather
   // than running the descent → fork flow. homeRoute, when set, makes the
   // wordmark's back arrow route to that URL instead of returning to the
   // internal descent phase (since on /about there's no descent to return to).
   const [phase, setPhase] = useState(initialPhase);  // descent | flight | brand | creative
   // When mounting directly into brand/creative (standalone /brands, /creatives
-  // sub-routes), seed `choice` to match — otherwise visual states that depend
+  // sub-routes), seed `choice` to match - otherwise visual states that depend
   // on choice (camera-fly target, world-tint defaults, etc.) start in a
   // half-initialised state for users who didn't come through the fork.
   const [choice, setChoice] = useState(
@@ -1491,7 +1520,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
   const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   // Add a body class so CSS can disable expensive effects (SVG filter on the
-  // matte, mix-blend-mode stacks, animated blur) only for Safari users —
+  // matte, mix-blend-mode stacks, animated blur) only for Safari users -
   // their compositor handles those layers much slower than Chrome's.
   useEffect(() => {
     if (isSafari) {
@@ -1506,7 +1535,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
     return () => document.body.classList.remove('route-creatives');
   }, []);
   // Flight progress + direction (enter = picking a path, return = going home).
-  // The two use different visual wash treatments — warm for arrival, dark for return.
+  // The two use different visual wash treatments - warm for arrival, dark for return.
   const [flightProgress, setFlightProgress] = useState(0);
   const [flightDir, setFlightDir] = useState('enter');
   const [meteorFlashKey, setMeteorFlashKey] = useState(0);
@@ -1523,7 +1552,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
     phase === 'creative' ? 'creative' :
     /* descent */          (impacted ? 'fork' : 'arrival');
 
-  // Scene 1 reveal timing — staggered cascade matching the original splash:
+  // Scene 1 reveal timing - staggered cascade matching the original splash:
   // title glyphs cascade in first, then tagline, then scroll hint. Each child
   // has its own CSS transition so they don't all arrive together.
   //
@@ -1537,7 +1566,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
       return;
     }
     if (!introDismissed) return;
-    // Tight cascade — title cascades in fast, tagline a beat behind,
+    // Tight cascade - title cascades in fast, tagline a beat behind,
     // hint shortly after. Whole sequence wraps in ~700ms post-dismiss.
     const a = setTimeout(() => setTitleLit(true), 80);
     const b = setTimeout(() => setTagShow(true), 320);
@@ -1652,17 +1681,21 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
     if (birds) birds.classList.toggle('show', shouldShow);
   }, [phase, reduced]);
 
-  // (No mouse parallax — the matte stays put so nothing drifts under the title)
+  // (No mouse parallax - the matte stays put so nothing drifts under the title)
 
   // Lock body scroll only during flight + destination. After impact we leave
   // descent scrolling unlocked so the user can scroll back up without feeling trapped;
   // the `impacted` state itself is one-way, so the V remains visible.
+  // Cleanup on unmount strips the class so the next route doesn't inherit
+  // a frozen body (otherwise navigating away from /about - which sits in
+  // phase='about' permanently - would leave the next page un-scrollable).
   useEffect(() => {
     if (phase === 'flight' || phase === 'brand' || phase === 'creative' || phase === 'about' || phase === 'contact') {
       document.body.classList.add('locked');
     } else {
       document.body.classList.remove('locked');
     }
+    return () => { document.body.classList.remove('locked'); };
   }, [phase, impacted]);
 
   // Dim matte during flight + destination
@@ -1671,13 +1704,15 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
     if (!m) return;
     if (phase === 'flight' || phase === 'brand' || phase === 'creative' || phase === 'about' || phase === 'contact') m.classList.add('dim');
     else m.classList.remove('dim');
+    return () => { const mm = document.getElementById('matte'); if (mm) mm.classList.remove('dim'); };
   }, [phase]);
 
   // During flight, hide EVERYTHING except the canvas + meteor: matte, vignette,
-  // grain, bar — so the meteor flies on a pure black field for max focus.
+  // grain, bar - so the meteor flies on a pure black field for max focus.
   useEffect(() => {
     if (phase === 'flight') document.body.classList.add('flight-iso');
     else document.body.classList.remove('flight-iso');
+    return () => { document.body.classList.remove('flight-iso'); };
   }, [phase]);
 
   // On destination pages, hide the 3D canvas entirely so no residual beam/glow
@@ -1686,10 +1721,11 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
     const inDestPhase = phase === 'brand' || phase === 'creative' || phase === 'about' || phase === 'contact';
     if (inDestPhase) document.body.classList.add('in-dest');
     else document.body.classList.remove('in-dest');
+    return () => { document.body.classList.remove('in-dest'); };
   }, [phase]);
 
   // Drive the zoom-into-landscape transition. The `zooming` class is on
-  // throughout flight AND while a destination is showing — the cloud/hero
+  // throughout flight AND while a destination is showing - the cloud/hero
   // parallax stays committed (fully zoomed past) for the duration, then
   // reverses smoothly when we return home. Done as a separate effect so the
   // matte's .dim class (which independently handles opacity/filter) can have
@@ -1698,18 +1734,19 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
     const zoomPhases = phase === 'flight' || phase === 'brand' || phase === 'creative' || phase === 'about' || phase === 'contact';
     if (zoomPhases) document.body.classList.add('zooming');
     else document.body.classList.remove('zooming');
+    return () => { document.body.classList.remove('zooming'); };
   }, [phase]);
 
   const onChoose = useCallback((c) => {
     // Fork labels on the /creatives page are reframed for creatives:
     //   • "Embedded" label uses scene-id 'brand'    (legacy id, kept to
-    //     preserve the camera-flight wiring) — route to /creatives/embedded
-    //   • "Project"  label uses scene-id 'creative' (legacy id)         —
+    //     preserve the camera-flight wiring) - route to /creatives/embedded
+    //   • "Project"  label uses scene-id 'creative' (legacy id)         -
     //     route to /creatives/projects
     // Both bypass the in-scene flight + destination overlay because those
     // pathway pages now live as standalone routes with the full content.
-    if (c === 'brand')    { router.push('/creatives/embedded'); return; }
-    if (c === 'creative') { router.push('/creatives/projects'); return; }
+    if (c === 'brand')    { pathwayWash('/creatives/embedded', 'embedded'); return; }
+    if (c === 'creative') { pathwayWash('/creatives/projects', 'projects'); return; }
     setChoice(c);
     setFlightDir('enter');
     setPhase('flight');
@@ -1735,7 +1772,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
   }, []);
 
   const onReturn = useCallback(() => {
-    // Nav pages (about/contact) return instantly — no flight.
+    // Nav pages (about/contact) return instantly - no flight.
     if (phase === 'about' || phase === 'contact') {
       setPhase('descent');
       return;
@@ -1757,7 +1794,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
 
   const navigate = useCallback((dest) => {
     if (dest === 'home') { onReturn(); return; }
-    // 'creative' no longer has an in-scene overlay — the brand destination's
+    // 'creative' no longer has an in-scene overlay - the brand destination's
     // "For Creatives" CTA buttons and DestFooter's For Creatives link both
     // funnel through here, so route them to the standalone pathway page.
     if (dest === 'creative') { router.push('/creatives/embedded'); return; }
@@ -1772,7 +1809,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
   const heroTransform = `translateY(calc(-50% - ${scrollProgress * 36}px))`;
   const hintOpacity = impacted ? 0 : Math.max(0, 1 - scrollProgress * 3) * (hintShow ? 1 : 0);
 
-  // Fork chrome — visible once impacted, but tied to scroll so scrolling up fades it.
+  // Fork chrome - visible once impacted, but tied to scroll so scrolling up fades it.
   // Range: fully visible at scrollProgress >= 0.92, fading out down to 0.72.
   // CRITICAL: zero out when we leave 'descent' so chrome doesn't bleed into destinations.
   const forkScrollFactor = Math.max(0, Math.min(1, (scrollProgress - 0.72) / (0.92 - 0.72)));
@@ -1787,7 +1824,10 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
 
   return (
     <>
-      {/* Custom cursor temporarily disabled — was interfering with click/hover.
+      <ArrivalWash />
+      {navWashOverlay}
+      {pathwayWashOverlay}
+      {/* Custom cursor temporarily disabled - was interfering with click/hover.
           Restore by uncommenting and we'll diagnose why interactions broke. */}
       {/* <CustomCursor /> */}
       <Canvas
@@ -1813,7 +1853,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
         />
       </Canvas>
 
-      {/* Flight dim wash — warm bright for entering a world, dark calm for returning */}
+      {/* Flight dim wash - warm bright for entering a world, dark calm for returning */}
       {phase === 'flight' && <div className={`flight-dim ${flightDir === 'return' ? 'dim-return' : ''}`}></div>}
 
       {/* Meteor-impact flash overlay disabled along with the meteor shower */}
@@ -1821,15 +1861,15 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
         <div key={`meteor-flash-${meteorFlashKey}`} className="meteor-flash"></div>
       )} */}
 
-      {/* Touchdown — a single soft warm pulse, no harsh flash or ring */}
+      {/* Touchdown - a single soft warm pulse, no harsh flash or ring */}
       {impacted && (
         <div key={`pulse-${flashKey}`} className="impact-pulse fire"></div>
       )}
 
-      {/* Top bar — shown in ALL phases. Wordmark left, nav right.
+      {/* Top bar - shown in ALL phases. Wordmark left, nav right.
           On destination pages, the wordmark doubles as "Return to the fork". */}
       <div className="bar" style={{ opacity: phase === 'flight' ? 0 : 1, pointerEvents: phase === 'flight' ? 'none' : 'auto', transition: 'opacity 700ms ease' }}>
-        {/* OLD WORDMARK (kept for future restore — boss is still using this mark
+        {/* OLD WORDMARK (kept for future restore - boss is still using this mark
             at a conference, swap back when he's ready):
         {(phase === 'brand' || phase === 'creative' || phase === 'about' || phase === 'contact')
           ? (
@@ -1844,7 +1884,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
         }
         */}
 
-        {/* NEW WORDMARK — actual conference logo image (/assets/beacon-logo.png).
+        {/* NEW WORDMARK - actual conference logo image (/assets/beacon-logo.png).
             Two click destinations depending on phase:
               • descent → back to the splash page (the fork was reached
                 from there, so "home" = "/")
@@ -1856,7 +1896,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
             <button
               type="button"
               className="wordmark wordmark-btn"
-              onClick={homeRoute ? () => router.push(homeRoute) : onReturn}
+              onClick={homeRoute ? () => navWash(homeRoute) : onReturn}
               aria-label={homeRoute ? 'Back to home' : 'Return to fork'}
             >
               <span className="wm-arrow" aria-hidden="true">
@@ -1866,7 +1906,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
             </button>
           )
           : (
-            <button type="button" className="wordmark wordmark-btn" onClick={() => router.push('/')} aria-label="Back to home">
+            <button type="button" className="wordmark wordmark-btn" onClick={() => navWash('/')} aria-label="Back to home">
               <span className="wm-arrow" aria-hidden="true">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
               </span>
@@ -1874,7 +1914,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
             </button>
           )
         }
-        <nav className="top-nav">
+        <nav className="top-nav top-nav-desktop">
           {/* ?from=creatives lets /about and /contact route their back-
               arrow to /creatives instead of the default home, so users
               who came from this page can get back to it without browser
@@ -1882,12 +1922,55 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
           <a href="/about?from=creatives" onClick={(e) => { e.preventDefault(); router.push('/about?from=creatives'); }}>About</a>
           <a href="/contact?from=creatives" onClick={(e) => { e.preventDefault(); router.push('/contact?from=creatives'); }}>Contact</a>
         </nav>
+        <button
+          type="button"
+          className="bar-hamburger"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+        >
+          <span aria-hidden="true" />
+          <span aria-hidden="true" />
+        </button>
       </div>
 
-      {/* Standalone return button removed — the wordmark itself now serves as
+      {/* Mobile side menu - same slide-in sheet pattern as brands + splash. */}
+      <div
+        className={`bar-menu-backdrop ${menuOpen ? 'is-open' : ''}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden={!menuOpen}
+      />
+      <aside
+        className={`bar-side-menu ${menuOpen ? 'is-open' : ''}`}
+        aria-hidden={!menuOpen}
+        aria-label="Mobile navigation"
+      >
+        <button
+          type="button"
+          className="bar-side-menu-close"
+          onClick={() => setMenuOpen(false)}
+          aria-label="Close menu"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+        <nav className="bar-side-menu-nav" aria-label="Primary mobile">
+          <a href="/brands" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navWash('/brands'); }}>For Brands</a>
+          <a href="/creatives/embedded" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navWash('/creatives/embedded'); }}>For Creatives</a>
+          <a href="/about?from=creatives" onClick={(e) => { e.preventDefault(); setMenuOpen(false); router.push('/about?from=creatives'); }}>About</a>
+          <a href="/contact?from=creatives" onClick={(e) => { e.preventDefault(); setMenuOpen(false); router.push('/contact?from=creatives'); }}>Contact</a>
+        </nav>
+        <div className="bar-side-menu-connect">
+          <p className="bar-side-menu-label">Connect</p>
+          <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+        </div>
+      </aside>
+
+      {/* Standalone return button removed - the wordmark itself now serves as
           "Return to the fork" on destination pages. */}
 
-      {/* Hero — BEACON title + tagline. Scroll-fade together; fade back in on scroll-up.
+      {/* Hero - BEACON title + tagline. Scroll-fade together; fade back in on scroll-up.
           IMPORTANT: pointer-events disabled when invisible so it doesn't block scroll
           on the destination overlays underneath. */}
       <div
@@ -1907,7 +1990,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
         <div className={`tagline ${tagShow ? 'show' : ''}`}>Find a brand worth building for. A career worth keeping.</div>
       </div>
 
-      {/* Scroll hint — descent only; unmount on flight/destination so it
+      {/* Scroll hint - descent only; unmount on flight/destination so it
           doesn't intercept clicks or scroll. */}
       {inDescent && (
         <div className={`scrollhint ${hintShow ? 'show' : ''}`} style={{ opacity: hintOpacity }}>
@@ -1917,15 +2000,15 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
         </div>
       )}
 
-      {/* Fork intro caption — only during descent */}
+      {/* Fork intro caption - only during descent */}
       {inDescent && (
         <div className={`fork-caption ${forkOpacity > 0.05 ? 'show' : ''}`} style={{ opacity: forkOpacity }}>
           <div className="k">Choose your path</div>
-          <div className="h">Two rivers of light run through the valley.</div>
+          <div className="h">Two ways to work with us.</div>
         </div>
       )}
 
-      {/* Fork labels — only during descent */}
+      {/* Fork labels - only during descent */}
       {inDescent && (
         <ForkLabels
           scene={scene}
@@ -1938,7 +2021,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
       )}
 
       {/* Destination content */}
-      <Destination scene={phase} choice={choice} navigate={navigate} />
+      <Destination scene={phase} choice={choice} navigate={navigate} navWash={navWash} />
     </>
   );
 }
@@ -1987,7 +2070,7 @@ function ForkLabels({ scene, hover, setHover, onChoose, forkOpacity = 1, active 
         <span className="ember" style={{ '--dx': '8px',   animationDelay: '220ms' }}></span>
         <span className="ember" style={{ '--dx': '-4px',  animationDelay: '440ms' }}></span>
         <span className="ember" style={{ '--dx': '14px',  animationDelay: '660ms' }}></span>
-        {/* Reframed for the /creatives page — the user has already
+        {/* Reframed for the /creatives page - the user has already
             identified as a creative, so the two paths now describe the
             two career shapes Beacon offers them: a full-time embedded
             seat inside a brand, or project-based production work. The
@@ -2032,10 +2115,10 @@ function CameraExporter(){
 //
 // Content based on beaconmediasolutions.com. The Brand destination explains the
 // two services (Embedded Solutions + Media Production) and Why Beacon. The
-// Destination overlay — brand, creative, about, or contact pages.
-function Destination({ scene, choice, navigate }){
+// Destination overlay - brand, creative, about, or contact pages.
+function Destination({ scene, choice, navigate, navWash }){
   const showBrand    = scene === 'brand';
-  // 'creative' scene removed — onChoose('creative') routes out to
+  // 'creative' scene removed - onChoose('creative') routes out to
   // /creatives/embedded instead of mounting an in-scene overlay.
   const showAbout    = scene === 'about';
   const showContact  = scene === 'contact';
@@ -2046,8 +2129,27 @@ function Destination({ scene, choice, navigate }){
   const [brandTimeline, setBrandTimeline] = useState('flexible');
   const toggleBrandRole = (role) =>
     setBrandRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]);
+  // Destination overlay contact form - submit + popup state
+  const [cfSubmitting, setCfSubmitting] = useState(false);
+  const [thanksOpen, setThanksOpen] = useState(false);
+
+  const handleCfSubmit = async (e) => {
+    e.preventDefault();
+    if (cfSubmitting) return;
+    const formEl = e.currentTarget;
+    setCfSubmitting(true);
+    const ok = await submitForm(formEl, 'creatives');
+    if (ok) {
+      formEl.reset();
+      setCfType('brand');
+      setThanksOpen(true);
+    } else {
+      alert('Sorry - something went wrong. Please email info@beaconmediasolutions.com directly.');
+    }
+    setCfSubmitting(false);
+  };
   // Creative form state removed alongside the creative destination overlay
-  // — that pathway now lives at /creatives/embedded as a standalone page
+  // - that pathway now lives at /creatives/embedded as a standalone page
   // and onChoose('creative') routes directly there.
 
   const brandRef    = useRef(null);
@@ -2081,9 +2183,10 @@ function Destination({ scene, choice, navigate }){
 
   return (
     <>
+      <ThanksPopup open={thanksOpen} onClose={() => setThanksOpen(false)} />
 
       {/* ───── ABOUT PAGE ────────────────────────────────────────────────── */}
-      <div className={`dest ${showAbout ? 'show' : ''}`}>
+      <div className={`dest dest-page-narrow ${showAbout ? 'show' : ''}`}>
         <div className="scroll" ref={aboutRef}>
 
           <section className="hero-section">
@@ -2093,13 +2196,13 @@ function Destination({ scene, choice, navigate }){
                 The bridge between <em>great creatives</em> and the brands that need them.
               </h1>
               <p className="lead anim" style={{ transitionDelay: '380ms' }}>
-                Beacon was founded on a simple belief: the best creative work happens when talent and brand are genuinely aligned — not just transactionally connected. We built the infrastructure to make that possible at scale.
+                Beacon was founded on a simple belief: the best creative work happens when talent and brand are genuinely aligned - not just transactionally connected. We built the infrastructure to make that possible at scale.
               </p>
             </div>
           </section>
 
           <div className="bleed anim" style={{ transitionDelay: '560ms' }}>
-            <image-slot id="about-bleed" shape="rect" placeholder="Team at work — studio, behind the scenes, or editorial portrait" src="https://images.unsplash.com/photo-1693645325820-03c4be5b7031?w=1600&q=80&auto=format&fit=crop"></image-slot>
+            <image-slot id="about-bleed" shape="rect" placeholder="Team at work - studio, behind the scenes, or editorial portrait" src="https://images.unsplash.com/photo-1693645325820-03c4be5b7031?w=1600&q=80&auto=format&fit=crop"></image-slot>
           </div>
 
           {/* Mission */}
@@ -2114,12 +2217,12 @@ function Destination({ scene, choice, navigate }){
               </div>
               <div>
                 <div className="meta">Why Beacon exists</div>
-                <h3>To make high-quality content <em>accessible to every team</em> — not just the ones with giant marketing budgets.</h3>
+                <h3>To make high-quality content <em>accessible to every team</em> - not just the ones with giant marketing budgets.</h3>
                 <p>
-                  Beacon was founded after watching brands struggle with inconsistent content — patched together by rotating freelancers, stretched in-house teams, or production houses that never quite understood them. We designed a different model: embedded, full-time creatives placed inside the organisations they serve.
+                  Beacon was founded after watching brands struggle with inconsistent content - patched together by rotating freelancers, stretched in-house teams, or production houses that never quite understood them. We designed a different model: embedded, full-time creatives placed inside the organisations they serve.
                 </p>
                 <p>
-                  Great content comes from people who <em>belong</em> to your brand. The best stories aren't outsourced — they're lived from within.
+                  Great content comes from people who <em>belong</em> to your brand. The best stories aren't outsourced - they're lived from within.
                 </p>
               </div>
             </div>
@@ -2140,7 +2243,7 @@ function Destination({ scene, choice, navigate }){
               <div className="pillar anim">
                 <div className="pillar-n">02</div>
                 <h4>Long-term thinking</h4>
-                <p>We don't do quick fixes. We build relationships between creatives and brands that last — and that produce better work over time.</p>
+                <p>We don't do quick fixes. We build relationships between creatives and brands that last - and that produce better work over time.</p>
               </div>
               <div className="pillar anim">
                 <div className="pillar-n">03</div>
@@ -2150,7 +2253,7 @@ function Destination({ scene, choice, navigate }){
               <div className="pillar anim">
                 <div className="pillar-n">04</div>
                 <h4>Singapore & beyond</h4>
-                <p>Built in Singapore, with the infrastructure and ambition to place talent — and serve brands — across the region and globally.</p>
+                <p>Built in Singapore, with the infrastructure and ambition to place talent - and serve brands - across the region and globally.</p>
               </div>
             </div>
           </div>
@@ -2173,7 +2276,7 @@ function Destination({ scene, choice, navigate }){
                 </p>
               </div>
               <div className="slot-frame tall">
-                <image-slot id="about-model" shape="rect" placeholder="Collaboration — brand and creative together" src="https://images.unsplash.com/photo-1758876203342-fc14c0bba67c?w=1600&q=80&auto=format&fit=crop"></image-slot>
+                <image-slot id="about-model" shape="rect" placeholder="Collaboration - brand and creative together" src="https://images.unsplash.com/photo-1758876203342-fc14c0bba67c?w=1600&q=80&auto=format&fit=crop"></image-slot>
               </div>
             </div>
           </div>
@@ -2209,17 +2312,17 @@ function Destination({ scene, choice, navigate }){
           </div>
 
           <div className="container narrow closing">
-            <h2 className="anim">The best stories aren't outsourced — <em>they're lived from within.</em></h2>
+            <h2 className="anim">The best stories aren't outsourced - <em>they're lived from within.</em></h2>
             <button className="cta">Work with us
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
           </div>
-          <DestFooter navigate={navigate} />
+          <DestFooter navWash={navWash} />
         </div>
       </div>
 
       {/* ───── CONTACT PAGE ─────────────────────────────────────────────── */}
-      <div className={`dest ${showContact ? 'show' : ''}`}>
+      <div className={`dest dest-page-narrow ${showContact ? 'show' : ''}`}>
         <div className="scroll" ref={contactRef}>
 
           <section className="hero-section">
@@ -2229,7 +2332,7 @@ function Destination({ scene, choice, navigate }){
                 Let's build something <em>worth making.</em>
               </h1>
               <p className="lead anim" style={{ transitionDelay: '380ms' }}>
-                Whether you're a brand looking for consistent creative capability, or a creative looking for the right place to grow — we'd like to hear from you.
+                Whether you're a brand looking for consistent creative capability, or a creative looking for the right place to grow - we'd like to hear from you.
               </p>
             </div>
           </section>
@@ -2246,7 +2349,7 @@ function Destination({ scene, choice, navigate }){
                 <h3>Ready to embed a creative <em>or brief a project?</em></h3>
                 <p>Tell us about your organisation, what you're trying to build, and the timeline you're working toward. We'll come back with a clear picture of how Beacon can help.</p>
                 <div className="actions" style={{ marginTop: 32 }}>
-                  <button className="cta" onClick={() => navigate('brand')}>Explore — For Brands
+                  <button className="cta" onClick={() => navigate('brand')}>Explore - For Brands
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                   </button>
                 </div>
@@ -2254,9 +2357,9 @@ function Destination({ scene, choice, navigate }){
               <div>
                 <div className="meta">For creatives</div>
                 <h3>Looking for the right <em>creative home?</em></h3>
-                <p>Send us your portfolio and a note about the kind of work and environments you're drawn to. We match on craft and culture — we want to understand both.</p>
+                <p>Send us your portfolio and a note about the kind of work and environments you're drawn to. We match on craft and culture - we want to understand both.</p>
                 <div className="actions" style={{ marginTop: 32 }}>
-                  <button className="cta ghost" onClick={() => navigate('creative')}>Explore — For Creatives
+                  <button className="cta ghost" onClick={() => navigate('creative')}>Explore - For Creatives
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                   </button>
                 </div>
@@ -2272,11 +2375,11 @@ function Destination({ scene, choice, navigate }){
             </div>
             <div className="cf-wrap">
               <div className="contact-form">
-                {/* Left — description + social */}
+                {/* Left - description + social */}
                 <div className="cf-info">
                   <span className="cf-label">Get in touch</span>
                   <p className="cf-info-title">Let's build something worth making.</p>
-                  <p className="cf-info-body">Whether you have a question, a brief, or just want to say hello — we'd love to hear from you.</p>
+                  <p className="cf-info-body">Whether you have a question, a brief, or just want to say hello - we'd love to hear from you.</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
                     <div className="cf-detail">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
@@ -2288,30 +2391,25 @@ function Destination({ scene, choice, navigate }){
                     </div>
                   </div>
                   <div className="cf-social">
-                    <a href="#" aria-label="Instagram">
+                    <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></svg>
                     </a>
-                    <a href="#" aria-label="LinkedIn">
+                    <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
                       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-                    </a>
-                    <a href="#" aria-label="TikTok">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.55V6.79a4.85 4.85 0 0 1-1.07-.1z"/></svg>
-                    </a>
-                    <a href="#" aria-label="YouTube">
-                      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" stroke="none" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>
                     </a>
                   </div>
                 </div>
-                {/* Right — form fields */}
-                <form className="cf-fields" onSubmit={(e) => e.preventDefault()}>
+                {/* Right - form fields */}
+                <form className="cf-fields" action={FORM_ENDPOINT} method="POST" onSubmit={handleCfSubmit}>
+                  <input type="hidden" name="form" value="creatives" />
                   <div className="cf-row two">
                     <div className="cf-field">
                       <span className="cf-label">Name</span>
-                      <input type="text" placeholder="Your name" />
+                      <input type="text" name="name" placeholder="Your name" required />
                     </div>
                     <div className="cf-field">
                       <span className="cf-label">Email</span>
-                      <input type="email" placeholder="your@email.com" />
+                      <input type="email" name="email" placeholder="your@email.com" required />
                     </div>
                   </div>
                   <div className="cf-field">
@@ -2320,13 +2418,15 @@ function Destination({ scene, choice, navigate }){
                       <button type="button" className={`cf-toggle-btn${cfType === 'brand' ? ' on' : ''}`} onClick={() => setCfType('brand')}>Brand</button>
                       <button type="button" className={`cf-toggle-btn${cfType === 'creative' ? ' on' : ''}`} onClick={() => setCfType('creative')}>Creative</button>
                     </div>
+                    <input type="hidden" name="i_am_a" value={cfType === 'brand' ? 'Brand' : 'Creative'} />
                   </div>
                   <div className="cf-field">
                     <span className="cf-label">Message</span>
-                    <textarea rows="5" placeholder={cfType === 'brand' ? 'Tell us about your organisation, what you\'re building, and your timeline…' : 'Tell us about your craft, the kind of work you love, and where you want to grow…'} />
+                    <textarea name="message" rows="5" placeholder={cfType === 'brand' ? 'Tell us about your organisation, what you\'re building, and your timeline…' : 'Tell us about your craft, the kind of work you love, and where you want to grow…'} />
                   </div>
                   <div>
-                    <button type="submit" className="cta">Send message
+                    <button type="submit" className="cta" disabled={cfSubmitting} aria-busy={cfSubmitting}>
+                      {cfSubmitting ? 'Sending…' : 'Send message'}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </button>
                   </div>
@@ -2335,7 +2435,7 @@ function Destination({ scene, choice, navigate }){
             </div>
           </div>
 
-          {/* What to expect — guarantees that build confidence before reaching out */}
+          {/* What to expect - guarantees that build confidence before reaching out */}
           <div className="container">
             <div className="section-rule anim">
               <div className="label">What to expect</div>
@@ -2345,12 +2445,12 @@ function Destination({ scene, choice, navigate }){
               <div className="pillar anim">
                 <div className="pillar-n">01</div>
                 <h4>A reply within a business day</h4>
-                <p>Every brief gets a human reply within 24 working hours — no auto-responders, no "we'll be in touch" black holes. Urgent? Flag it in your subject line.</p>
+                <p>Every brief gets a human reply within 24 working hours - no auto-responders, no "we'll be in touch" black holes. Urgent? Flag it in your subject line.</p>
               </div>
               <div className="pillar anim">
                 <div className="pillar-n">02</div>
                 <h4>First call is on us</h4>
-                <p>A 30-minute conversation to understand your work and your context. No pitch deck, no hard sell — if we're not the right fit, we'll tell you and point you somewhere better.</p>
+                <p>A 30-minute conversation to understand your work and your context. No pitch deck, no hard sell - if we're not the right fit, we'll tell you and point you somewhere better.</p>
               </div>
               <div className="pillar anim">
                 <div className="pillar-n">03</div>
@@ -2361,25 +2461,28 @@ function Destination({ scene, choice, navigate }){
           </div>
 
           <div className="container narrow closing">
-            <h2 className="anim">The first message is always the hardest. Make it easy — just say hello.</h2>
+            <h2 className="anim">The first message is always the hardest. Make it easy - just say hello.</h2>
             <a className="cta" href="mailto:info@beaconmediasolutions.com">Say hello
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </a>
           </div>
-          <DestFooter navigate={navigate} />
+          <DestFooter navWash={navWash} />
         </div>
       </div>
     </>
   );
 }
 
-// Cinematic footer — shared across all destination pages.
-// navigate(dest): 'home' | 'about' | 'contact' | 'brand' | 'creative'
-function DestFooter({ navigate }){
-  const nav = (dest) => (e) => { e.preventDefault(); navigate && navigate(dest); };
-  // Wrap in its own .container so the footer always aligns to the regular
-  // 1280px page width, regardless of whether it's rendered inside the
-  // narrow closing block (max-width 880px) or directly inside .scroll.
+// Cinematic footer - shared across all destination pages.
+// All links route through navWash (cream-flash) and a real URL push so the
+// behaviour is identical whether the footer is rendered in the /creatives
+// 3D scene, on /about, or on /contact.
+function DestFooter({ navWash }){
+  const flash = (href) => (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    if (navWash) navWash(href);
+  };
   return (
     <div className="container">
     <footer className="dest-footer">
@@ -2396,17 +2499,14 @@ function DestFooter({ navigate }){
       <div className="ft-cols">
         <div className="ft-col">
           <div className="ft-label">Navigate</div>
-          {/* Real hrefs so right-click "open in new tab" / middle-click /
-              hover preview / JS-disabled fallback all work. onClick still
-              hijacks for the in-app cinematic SPA transition when JS is on. */}
-          <a href="/" onClick={nav('home')}>Home</a>
-          <a href="/about?from=creatives" onClick={nav('about')}>About</a>
-          <a href="/contact?from=creatives" onClick={nav('contact')}>Contact</a>
+          <a href="/" onClick={flash('/')}>Home</a>
+          <a href="/about?from=creatives" onClick={flash('/about?from=creatives')}>About</a>
+          <a href="/contact?from=creatives" onClick={flash('/contact?from=creatives')}>Contact</a>
         </div>
         <div className="ft-col">
-          <div className="ft-label">Services</div>
-          <a href="/brands" onClick={nav('brand')}>For Brands</a>
-          <a href="/creatives/embedded" onClick={nav('creative')}>For Creatives</a>
+          <div className="ft-label">Pathways</div>
+          <a href="/brands" onClick={flash('/brands')}>For Brands</a>
+          <a href="/creatives/embedded" onClick={flash('/creatives/embedded')}>For Creatives</a>
         </div>
       </div>
 
@@ -2419,10 +2519,8 @@ function DestFooter({ navigate }){
           Singapore 069541
         </div>
         <div className="ft-social">
-          <a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></svg></a>
-          <a href="#" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
-          <a href="#" aria-label="TikTok"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.55V6.79a4.85 4.85 0 0 1-1.07-.1z"/></svg></a>
-          <a href="#" aria-label="YouTube"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none"/></svg></a>
+          <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></svg></a>
+          <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
         </div>
       </div>
 

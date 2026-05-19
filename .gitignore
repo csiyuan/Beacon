@@ -24,5 +24,10 @@ scraps/
 # Vercel local config
 .vercel/
 
+# Environment secrets — Resend API key, etc. Never commit.
+.env
+.env.local
+.env*.local
+
 # Claude tooling
 .claude/

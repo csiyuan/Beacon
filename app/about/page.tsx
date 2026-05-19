@@ -1,7 +1,7 @@
 import CreativesClient from '../creatives/CreativesClient';
 
 export const metadata = {
-  title: 'About — Beacon',
+  title: 'About - Beacon',
   description:
     'The bridge between great creatives and the brands that need them. Built in Singapore, scaling across the region.',
 };

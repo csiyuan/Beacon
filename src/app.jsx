@@ -1,5 +1,5 @@
 // ============================================================================
-// Beacon — Empowering creatives. Elevating brands.
+// Beacon - Empowering creatives. Elevating brands.
 // A cinematic 3D landing built with React Three Fiber.
 //
 // Hybrid approach:
@@ -134,7 +134,7 @@ const streamVS = /* glsl */`
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
-// Wiggly waveform shader — keeps the sin-wave streak technique from the
+// Wiggly waveform shader - keeps the sin-wave streak technique from the
 // reference but tunes for distinct, crisp wavy STRANDS rather than a soft glow.
 // Several strands per channel at different vertical offsets give parallel wavy
 // lines, like an oscilloscope trace painted in gold.
@@ -144,8 +144,8 @@ const streamFS = /* glsl */`
   uniform vec2  uResolution;
   uniform float uTime;
   uniform float uOpacity;
-  uniform float uBias;      // -0.4 .. 0.4 — vertical bias of the strand stack
-  uniform float uProgress;  // 0..1 — flight progress drives speed/freq/sharpness
+  uniform float uBias;      // -0.4 .. 0.4 - vertical bias of the strand stack
+  uniform float uProgress;  // 0..1 - flight progress drives speed/freq/sharpness
 
   // One wavy strand. lineSlot = vertical offset of this strand from center.
   // sharpness controls how crisp the line reads (higher = thinner).
@@ -161,7 +161,7 @@ const streamFS = /* glsl */`
     p.y += uBias;
 
     float prog = clamp(uProgress, 0.0, 1.0);
-    // Speed/scale ramps — slow → fast across the flight
+    // Speed/scale ramps - slow → fast across the flight
     float accel  = smoothstep(0.0, 0.35, prog) * (1.0 - smoothstep(0.85, 1.0, prog));
     float speed     = mix(1.6, 8.5, accel);
     float xScale    = mix(1.2, 2.4, accel);
@@ -176,11 +176,11 @@ const streamFS = /* glsl */`
     float gx = p.x;
     float bx = p.x * (1.0 - d);
 
-    // STRAND STACK — multiple parallel wavy strands across the screen.
+    // STRAND STACK - multiple parallel wavy strands across the screen.
     // Slight vertical offsets + phase shifts = independent wiggles.
     float r = 0.0, g = 0.0, b = 0.0;
 
-    // Inner cluster (around bias) — the main bright wave strands
+    // Inner cluster (around bias) - the main bright wave strands
     r += strand(vec2(rx, p.y), -0.32, phase * 1.00, xScale * 1.00, yAmp,        sharpness);
     g += strand(vec2(gx, p.y), -0.30, phase * 1.08, xScale * 1.13, yAmp * 0.93, sharpness * 0.92);
     b += strand(vec2(bx, p.y), -0.28, phase * 0.93, xScale * 0.87, yAmp * 1.08, sharpness * 0.65);
@@ -200,11 +200,11 @@ const streamFS = /* glsl */`
     // Warm gold ramp
     vec3 col = vec3(r * 1.10, g * 0.74, b * 0.18) * 1.5;
 
-    // Edge vignette — keep wavy lines crisper in the center
+    // Edge vignette - keep wavy lines crisper in the center
     float vig = smoothstep(1.6, 0.25, length(p));
     col *= mix(0.45, 1.05, vig);
 
-    // Convergence bloom at (0, -uBias) grows in the second half — destination cue
+    // Convergence bloom at (0, -uBias) grows in the second half - destination cue
     vec2 fp = vec2(0.0, -uBias);
     float dist = length(p - fp);
     float arrive = smoothstep(0.4, 1.0, prog);
@@ -276,12 +276,12 @@ function LightStream({ active, bias, progress }){
 // ─── Meteor shower (Scene 2 → Scene 3 transition) ────────────────────────────
 //
 // Story:
-//   1. Convergence (0-32%) — sparks of light stream in from across the sky
+//   1. Convergence (0-32%) - sparks of light stream in from across the sky
 //      toward the marker you chose, gathering into a single point.
-//   2. Formation flash (28-36%) — they fuse into a luminous orb at the marker.
-//   3. Rise & fall (36-96%) — the orb shoots up to the apex, then crashes
+//   2. Formation flash (28-36%) - they fuse into a luminous orb at the marker.
+//   3. Rise & fall (36-96%) - the orb shoots up to the apex, then crashes
 //      down to the valley floor as a full meteor with a fiery trail.
-//   4. Impact (96-100%) — ground shockwave + screen flash + page shake.
+//   4. Impact (96-100%) - ground shockwave + screen flash + page shake.
 
 const TRAIL_LEN = 12;
 
@@ -291,7 +291,7 @@ function getMarkerPos(choice){
   return new THREE.Vector3(sx, 0.3, -12);
 }
 
-// Shared trajectory — sampled by both meteor mesh AND camera so they sync.
+// Shared trajectory - sampled by both meteor mesh AND camera so they sync.
 // Brand and Creative have DIFFERENT trajectories that match their identity:
 //   • Brand    → the orb forms low, soars UP and away into the sky (elevation)
 //   • Creative → the orb forms high, arcs DOWN into an intimate impact (descent
@@ -350,7 +350,7 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
   const lastPos = useRef(new THREE.Vector3());
   const triggered = useRef(false);
 
-  // Ember particle definitions — emitted relative to the meteor head.
+  // Ember particle definitions - emitted relative to the meteor head.
   const embers = useMemo(() => {
     const arr = [];
     let s = 13;
@@ -416,7 +416,7 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
       headRef.current.material.opacity = opacity;
     }
 
-    // Fire layers — only during fall. Two sprites: a bright inner fire (smaller,
+    // Fire layers - only during fall. Two sprites: a bright inner fire (smaller,
     // hotter color) and a wider amber halo. Both billboard behind the head.
     const fireT = phase === 'fall' ? (progress - 0.6) / 0.36 : 0;
     if (fireRef.current){
@@ -443,7 +443,7 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
       flashRef.current.material.opacity = haloOp;
     }
 
-    // Streak trail — much more vivid during fall
+    // Streak trail - much more vivid during fall
     const trailMul = phase === 'fall' ? 1.0 : phase === 'rise' ? 0.3 : 0.0;
     for (let i = 0; i < TRAIL_LEN; i++){
       const ref = trailRefs.current[i];
@@ -455,7 +455,7 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
       ref.scale.setScalar(Math.max(0.05, sz));
     }
 
-    // Ember particles — scatter behind the meteor during fall
+    // Ember particles - scatter behind the meteor during fall
     if (phase === 'fall'){
       const fallT = (progress - 0.6) / 0.36;
       embers.forEach((e, i) => {
@@ -492,11 +492,11 @@ function HeroMeteor({ progress, choice, glowTex, onImpact }){
 
   return (
     <group renderOrder={520}>
-      {/* Outer amber halo — softest, biggest */}
+      {/* Outer amber halo - softest, biggest */}
       <sprite ref={fireOuterRef} scale={0.001}>
         <spriteMaterial map={glowTex} transparent depthWrite={false} blending={THREE.AdditiveBlending} color={'#ff8c2a'} opacity={0} />
       </sprite>
-      {/* Inner fire — hotter color, brighter */}
+      {/* Inner fire - hotter color, brighter */}
       <sprite ref={fireRef} scale={0.001}>
         <spriteMaterial map={glowTex} transparent depthWrite={false} blending={THREE.AdditiveBlending} color={'#ffc46a'} opacity={0} />
       </sprite>
@@ -677,7 +677,7 @@ function ImpactRing({ progress, choice }){
   const pos = isBrand ? [0, 9.5, -16] : [0, -0.4, -2.5];
   return (
     <group position={pos} renderOrder={600}>
-      {/* For Brand, the ring is billboard (camera-facing — like a halo around a sun);
+      {/* For Brand, the ring is billboard (camera-facing - like a halo around a sun);
           for Creative, it's flat on the ground. */}
       {isBrand ? (
         <sprite ref={ringRef} scale={[1, 1, 1]}>
@@ -748,7 +748,7 @@ function Beam({ x, delay, height = 5.2, width = 0.28, y, opacity = 1.0, paused }
     const t = clock.getElapsedTime();
     if (start.current === null) start.current = t;
     const local = Math.max(0, t - start.current - delay);
-    // Slower fall — was 0.85s, now 1.4s — gives each beam more weight/breath
+    // Slower fall - was 0.85s, now 1.4s - gives each beam more weight/breath
     const k = Math.min(1, local / 1.4);
     const eased = 1 - Math.pow(1 - k, 3);
     matRef.current.uniforms.uReveal.value = paused ? 1 : eased;
@@ -815,7 +815,7 @@ function Motes({ count = 240, scene, fadeMul = 1 }){
       if (arr[i*3+1] > 5.0) arr[i*3+1] = 0.0;
     }
     ref.current.geometry.attributes.position.needsUpdate = true;
-    // Base is non-zero in any descent scene (arrival/fork/etc) — the actual
+    // Base is non-zero in any descent scene (arrival/fork/etc) - the actual
     // visibility is driven by fadeMul from the parent (scroll-based).
     const base = (scene === 'arrival' || scene === 'fork') ? 0.9 : 0.0;
     // Smooth the opacity in case fadeMul updates faster than the eye can follow.
@@ -848,7 +848,7 @@ function StrikeFlare({ active, scene, fadeMul = 1 }){
     if (!ref.current || !matRef.current) return;
     const t = clock.getElapsedTime();
     const pulse = 0.5 + 0.5 * Math.sin(t * 1.4);
-    // Softer, wider — acts as bottom dissolve rather than hard strike point
+    // Softer, wider - acts as bottom dissolve rather than hard strike point
     const target = active ? (0.32 + pulse * 0.12) * Math.max(0, fadeMul) : 0.0;
     matRef.current.opacity += (target - matRef.current.opacity) * 0.05;
     const s = active ? 1 + pulse * 0.04 : 0.9;
@@ -1037,13 +1037,13 @@ function CameraRig({ scene, choice, brandCurve, creativeCurve, reduced }){
       targetLook = new THREE.Vector3(0, 0.2, -2);
     } else if (scene === 'flying'){
       // Clean single-beam camera dive: ease forward through the chosen path
-      // direction toward the destination camera. No meteor, no particles —
+      // direction toward the destination camera. No meteor, no particles -
       // restraint over spectacle.
       if (s.flightStart === null) s.flightStart = clock.getElapsedTime();
       const elapsed = clock.getElapsedTime() - s.flightStart;
       const T = reduced ? 0.6 : 1.6;
       const k = Math.min(1, elapsed / T);
-      // ease in-out cubic — quick acceleration, smooth settle
+      // ease in-out cubic - quick acceleration, smooth settle
       const e = k < 0.5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3) / 2;
 
       const sx = choice === 'brand' ? -0.5 : 0.5;
@@ -1089,7 +1089,7 @@ function CameraRig({ scene, choice, brandCurve, creativeCurve, reduced }){
 function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false, choice, hover, setHover, onChoose, reduced, flightProgress = 0, onMeteorImpact }){
   const inFlight = phase === 'flight';
   // Path curves (in xz plane). Both paths start at the markers (far) and bend INWARD
-  // toward an apex offscreen-behind the camera — but we trim the ribbon UVs so only
+  // toward an apex offscreen-behind the camera - but we trim the ribbon UVs so only
   // the upper portion renders. This avoids the bright glow at the convergence point.
   const brandCurve = useMemo(() => new THREE.QuadraticBezierCurve3(
     new THREE.Vector3(-4.8, 0, -12),  // far end (marker, left)
@@ -1101,7 +1101,7 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
     new THREE.Vector3( 3.0, 0, -8.5),
     new THREE.Vector3( 0.9, 0, -5.5),
   ), []);
-  // Central river removed — was creating a bright column at scene center.
+  // Central river removed - was creating a bright column at scene center.
 
   const flying = scene === 'flying';
   const inDest = scene === 'brand' || scene === 'creative';
@@ -1117,7 +1117,7 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
         ? Math.max(0, 1 - Math.pow(scrollProgress / 0.7, 1.6))
         : flying ? 0.25 : 0;
 
-  // Particles fade OUT slowly between scrollProgress 0.35 → 0.6 — i.e. they
+  // Particles fade OUT slowly between scrollProgress 0.35 → 0.6 - i.e. they
   // persist throughout the early descent and finish fading just BEFORE the beams
   // fully disappear at ~0.7. Coming back up, this reverses smoothly.
   // Particles fade OUT during 0.40 → 0.65 going down, fade BACK IN symmetrically
@@ -1151,17 +1151,17 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
       <fog attach="fog" args={[scene === 'creative' ? '#3a2516' : '#3a2918', scene === 'brand' ? 28 : 18, 80]} />
       <ambientLight intensity={0.25} color={'#f7c270'} />
 
-      {/* Soft column halo BEHIND the beams — small, tucked into the cloud break,
+      {/* Soft column halo BEHIND the beams - small, tucked into the cloud break,
           purely a backlight. No more vertical glow stretching toward the words. */}
       <sprite position={[0, 4.8, -0.7]} scale={[2.2, 1.6, 1]} renderOrder={1}>
         <spriteMaterial map={glowTex} transparent depthWrite={false} opacity={beamOp * 0.35} color={'#ffd28a'} blending={THREE.AdditiveBlending} />
       </sprite>
-      {/* Top sun-burst at the cloud break — very subtle, barely there. */}
+      {/* Top sun-burst at the cloud break - very subtle, barely there. */}
       <sprite position={[0, 5.0, -0.5]} scale={[3.6, 2.2, 1]} renderOrder={1}>
         <spriteMaterial map={glowTex} transparent depthWrite={false} opacity={beamOp * 0.25} color={'#fff2c8'} blending={THREE.AdditiveBlending} />
       </sprite>
 
-      {/* Beams — short (height=2.0), uniform width/opacity. Staggered briefly
+      {/* Beams - short (height=2.0), uniform width/opacity. Staggered briefly
           on first reveal so the eye reads the cascade, then they settle into
           one coordinated cluster. */}
       <Beam x={-0.44} delay={0.00} width={0.20} height={2.0} y={4.2} opacity={beamOp * 0.75} paused={reduced} />
@@ -1171,9 +1171,9 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
       <Beam x={ 0.44} delay={0.40} width={0.20} height={2.0} y={4.2} opacity={beamOp * 0.75} paused={reduced} />
 
       <Motes count={reduced ? 0 : 180} scene={scene} fadeMul={moteOp} />
-      {/* StrikeFlare disabled — its bottom sprite was reading as a "comet" through the beam stack */}
+      {/* StrikeFlare disabled - its bottom sprite was reading as a "comet" through the beam stack */}
 
-      {/* Central river removed — was the bright vertical column at scene center */}
+      {/* Central river removed - was the bright vertical column at scene center */}
 
       {/* Two diverging paths */}
       <PathRibbon
@@ -1199,7 +1199,7 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
         onClick={() => forkActive && onChoose('creative')}
       />
 
-      {/* Marker lights removed — the HTML fork labels (ring + name) are clearer.
+      {/* Marker lights removed - the HTML fork labels (ring + name) are clearer.
           The 3D sprites at the path endpoints were appearing as horizontal streaks
           ("eyebrows") because the radial-gradient texture, scaled with intensity,
           can read as a slash when viewed near edge-on. */}
@@ -1208,7 +1208,7 @@ function World({ scene, phase = 'descent', scrollProgress = 0, impacted = false,
       <SkyGlow scene={scene} />
       {inDest && (scene === 'brand' ? <BrandWorld /> : <CreativeWorld />)}
 
-      {/* Meteor shower disabled — replaced with a clean single-beam camera dive.
+      {/* Meteor shower disabled - replaced with a clean single-beam camera dive.
           Kept in the codebase for now in case we want it back behind a tweak.
           <MeteorShower active={inFlight} progress={flightProgress} choice={choice} onImpact={onMeteorImpact} /> */}
 
@@ -1230,7 +1230,7 @@ function Marker({ position, intensity = 0, hot }){
   useFrame(({ clock }) => {
     if (!ref.current || !matRef.current) return;
     const t = clock.getElapsedTime();
-    // Direct intensity — no slow lerp, so markers don't "follow" on scroll-up
+    // Direct intensity - no slow lerp, so markers don't "follow" on scroll-up
     const base = (hot ? 1.0 : 0.55) * Math.max(0, Math.min(1, intensity));
     matRef.current.opacity += (base - matRef.current.opacity) * 0.18;
     const pulse = 1 + Math.sin(t * 1.8) * (hot ? 0.18 : 0.06);
@@ -1298,7 +1298,7 @@ function CreativeWorld(){
     }
     return arr;
   }, []);
-  // Glowing "embers" — particles drifting upward
+  // Glowing "embers" - particles drifting upward
   const ref = useRef();
   const N = 180;
   const positions = useMemo(() => {
@@ -1415,7 +1415,7 @@ function App(){
   const [muted] = useState(true);  // ambient sound disabled; toggle removed from UI
   const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   // Flight progress + direction (enter = picking a path, return = going home).
-  // The two use different visual wash treatments — warm for arrival, dark for return.
+  // The two use different visual wash treatments - warm for arrival, dark for return.
   const [flightProgress, setFlightProgress] = useState(0);
   const [flightDir, setFlightDir] = useState('enter');
   const [meteorFlashKey, setMeteorFlashKey] = useState(0);
@@ -1434,7 +1434,7 @@ function App(){
     phase === 'contact'  ? 'contact' :
     /* descent */          (impacted ? 'fork' : 'arrival');
 
-  // Scene 1 reveal timing — tightened so the hero materialises fast
+  // Scene 1 reveal timing - tightened so the hero materialises fast
   useEffect(() => {
     if (reduced){
       setTitleLit(true); setTagShow(true); setHintShow(true);
@@ -1491,7 +1491,7 @@ function App(){
     if (birds) birds.classList.toggle('show', shouldShow);
   }, [phase, reduced]);
 
-  // (No mouse parallax — the matte stays put so nothing drifts under the title)
+  // (No mouse parallax - the matte stays put so nothing drifts under the title)
 
   // Lock body scroll only during flight + destination. After impact we leave
   // descent scrolling unlocked so the user can scroll back up without feeling trapped;
@@ -1513,7 +1513,7 @@ function App(){
   }, [phase]);
 
   // During flight, hide EVERYTHING except the canvas + meteor: matte, vignette,
-  // grain, bar — so the meteor flies on a pure black field for max focus.
+  // grain, bar - so the meteor flies on a pure black field for max focus.
   useEffect(() => {
     if (phase === 'flight') document.body.classList.add('flight-iso');
     else document.body.classList.remove('flight-iso');
@@ -1540,14 +1540,14 @@ function App(){
     }, T);
   }, [reduced]);
 
-  // Navigate to About/Contact pages — quick fade (no full meteor flight)
+  // Navigate to About/Contact pages - quick fade (no full meteor flight)
   const navTo = useCallback((p) => {
     setPhase('flight');
     setFlightDir('return');                // soft dark fade, not the warm flight wash
     setFlightProgress(0);
     setTimeout(() => setPhase(p), reduced ? 250 : 700);
   }, [reduced]);
-    // Going BACK is a quieter, darker transition — no warm flash. Avoids the
+    // Going BACK is a quieter, darker transition - no warm flash. Avoids the
     // jarring "two arrivals" feel.
     setFlightDir('return');
     setPhase('flight');
@@ -1573,7 +1573,7 @@ function App(){
   const heroTransform = `translateY(calc(-50% - ${scrollProgress * 36}px))`;
   const hintOpacity = impacted ? 0 : Math.max(0, 1 - scrollProgress * 3) * (hintShow ? 1 : 0);
 
-  // Fork chrome — visible once impacted, but tied to scroll so scrolling up fades it.
+  // Fork chrome - visible once impacted, but tied to scroll so scrolling up fades it.
   // Range: fully visible at scrollProgress >= 0.92, fading out down to 0.72.
   // CRITICAL: zero out when we leave 'descent' so chrome doesn't bleed into destinations.
   const forkScrollFactor = Math.max(0, Math.min(1, (scrollProgress - 0.72) / (0.92 - 0.72)));
@@ -1610,7 +1610,7 @@ function App(){
         />
       </Canvas>
 
-      {/* Flight dim wash — warm bright for entering a world, dark calm for returning */}
+      {/* Flight dim wash - warm bright for entering a world, dark calm for returning */}
       {phase === 'flight' && <div className={`flight-dim ${flightDir === 'return' ? 'dim-return' : ''}`}></div>}
 
       {/* Meteor-impact flash overlay disabled along with the meteor shower */}
@@ -1618,12 +1618,12 @@ function App(){
         <div key={`meteor-flash-${meteorFlashKey}`} className="meteor-flash"></div>
       )} */}
 
-      {/* Touchdown — a single soft warm pulse, no harsh flash or ring */}
+      {/* Touchdown - a single soft warm pulse, no harsh flash or ring */}
       {impacted && (
         <div key={`pulse-${flashKey}`} className="impact-pulse fire"></div>
       )}
 
-      {/* Top bar — shown in ALL phases. Wordmark left, nav right.
+      {/* Top bar - shown in ALL phases. Wordmark left, nav right.
           On destination pages, the wordmark doubles as "Return to the fork".
           The standalone .back button has been removed. */}
       <div className="bar" style={{ opacity: phase === 'flight' ? 0 : 1, pointerEvents: phase === 'flight' ? 'none' : 'auto', transition: 'opacity 700ms ease' }}>
@@ -1644,10 +1644,10 @@ function App(){
         </nav>
       </div>
 
-      {/* Standalone return button removed — the wordmark itself now serves as
+      {/* Standalone return button removed - the wordmark itself now serves as
           "Return to the fork" on destination pages. */}
 
-      {/* Hero — BEACON title + tagline. Scroll-fade together; fade back in on scroll-up.
+      {/* Hero - BEACON title + tagline. Scroll-fade together; fade back in on scroll-up.
           IMPORTANT: pointer-events disabled when invisible so it doesn't block scroll
           on the destination overlays underneath. */}
       <div
@@ -1667,7 +1667,7 @@ function App(){
         <div className={`tagline ${tagShow ? 'show' : ''}`}>Empowering creatives. Elevating brands.</div>
       </div>
 
-      {/* Scroll hint — descent only; unmount on flight/destination so it
+      {/* Scroll hint - descent only; unmount on flight/destination so it
           doesn't intercept clicks or scroll. */}
       {inDescent && (
         <div className={`scrollhint ${hintShow ? 'show' : ''}`} style={{ opacity: hintOpacity }}>
@@ -1677,7 +1677,7 @@ function App(){
         </div>
       )}
 
-      {/* Fork intro caption — only during descent */}
+      {/* Fork intro caption - only during descent */}
       {inDescent && (
         <div className={`fork-caption ${forkOpacity > 0.05 ? 'show' : ''}`} style={{ opacity: forkOpacity }}>
           <div className="k">Choose your path</div>
@@ -1685,7 +1685,7 @@ function App(){
         </div>
       )}
 
-      {/* Fork labels — only during descent */}
+      {/* Fork labels - only during descent */}
       {inDescent && (
         <ForkLabels
           scene={scene}
@@ -1767,7 +1767,7 @@ function CameraExporter(){
 //
 // Content based on beaconmediasolutions.com. The Brand destination explains the
 // two services (Embedded Solutions + Media Production) and Why Beacon. The
-// Creative destination is a careers page — explains the embedded model from
+// Creative destination is a careers page - explains the embedded model from
 // the talent side, what you get, and what roles we hire for.
 function Destination({ scene, choice, navTo }){
   const showBrand = scene === 'brand';
@@ -1788,7 +1788,7 @@ function Destination({ scene, choice, navTo }){
                 One partner. <em>Two ways</em> to scale your creative output.
               </h1>
               <p className="lead anim" style={{ transitionDelay: '380ms' }}>
-                Some teams need ongoing, in-house creative capability. Others need a full project delivered, end-to-end. Beacon does both — without the agency layer, the freelancer churn, or the cost of building a creative team from scratch.
+                Some teams need ongoing, in-house creative capability. Others need a full project delivered, end-to-end. Beacon does both - without the agency layer, the freelancer churn, or the cost of building a creative team from scratch.
               </p>
               <div className="actions anim" style={{ transitionDelay: '560ms' }}>
                 <button className="cta">Speak with us
@@ -1804,7 +1804,7 @@ function Destination({ scene, choice, navTo }){
             <image-slot id="brand-bleed" shape="rect" placeholder="Reel still, studio environment, or production hero"></image-slot>
           </div>
 
-          {/* SERVICE 01 — Embedded Solutions */}
+          {/* SERVICE 01 - Embedded Solutions */}
           <div className="container">
             <div className="section-rule">
               <div className="label">01 · Embedded Solutions</div>
@@ -1812,20 +1812,20 @@ function Destination({ scene, choice, navTo }){
             </div>
             <div className="case split">
               <div className="slot-frame tall">
-                <image-slot id="brand-embedded" shape="rect" placeholder="Embedded creative at work — on-site, behind the camera"></image-slot>
+                <image-slot id="brand-embedded" shape="rect" placeholder="Embedded creative at work - on-site, behind the camera"></image-slot>
               </div>
               <div>
                 <div className="meta">Beacon Media Solutions</div>
                 <h3>A dedicated creative <em>inside your team</em>. None of the hiring overhead.</h3>
                 <p>
-                  We place full-time videographers, editors, designers, and content creators directly into your organisation. They work as part of your internal brand — aligned to your workflows, your tone, your goals — while Beacon handles payroll, HR, training, and admin.
+                  We place full-time videographers, editors, designers, and content creators directly into your organisation. They work as part of your internal brand - aligned to your workflows, your tone, your goals - while Beacon handles payroll, HR, training, and admin.
                 </p>
                 <p>
                   The result is in-house consistency without the cost of building in-house, and zero churn from unreliable freelancers.
                 </p>
                 <ul className="features">
                   <li>Full-time creatives matched on skill set AND organisational fit.</li>
-                  <li>End-to-end backend support — hiring, onboarding, day-to-day operations.</li>
+                  <li>End-to-end backend support - hiring, onboarding, day-to-day operations.</li>
                   <li>Scalable as you grow: start with one creative, build to a regional team.</li>
                 </ul>
                 <div className="actions" style={{ marginTop: 32 }}>
@@ -1837,7 +1837,7 @@ function Destination({ scene, choice, navTo }){
             </div>
           </div>
 
-          {/* SERVICE 02 — Media Production */}
+          {/* SERVICE 02 - Media Production */}
           <div className="container">
             <div className="section-rule">
               <div className="label">02 · Media Production</div>
@@ -1846,12 +1846,12 @@ function Destination({ scene, choice, navTo }){
             <div className="case split-flip">
               <div>
                 <div className="meta">Beacon Media Productions</div>
-                <h3>End-to-end media projects — <em>delivered.</em></h3>
+                <h3>End-to-end media projects - <em>delivered.</em></h3>
                 <p>
                   When you need a project shipped at scale, our in-house production team takes it from brief to final cut. Thoughtful creative direction. Disciplined execution. Built for organisations that need consistency without managing the people who produce it.
                 </p>
                 <ul className="features">
-                  <li>Video production — film, branded content, social-first formats.</li>
+                  <li>Video production - film, branded content, social-first formats.</li>
                   <li>Social media content + content strategy tied to outcomes, not just deliverables.</li>
                   <li>Studio space rentals and virtual production for complex shoots.</li>
                 </ul>
@@ -1867,7 +1867,7 @@ function Destination({ scene, choice, navTo }){
             </div>
           </div>
 
-          {/* Why Beacon — 4 pillars */}
+          {/* Why Beacon - 4 pillars */}
           <div className="container">
             <div className="section-rule">
               <div className="label">Why Beacon</div>
@@ -1899,7 +1899,7 @@ function Destination({ scene, choice, navTo }){
 
           {/* Closing */}
           <div className="container narrow closing">
-            <h2 className="anim">One creative or a regional team — we make it seamless, strategic, and scalable.</h2>
+            <h2 className="anim">One creative or a regional team - we make it seamless, strategic, and scalable.</h2>
             <button className="cta">Speak with us
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
@@ -1948,10 +1948,10 @@ function Destination({ scene, choice, navTo }){
                 <div className="meta">The embedded model</div>
                 <h3>Not a temp agency. <em>Not a production house.</em></h3>
                 <p>
-                  We place you full-time inside an organisation aligned to your craft and your ambitions. You work as part of their team — but Beacon stays your employer. We handle the admin, the contracts, the career conversations.
+                  We place you full-time inside an organisation aligned to your craft and your ambitions. You work as part of their team - but Beacon stays your employer. We handle the admin, the contracts, the career conversations.
                 </p>
                 <p>
-                  You build the kind of body of work that's only possible when you actually *belong* somewhere. The best stories aren't outsourced — they're lived from within.
+                  You build the kind of body of work that's only possible when you actually *belong* somewhere. The best stories aren't outsourced - they're lived from within.
                 </p>
               </div>
             </div>
@@ -1972,7 +1972,7 @@ function Destination({ scene, choice, navTo }){
               <div className="pillar">
                 <div className="pillar-n">02</div>
                 <h4>Brands you actually like</h4>
-                <p>We match on craft and culture — you won't end up cranking out content for someone who doesn't get it.</p>
+                <p>We match on craft and culture - you won't end up cranking out content for someone who doesn't get it.</p>
               </div>
               <div className="pillar">
                 <div className="pillar-n">03</div>
@@ -1982,7 +1982,7 @@ function Destination({ scene, choice, navTo }){
               <div className="pillar">
                 <div className="pillar-n">04</div>
                 <h4>A team that has your back</h4>
-                <p>Day-to-day questions, contract issues, career conversations — we're your support system, not your boss.</p>
+                <p>Day-to-day questions, contract issues, career conversations - we're your support system, not your boss.</p>
               </div>
             </div>
           </div>
@@ -2023,7 +2023,7 @@ function Destination({ scene, choice, navTo }){
                 More than an agency. <em>A creative partner.</em>
               </h1>
               <p className="lead anim" style={{ transitionDelay: '380ms' }}>
-                Beacon was built to solve a specific problem — the gap between hiring a full-time creative and renting one. The first feels permanent and expensive; the second feels temporary and inconsistent. We're the third option: dedicated creatives, embedded in your team, supported by us. And when you need a project shipped end-to-end, our production studio takes the brief from idea to delivery.
+                Beacon was built to solve a specific problem - the gap between hiring a full-time creative and renting one. The first feels permanent and expensive; the second feels temporary and inconsistent. We're the third option: dedicated creatives, embedded in your team, supported by us. And when you need a project shipped end-to-end, our production studio takes the brief from idea to delivery.
               </p>
               <div className="actions anim" style={{ transitionDelay: '560ms' }}>
                 <button className="cta" onClick={() => navTo('contact')}>Get in touch
@@ -2034,7 +2034,7 @@ function Destination({ scene, choice, navTo }){
           </section>
 
           <div className="bleed anim" style={{ transitionDelay: '720ms' }}>
-            <image-slot id="about-bleed" shape="rect" placeholder="Team at work — studio, on-location, behind the scenes"></image-slot>
+            <image-slot id="about-bleed" shape="rect" placeholder="Team at work - studio, on-location, behind the scenes"></image-slot>
           </div>
 
           {/* What we believe */}
@@ -2049,9 +2049,9 @@ function Destination({ scene, choice, navTo }){
               </div>
               <div>
                 <div className="meta">The Beacon principles</div>
-                <h3>The best stories aren't outsourced — <em>they're lived from within.</em></h3>
+                <h3>The best stories aren't outsourced - <em>they're lived from within.</em></h3>
                 <p>
-                  Great creative work doesn't come from arms-length briefs. It comes from people who understand the brand, the room, the unsaid context. That's why we embed — and why we treat every production project like an extension of the in-house team.
+                  Great creative work doesn't come from arms-length briefs. It comes from people who understand the brand, the room, the unsaid context. That's why we embed - and why we treat every production project like an extension of the in-house team.
                 </p>
                 <p>
                   We hire for craft AND culture. We build careers, not gigs. We choose fewer, better clients. And we measure success by the work that lasts, not the work that ships.
@@ -2098,11 +2098,11 @@ function Destination({ scene, choice, navTo }){
             </div>
             <div className="case split">
               <div className="slot-frame tall">
-                <image-slot id="about-route-brand" shape="rect" placeholder="A brand outcome — film still, environment, end-deliverable"></image-slot>
+                <image-slot id="about-route-brand" shape="rect" placeholder="A brand outcome - film still, environment, end-deliverable"></image-slot>
               </div>
               <div>
                 <div className="meta">For organisations</div>
-                <h3>Scale your creative output — <em>without scaling the headcount.</em></h3>
+                <h3>Scale your creative output - <em>without scaling the headcount.</em></h3>
                 <p>Embed a dedicated creative or brief a project to our production team. We handle the rest.</p>
                 <div className="actions" style={{ marginTop: 24 }}>
                   <button className="cta" onClick={onReturn}>Explore for Brands
@@ -2123,7 +2123,7 @@ function Destination({ scene, choice, navTo }){
                 </div>
               </div>
               <div className="slot-frame tall">
-                <image-slot id="about-route-creative" shape="rect" placeholder="A creative at work — portrait, behind-the-camera"></image-slot>
+                <image-slot id="about-route-creative" shape="rect" placeholder="A creative at work - portrait, behind-the-camera"></image-slot>
               </div>
             </div>
           </div>
@@ -2148,7 +2148,7 @@ function Destination({ scene, choice, navTo }){
                 Let's <em>talk.</em>
               </h1>
               <p className="lead anim" style={{ transitionDelay: '380ms' }}>
-                Whether you're hiring a creative, briefing a project, or just want to know how this works — we'd love to hear from you.
+                Whether you're hiring a creative, briefing a project, or just want to know how this works - we'd love to hear from you.
               </p>
             </div>
           </section>
@@ -2167,7 +2167,7 @@ function Destination({ scene, choice, navTo }){
               </div>
               <div className="contact-block anim" style={{ transitionDelay: '660ms' }}>
                 <div className="contact-label">Hours</div>
-                <div className="contact-value contact-value-sm">Mon – Fri · 9am – 7pm SGT</div>
+                <div className="contact-value contact-value-sm">Mon - Fri · 9am - 7pm SGT</div>
                 <p className="contact-note">After-hours and weekend requests for active client projects honoured by prior arrangement.</p>
               </div>
             </div>
@@ -2202,7 +2202,7 @@ function Destination({ scene, choice, navTo }){
               </label>
               <label>
                 <span className="lbl">Tell us more</span>
-                <textarea name="message" rows="5" placeholder="A few sentences about what you're working on — or thinking about." />
+                <textarea name="message" rows="5" placeholder="A few sentences about what you're working on - or thinking about." />
               </label>
               <div className="actions">
                 <button type="submit" className="cta">Send message
@@ -2213,7 +2213,7 @@ function Destination({ scene, choice, navTo }){
           </div>
 
           <div className="container narrow closing">
-            <h2 className="anim">Two ways to work with Beacon — same standard, same people.</h2>
+            <h2 className="anim">Two ways to work with Beacon - same standard, same people.</h2>
             <div className="actions" style={{ justifyContent: 'center', display: 'flex' }}>
               <button className="cta" onClick={onReturn}>Back to the fork
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>

@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import s from './journey.module.css';
+import { useNavWash } from '@/components/transitions/NavWash';
+import ArrivalWash from '@/components/transitions/ArrivalWash';
 
 /* ─────────────────────────────────────────────────────────────────────────
    <JourneyPage> - flyward.com-inspired single-page layout used by both
@@ -144,11 +146,34 @@ export default function JourneyPage({
 }: Props) {
   const router = useRouter();
   const year = new Date().getFullYear();
+  // Shared cream-wash transition for the top-left wordmark click. Same
+  // visual treatment used on /brands, /creatives, and elsewhere - keeps
+  // every "back to home" feel consistent across the site.
+  const { trigger: navWash, overlay: navWashOverlay } = useNavWash();
+
+  // Mobile hamburger menu - ported from the brands page so the journey
+  // pathway pages get the same nav treatment on phones (inline nav hides
+  // under 760px, hamburger reveals a right-side slide-in sheet). Without
+  // this the "For Brands / About / Contact" links wrap awkwardly at
+  // iPhone-SE width.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
   // Pathway-switch transition - clicking the OTHER pathway in the switcher
-  // triggers a quick warm wash that brightens the page, then navigates.
-  // Mirrors the splash → destination "brighten and arrive" idiom so the
-  // hop between pathways feels intentional instead of a hard nav.
-  const [pathwayWashing, setPathwayWashing] = useState(false);
+  // routes through the shared cream-flash navWash so the hop matches every
+  // other inter-page transition across the site.
   const handlePathwaySwitch = (
     e: React.MouseEvent<HTMLAnchorElement>,
     target: PathwayKey,
@@ -159,10 +184,7 @@ export default function JourneyPage({
       return;
     }
     e.preventDefault();
-    setPathwayWashing(true);
-    // ~420ms = wash reaches peak just before the route swap, so the
-    // destination's own paint takes over while the screen is still bright.
-    window.setTimeout(() => router.push(href), 420);
+    navWash(href);
   };
   // Active step index - which milestone's image is currently pinned. Driven
   // by an IntersectionObserver on the text blocks: as a block crosses the
@@ -174,6 +196,17 @@ export default function JourneyPage({
   // the hero and the sections below.
   const [isInJourney, setIsInJourney] = useState(false);
   const milestoneRefs = useRef<(HTMLElement | null)[]>([]);
+  // Mobile-only journey connector refs - each connector is a dotted
+  // line + a ball; the ball travels along the line as the user scrolls
+  // through the connector's vertical range, mirroring the desktop
+  // traveling-orb idiom in a single-column mobile layout.
+  const connectorWrapRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const connectorBallRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  // SVG path ref for the curved (S-shape, two bends) connector. Used
+  // to compute the ball's position via getPointAtLength so the orb
+  // follows the curve, not a straight line.
+  const connectorPathRefs = useRef<(SVGPathElement | null)[]>([]);
+  const connectorSvgRefs = useRef<(SVGSVGElement | null)[]>([]);
   const journeyRef = useRef<HTMLElement>(null);
   // SVG paths sharing the same `d`:
   //   - dimPath: dotted full-path guide, always visible. Also used by
@@ -398,19 +431,97 @@ export default function JourneyPage({
     };
   }, [milestones.length]);
 
+  // Mobile-only connector orbs - each chapter (except the last) is
+  // followed by a small dotted-line connector with a glowing ball that
+  // travels along the line as the user scrolls through it. The ball's
+  // y position is driven by the viewport-centre relative to the
+  // connector's bounding rect, so it slides from top to bottom as the
+  // user reads from one chapter to the next. Same idiom as the desktop
+  // traveling orb, just compressed to one connector per chapter pair.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      connectorBallRefs.current.forEach((b) => { if (b) b.style.opacity = '0'; });
+      return;
+    }
+    // Cache path total-lengths + SVG viewBox so we don't re-measure
+    // every frame (getTotalLength is moderately expensive).
+    const VIEWBOX_W = 40;
+    const VIEWBOX_H = 200;
+    const pathLengths = connectorPathRefs.current.map((p) => p ? p.getTotalLength() : 0);
+
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const vh = window.innerHeight;
+      const centre = vh / 2;
+      for (let i = 0; i < connectorWrapRefs.current.length; i++) {
+        const wrap = connectorWrapRefs.current[i];
+        const ball = connectorBallRefs.current[i];
+        const path = connectorPathRefs.current[i];
+        const svg = connectorSvgRefs.current[i];
+        if (!wrap || !ball || !path || !svg) continue;
+        const rect = wrap.getBoundingClientRect();
+        if (rect.height <= 0) continue;
+        const raw = (centre - rect.top) / rect.height;
+        const p = Math.max(0, Math.min(1, raw));
+        // Map progress along the curve via getPointAtLength, then
+        // convert SVG user-space to pixel coords (preserveAspectRatio:
+        // none so x scales by svg.width/VIEWBOX_W, y by svg.height/H).
+        const len = pathLengths[i] || path.getTotalLength();
+        const pt = path.getPointAtLength(p * len);
+        const px = (pt.x / VIEWBOX_W) * rect.width;
+        const py = (pt.y / VIEWBOX_H) * rect.height;
+        ball.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -50%)`;
+        // Fade in/out at the edges so the ball materialises as it
+        // enters the connector range, instead of popping.
+        const fade = raw <= 0
+          ? Math.max(0, 1 + raw * 12)
+          : raw >= 1
+            ? Math.max(0, 1 - (raw - 1) * 12)
+            : 1;
+        ball.style.opacity = `${fade}`;
+      }
+    };
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [milestones.length]);
+
   return (
     <main className={s.page}>
+      {/* Dark colour matches the journey-page background so the inbound
+          fade-out from /creatives's pathway transition is seamless. */}
+      <ArrivalWash color="#07060a" />
+      {navWashOverlay}
       {/* Creatives still as a fixed backdrop, with a translucent dark
           overlay so the chapter content stays readable but the warm
           landscape bleeds through. Same image the creatives landing
           uses, so navigating between /creatives and the pathway pages
           feels continuous. */}
       <div className={s.creativesBg} aria-hidden="true">
-        <img
-          className={s.creativesBgImg}
-          src="/assets/beacon-creative-landing-page-still.png"
-          alt=""
-        />
+        {/* Responsive: ~376KB mobile JPG under 768px, full 4K version
+            on desktop. */}
+        <picture>
+          <source
+            media="(max-width: 768px)"
+            srcSet="/assets/beacon-creative-landing-page-still-mobile.jpg"
+          />
+          <img
+            className={s.creativesBgImg}
+            src="/assets/beacon-creative-landing-page-still.jpg"
+            alt=""
+          />
+        </picture>
         <div className={s.creativesBgOverlay} />
       </div>
 
@@ -424,20 +535,126 @@ export default function JourneyPage({
           .top-nav classes). Wordmark is logo-only (no "BEACON" text), arrow
           slides in on hover. Nav has just For Brands / About / Contact. */}
       <div className="bar">
-        <Link href="/" className="wordmark wordmark-btn" aria-label="Back to home">
+        <button
+          type="button"
+          className="wordmark wordmark-btn"
+          aria-label="Back to home"
+          onClick={() => navWash('/')}
+        >
           <span className="wm-arrow" aria-hidden="true">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 6l-6 6 6 6" />
             </svg>
           </span>
           <img className="wm-logo" src="/assets/beacon-logo.png" alt="Beacon Media Solutions" />
-        </Link>
-        <nav className="top-nav" aria-label="Primary">
-          <Link href="/brands">For Brands</Link>
-          <Link href="/about?from=creatives">About</Link>
-          <Link href="/contact?from=creatives">Contact</Link>
+        </button>
+        <nav className={`top-nav ${s.topNavDesktop}`} aria-label="Primary">
+          <Link
+            href="/brands"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/brands');
+            }}
+          >
+            For Brands
+          </Link>
+          <Link
+            href="/about?from=creatives"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/about?from=creatives');
+            }}
+          >
+            About
+          </Link>
+          <Link
+            href="/contact?from=creatives"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/contact?from=creatives');
+            }}
+          >
+            Contact
+          </Link>
         </nav>
+        <button
+          type="button"
+          className={s.hamburger}
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+        >
+          <span aria-hidden="true" />
+          <span aria-hidden="true" />
+        </button>
       </div>
+
+      {/* Mobile side menu - slide-in sheet from the right with the same nav
+          links plus a connect block. Backdrop dims the page and closes
+          the menu on tap. Body scroll is locked while open. */}
+      <div
+        className={`${s.menuBackdrop} ${menuOpen ? s.menuBackdropOpen : ''}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden={!menuOpen}
+      />
+      <aside
+        className={`${s.sideMenu} ${menuOpen ? s.sideMenuOpen : ''}`}
+        aria-hidden={!menuOpen}
+        aria-label="Mobile navigation"
+      >
+        <button
+          type="button"
+          className={s.sideMenuClose}
+          onClick={() => setMenuOpen(false)}
+          aria-label="Close menu"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+        <nav className={s.sideMenuNav} aria-label="Primary mobile">
+          <Link
+            href="/brands"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              setMenuOpen(false);
+              navWash('/brands');
+            }}
+          >
+            For Brands
+          </Link>
+          <Link
+            href="/about?from=creatives"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              setMenuOpen(false);
+              navWash('/about?from=creatives');
+            }}
+          >
+            About
+          </Link>
+          <Link
+            href="/contact?from=creatives"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              setMenuOpen(false);
+              navWash('/contact?from=creatives');
+            }}
+          >
+            Contact
+          </Link>
+        </nav>
+        <div className={s.sideMenuConnect}>
+          <p className={s.sideMenuLabel}>Connect</p>
+          <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+        </div>
+      </aside>
 
       <section className={`${s.container} ${s.hero}`}>
         {/* Pathway switcher - sits right under the eyebrow so a creative
@@ -484,7 +701,7 @@ export default function JourneyPage({
           gradient overlays so the centred text overlay stays readable.
           Scrolling moves between chapters one screen at a time, like a
           slideshow on rails. */}
-      <section ref={journeyRef} className={s.fullJourney}>
+      <section ref={journeyRef} id="journey" className={s.fullJourney}>
         {/* Meandering connector - a single SVG that spans the entire
             journey, snaking between alternating-side numbered markers
             (1 on left, 2 on right, 3 on left, ...). Dim full path is
@@ -560,8 +777,8 @@ export default function JourneyPage({
             // chapters → group on the left.
             const isLeft = i % 2 === 0;
             return (
+              <React.Fragment key={i}>
               <article
-                key={i}
                 ref={(el) => { milestoneRefs.current[i] = el; }}
                 className={`${s.flowChapter} ${isLeft ? s.flowLeft : s.flowRight} ${i === activeStep ? s.flowChapterActive : ''}`}
                 data-step={i}
@@ -598,6 +815,38 @@ export default function JourneyPage({
                 )}
               </div>
               </article>
+              {i < milestones.length - 1 && (
+                <div
+                  ref={(el) => { connectorWrapRefs.current[i] = el; }}
+                  className={s.flowConnector}
+                  aria-hidden="true"
+                >
+                  {/* S-curve with two pronounced bends: from top-centre,
+                      swings well left (peak ~5.4px from edge), back to
+                      centre at midpoint, swings well right, lands at
+                      bottom-centre. preserveAspectRatio:none stretches
+                      the path to the SVG's pixel dimensions. */}
+                  <svg
+                    ref={(el) => { connectorSvgRefs.current[i] = el; }}
+                    className={s.flowConnectorSvg}
+                    viewBox="0 0 40 200"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      ref={(el) => { connectorPathRefs.current[i] = el; }}
+                      className={s.flowConnectorPath}
+                      d="M 20 0 C 3 28, 3 72, 20 100 C 37 128, 37 172, 20 200"
+                    />
+                  </svg>
+                  <span
+                    ref={(el) => { connectorBallRefs.current[i] = el; }}
+                    className={s.flowConnectorBall}
+                    aria-hidden="true"
+                  />
+                </div>
+              )}
+              </React.Fragment>
             );
           })}
         </div>
@@ -719,7 +968,7 @@ export default function JourneyPage({
             </div>
             <div className={`${s.fitCol} ${s.fitColNot}`}>
               <div className={s.fitColHead}>
-                <span className={s.fitMark} aria-hidden="true">—</span>
+                <span className={s.fitMark} aria-hidden="true">-</span>
                 <span className={s.fitColTitle}>Not built for</span>
               </div>
               <ul className={s.fitList}>
@@ -850,12 +1099,10 @@ export default function JourneyPage({
         </div>
       </section>
 
-      {/* Cinematic footer - ported from the original creatives DestFooter:
-          large centered BEACON wordmark, sans-caps tagline below, gold
-          hairline divider with a four-point spark at its centre, then
-          two-column nav + connect block + meta line. Same idiom as the
-          rest of the destination chrome so the journey page feels like
-          it lives inside the brand world, not a generic corporate footer. */}
+      {/* Cinematic footer - centered wordmark / spark divider / nav + connect
+          block. Centered on every viewport so the creative side matches the
+          brand side exactly. Module classes (no .dest wrapper) so we stay
+          out of the destination-overlay positioning rules. */}
       <footer className={s.destFooter}>
         <div className={s.container}>
           <div className={s.ftMark}>BEACON</div>
@@ -872,15 +1119,59 @@ export default function JourneyPage({
           <div className={s.ftCols}>
             <div className={s.ftCol}>
               <div className={s.ftLabel}>Navigate</div>
-              <Link href="/">Home</Link>
-              <Link href="/about?from=creatives">About</Link>
-              <Link href="/contact?from=creatives">Contact</Link>
+              <Link
+                href="/"
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  navWash('/');
+                }}
+              >
+                Home
+              </Link>
+              <Link
+                href="/about?from=creatives"
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  navWash('/about?from=creatives');
+                }}
+              >
+                About
+              </Link>
+              <Link
+                href="/contact?from=creatives"
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  navWash('/contact?from=creatives');
+                }}
+              >
+                Contact
+              </Link>
             </div>
             <div className={s.ftCol}>
               <div className={s.ftLabel}>Pathways</div>
-              <Link href="/creatives/embedded">Embedded</Link>
-              <Link href="/creatives/projects">Project-based</Link>
-              <Link href="/brands">For Brands</Link>
+              <Link
+                href="/brands"
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  navWash('/brands');
+                }}
+              >
+                For Brands
+              </Link>
+              <Link
+                href="/creatives/embedded"
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  navWash('/creatives/embedded');
+                }}
+              >
+                For Creatives
+              </Link>
             </div>
           </div>
 
@@ -893,17 +1184,11 @@ export default function JourneyPage({
               Singapore 069541
             </div>
             <div className={s.ftSocial}>
-              <a href="#" aria-label="Instagram">
+              <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg>
               </a>
-              <a href="#" aria-label="LinkedIn">
+              <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
-              </a>
-              <a href="#" aria-label="TikTok">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.55V6.79a4.85 4.85 0 0 1-1.07-.1z" /></svg>
-              </a>
-              <a href="#" aria-label="YouTube">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" /><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none" /></svg>
               </a>
             </div>
           </div>
@@ -916,12 +1201,6 @@ export default function JourneyPage({
         </div>
       </footer>
 
-      {/* Pathway-switch wash - a quick warm brightness flash that ramps in
-          when the user clicks the OTHER pathway. By the time it peaks the
-          router has already pushed the destination, so the next page paints
-          while the screen is at maximum brightness and the transition reads
-          as a single bright "blink" rather than two separate page loads. */}
-      {pathwayWashing && <div className={s.pathwayWash} aria-hidden="true" />}
     </main>
   );
 }

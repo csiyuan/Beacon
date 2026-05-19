@@ -1,20 +1,20 @@
 'use client';
 
 /* ─────────────────────────────────────────────────────────────────────────
-   ArrivalOverlay — the "incoming" half of the splash → destination handoff.
+   ArrivalOverlay - the "incoming" half of the splash → destination handoff.
 
    Reads a sessionStorage flag set just before navigation by the splash; if
    it matches this overlay's `route`, snap to an opaque warm-gold wash on
    first paint (useLayoutEffect prevents a flash of the destination), then
    fade to transparent revealing the underlying page.
 
-   Cold loads (no flag) render nothing — visitors arriving directly via URL
+   Cold loads (no flag) render nothing - visitors arriving directly via URL
    are not subjected to the wash.
    ───────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useLayoutEffect, useState } from 'react';
 
-// useLayoutEffect on the server is a noop with a warning — swap for useEffect
+// useLayoutEffect on the server is a noop with a warning - swap for useEffect
 // in non-browser environments so SSR stays quiet.
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -38,7 +38,7 @@ export default function ArrivalOverlay({
         setPhase('opaque');
       }
     } catch {
-      /* sessionStorage can throw in privacy modes — ignore */
+      /* sessionStorage can throw in privacy modes - ignore */
     }
   }, [route]);
 

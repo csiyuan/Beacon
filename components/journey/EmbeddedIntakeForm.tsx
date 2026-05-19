@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { FORM_ENDPOINT, submitForm } from '@/lib/forms';
+import ThanksPopup from '@/components/ThanksPopup';
 
 /* ─────────────────────────────────────────────────────────────────────────
    <EmbeddedIntakeForm> - application form for the full-time embedded
@@ -14,7 +16,7 @@ const CRAFTS = ['Videographer', 'Editor', 'Designer', 'Content creator', 'Photog
 const AVAILABILITY: ReadonlyArray<readonly [string, string]> = [
   ['now', 'Available now'],
   ['1m', '1 month notice'],
-  ['2-3m', '2–3 months'],
+  ['2-3m', '2-3 months'],
   ['exploring', 'Just exploring'],
 ];
 
@@ -22,9 +24,30 @@ export default function EmbeddedIntakeForm() {
   const [craft, setCraft] = useState<string>('');
   const [avail, setAvail] = useState<string>('exploring');
   const [cv, setCv] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [thanksOpen, setThanksOpen] = useState(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (submitting) return;
+    const formEl = e.currentTarget;
+    setSubmitting(true);
+    const ok = await submitForm(formEl, 'embedded');
+    if (ok) {
+      formEl.reset();
+      setCraft('');
+      setAvail('exploring');
+      setCv(null);
+      setThanksOpen(true);
+    } else {
+      alert('Sorry - something went wrong. Please email info@beaconmediasolutions.com directly.');
+    }
+    setSubmitting(false);
+  };
 
   return (
     <div className="cf-wrap">
+      <ThanksPopup open={thanksOpen} onClose={() => setThanksOpen(false)} />
       <div className="contact-form">
         {/* ─── Info panel ───────────────────────────────────────────── */}
         <div className="cf-info">
@@ -44,34 +67,40 @@ export default function EmbeddedIntakeForm() {
             </div>
           </div>
           <div className="cf-social">
-            <a href="#" aria-label="Instagram"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg></a>
-            <a href="#" aria-label="LinkedIn"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg></a>
-            <a href="#" aria-label="TikTok"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.55V6.79a4.85 4.85 0 0 1-1.07-.1z" /></svg></a>
-            <a href="#" aria-label="YouTube"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" /><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none" /></svg></a>
+            <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg></a>
+            <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg></a>
           </div>
         </div>
 
         {/* ─── Form fields ──────────────────────────────────────────── */}
-        <form className="cf-fields" onSubmit={(e) => e.preventDefault()}>
+        <form
+          className="cf-fields"
+          action={FORM_ENDPOINT}
+          method="POST"
+          encType="multipart/form-data"
+          onSubmit={handleSubmit}
+        >
+          <input type="hidden" name="form" value="embedded" />
           <div className="cf-row two">
             <div className="cf-field">
               <span className="cf-label">Name</span>
-              <input type="text" placeholder="Your name" />
+              <input type="text" name="name" placeholder="Your name" required />
             </div>
             <div className="cf-field">
               <span className="cf-label">Email</span>
-              <input type="email" placeholder="your@email.com" />
+              <input type="email" name="email" placeholder="your@email.com" required />
             </div>
           </div>
           <div className="cf-field">
             <span className="cf-label">Portfolio / Showreel</span>
-            <input type="url" placeholder="https://yourportfolio.com" />
+            <input type="url" name="portfolio" placeholder="https://yourportfolio.com" />
           </div>
           <div className="cf-field">
             <span className="cf-label">CV / Résumé</span>
             <label className="cf-upload">
               <input
                 type="file"
+                name="cv"
                 accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={(e) => setCv(e.target.files?.[0] ?? null)}
               />
@@ -93,6 +122,7 @@ export default function EmbeddedIntakeForm() {
                 </button>
               ))}
             </div>
+            <input type="hidden" name="craft" value={craft} />
           </div>
           <div className="cf-field">
             <span className="cf-label">Availability</span>
@@ -108,14 +138,15 @@ export default function EmbeddedIntakeForm() {
                 </button>
               ))}
             </div>
+            <input type="hidden" name="availability" value={AVAILABILITY.find(([v]) => v === avail)?.[1] ?? avail} />
           </div>
           <div className="cf-field">
             <span className="cf-label">About you</span>
-            <textarea rows={4} placeholder="Tell us about the kind of work, brands, and environments you're drawn to..." />
+            <textarea name="about" rows={4} placeholder="Tell us about the kind of work, brands, and environments you're drawn to..." />
           </div>
           <div>
-            <button type="submit" className="cta">
-              Submit application
+            <button type="submit" className="cta" disabled={submitting} aria-busy={submitting}>
+              {submitting ? 'Sending…' : 'Submit application'}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
             </button>
           </div>

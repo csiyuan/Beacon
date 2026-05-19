@@ -97,9 +97,9 @@ export default function EmbeddedPathwayPage() {
         sectionLabel: 'Where the numbers land',
         heading: <>The shape of the <em>embedded network</em>.</>,
         items: [
-          { value: '12+', label: 'Creatives placed', caption: 'Currently embedded inside brand teams across Southeast Asia.' },
-          { value: '8', label: 'Brand partners', caption: 'Series B to listed - across tech, lifestyle, hospitality, healthcare.' },
-          { value: '2+ yrs', label: 'Avg tenure', caption: 'How long a Beacon creative typically stays embedded before moving on.' },
+          { value: '50+', label: 'Creatives engaged', caption: 'Across the roster, from embedded full-time seats to on-call project work.' },
+          { value: '6+', label: 'Brand partners', caption: 'Series B to listed - across tech, lifestyle, hospitality, healthcare.' },
+          { value: 'SG / SEA', label: 'Singapore + Southeast Asia', caption: 'Beacon places creatives and delivers projects across the region.' },
         ],
       }}
       fit={{

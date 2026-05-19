@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────
-   <TransitionOverlay> — full-viewport cinematic transition.
+   <TransitionOverlay> - full-viewport cinematic transition.
    Plays the path-specific MP4, then fades a color wash to full opacity
    just before the route change so the destination's arrivalWash can hand
    off without a visible seam.
@@ -39,7 +39,7 @@
    margin; the soft radial fade keeps it reading as an atmospheric vignette
    rather than a hard-edged mask. Warm-dark to blend with the video's
    dominant tones (the warm dusk landscape). */
-/* Full-width dark band at the bottom of the transition video — matches
+/* Full-width dark band at the bottom of the transition video - matches
    the splash hero's .heroWatermarkCover approach. Reads as cinematic
    letterboxing / atmospheric falloff rather than a spotlit patch in the
    corner (the previous radial-gradient version drew the eye to the
@@ -79,4 +79,169 @@
 @keyframes fallbackFadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+/* ─── Arrival wash ────────────────────────────────────────────────────────
+   Destination half of a <NavWash> transition. Starts fully opaque (the
+   handoff colour) and fades out over 1100ms, revealing the underlying
+   page. Matches the existing BrandsArrivalWash timing so all routes feel
+   consistent. */
+.arrivalWashOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  animation: arrivalWashFadeOut 1100ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: opacity;
+}
+
+@keyframes arrivalWashFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrivalWashOverlay { display: none; }
+}
+
+/* ─── Pathway transition ─────────────────────────────────────────────────
+   Used for the two pathway options on /creatives (Embedded / Projects).
+   Desktop: plays a centered cinematic MP4 over a dark backdrop, then
+   fades a dark wash over it for a seamless handoff to the dark journey
+   destination.
+   Mobile: skips the video (too small to read well at phone width and
+   autoplay is fragile on iOS) and falls back to the dark wash + gold
+   beam scan idiom. */
+.pathwayOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Edge-to-edge dark backdrop that frames the centered video. Always
+   opaque from the first frame so there's no white flash on slow
+   connections. */
+.pathwayBackdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 50%, rgba(255, 180, 80, 0.06) 0%, rgba(7, 6, 10, 1) 60%),
+    #07060a;
+  z-index: 1;
+}
+
+/* Centered video frame - cinematic 16:9 card sitting in the middle of
+   the page. No border or inset stroke (those read as a thin white edge
+   at low opacity against the video). Just a soft warm glow behind. */
+.pathwayVideoFrame {
+  position: relative;
+  z-index: 2;
+  width: min(92vw, 920px);
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow:
+    0 32px 80px -16px rgba(0, 0, 0, 0.7),
+    0 0 80px -10px rgba(255, 200, 120, 0.18);
+  animation: pathwayFrameIn 480ms cubic-bezier(.22, .65, .21, 1) both;
+}
+
+@keyframes pathwayFrameIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pathwayVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* object-fit:cover with center positioning crops the video to the
+     middle of its native frame - we never see the edges. */
+  object-fit: cover;
+  object-position: center center;
+  pointer-events: none;
+}
+
+/* Final fade-out: dark wash drops over the whole overlay right before
+   the route swap so the destination's ArrivalWash takes over from full
+   dark. */
+.pathwayCloseWash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #07060a;
+  opacity: 0;
+  transition: opacity 500ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: opacity;
+}
+.pathwayCloseWashVisible { opacity: 1; }
+
+/* Mobile variant: drop the flex centering + backdrop so the video can
+   fill the viewport edge-to-edge. */
+.pathwayOverlayMobile { display: block; }
+
+/* Full-screen mobile video. object-fit:cover with center positioning
+   crops the widescreen source to fit the portrait viewport - same MP4,
+   no new portrait asset. */
+.pathwayMobileVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  pointer-events: none;
+}
+
+.pathwayWash {
+  position: absolute;
+  inset: 0;
+  background: #07060a;
+  opacity: 0;
+  animation: pathwayWashIn 700ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: opacity;
+}
+
+.pathwayBeam {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 120px;
+  transform: translateX(-150%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 220, 150, 0) 0%,
+    rgba(255, 220, 150, 0.45) 30%,
+    rgba(255, 240, 200, 0.95) 50%,
+    rgba(255, 220, 150, 0.45) 70%,
+    rgba(255, 220, 150, 0) 100%
+  );
+  filter: blur(10px);
+  mix-blend-mode: screen;
+  animation: pathwayBeamScan 700ms cubic-bezier(0.36, 0, 0.64, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes pathwayWashIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pathwayBeamScan {
+  0%   { transform: translateX(-150%); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateX(calc(100vw + 50%)); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pathwayBeam { display: none; }
+  .pathwayWash { animation-duration: 300ms; }
 }

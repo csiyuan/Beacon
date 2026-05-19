@@ -16,7 +16,7 @@
      The journey now scrolls free-form; chapters still animate in via
      IntersectionObserver. Old rule kept commented for reference: */
   /* Journey-page scroll-snap. proximity (not mandatory) so users keep
-     full scroll control — the snap only assists at natural stop points
+     full scroll control - the snap only assists at natural stop points
      defined by .flowChapter's scroll-snap-align: start. Applied at html
      so it affects the document-level scroll on the creatives pathway
      pages without disrupting other routes. */
@@ -26,7 +26,7 @@
   body::-webkit-scrollbar { display: none; width: 0; height: 0; }
   body.locked { overflow: hidden; height: 100vh; min-height: 0; }
   /* During flight, isolate the foreground chrome (vignette, grain, nav, hero
-     title) — but let the matte keep its zoom-into-landscape animation visible
+     title) - but let the matte keep its zoom-into-landscape animation visible
      in the background. The body fades to black so the landscape blends into
      the destination at the end of the zoom. */
   body.flight-iso .vignette,
@@ -34,16 +34,16 @@
   body.flight-iso .bar,
   body.flight-iso .static-hero { opacity: 0 !important; transition: opacity 280ms ease; }
   /* During the intro overlay we just defer the per-child staggered cascade
-     in JS (see CreativesApp.jsx — setTitleLit / setTagShow / setHintShow
+     in JS (see CreativesApp.jsx - setTitleLit / setTagShow / setHintShow
      wait for body.intro-active to clear). The .eyebrow / .title .glyph /
      .tagline elements stay at their default opacity 0 and animate via
-     their own .show / .lit transitions when the cascade fires — preserving
+     their own .show / .lit transitions when the cascade fires - preserving
      the original splash fade-in feel. No parent opacity override needed. */
   body.flight-iso { background: #000; }
 
   /* ─── Safari perf overrides ──────────────────────────────────────────────
      Safari's compositor is significantly slower than Chrome's for SVG
-     filters, mix-blend-mode stacks, and animated blur — all of which we
+     filters, mix-blend-mode stacks, and animated blur - all of which we
      lean on heavily for the cinematic look. On Safari we strip the most
      expensive effects and lean on simpler equivalents (lower opacity in
      place of blend modes, no SVG sharpen, no animated blur). The visual
@@ -58,7 +58,7 @@
   /* ─── Custom cursor ──────────────────────────────────────────────────────
      Native cursor is only hidden AFTER the custom cursor JS has mounted and
      added body.custom-cursor-on. If the JS fails or the user is on a touch
-     device, the native cursor stays visible — guarantees no "invisible
+     device, the native cursor stays visible - guarantees no "invisible
      pointer" failure mode. */
   body.custom-cursor-on,
   body.custom-cursor-on * { cursor: none !important; }
@@ -91,7 +91,7 @@
     box-shadow: 0 0 18px rgba(255,200,120,0.32) inset, 0 0 26px rgba(255,200,120,0.32);
   }
   body.cursor-hover .cursor-dot { opacity: 0; }
-  /* Click ripple — spawned at the click point and self-removes when the
+  /* Click ripple - spawned at the click point and self-removes when the
      animation ends (animationend listener in CustomCursor). */
   .cursor-pulse {
     position: fixed; top: 0; left: 0;
@@ -121,14 +121,14 @@
   }
   /* Hide custom cursors during flight (clean black frame for meteor) */
   body.flight-iso .cursor-dot, body.flight-iso .cursor-ring { opacity: 0; }
-  /* Don't show inside the wordmark hover when wordmark is also flagged hover —
+  /* Don't show inside the wordmark hover when wordmark is also flagged hover -
      allow normal compose. (No special rule needed.) */
   #root { position: fixed; inset: 0; pointer-events: none; }
   #root > * { pointer-events: auto; }
   canvas { display: block; touch-action: none; }
 
   /* Parallax matte sits BEHIND the canvas (canvas alpha=true).
-     During zoom-into-landscape: the matte is the camera's eye — it scales
+     During zoom-into-landscape: the matte is the camera's eye - it scales
      up, blurs (push-in motion blur), and brightens before fading to black.
      The two-stage filter transition (sharpen + saturate then add blur) is
      why the transition lists `filter` separately with a longer duration. */
@@ -138,12 +138,23 @@
     background-size: cover;
     background-position: 50% 10%;   /* JS overrides via inline style for scroll-pan */
     z-index: 0;
+    /* translate3d forces this onto its own GPU compositor layer so Chrome
+       doesn't include it in a tile-rasterized composite region with
+       the rest of the page. */
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    isolation: isolate;
     will-change: opacity, filter, transform;
     transition:
       opacity 2200ms cubic-bezier(.55,.05,.25,1),
       filter 2400ms cubic-bezier(.45,.05,.55,.95),
       transform 2400ms cubic-bezier(.5,.02,.2,1);
-    filter: url(#sharpen) saturate(1.15) contrast(1.07) brightness(1.02);
+    /* SVG `url(#sharpen)` removed - feConvolveMatrix on a viewport-sized
+       element forces Chrome (and to a lesser extent Safari) to rasterize
+       in GPU tiles, producing a visible mosaic pattern over the
+       background image. The saturate/contrast/brightness CSS filters
+       alone preserve 95% of the cinematic feel without the tile artifact. */
+    filter: saturate(1.15) contrast(1.07) brightness(1.02);
     transform-origin: 50% 58%;
   }
   /* Zoom-into-landscape: camera pushes forward into the scene. Scale climbs
@@ -156,7 +167,7 @@
     transform: scale(2.35);
   }
 
-  /* Subtle ambient cloud drift — sits ABOVE the matte at low opacity, transforms
+  /* Subtle ambient cloud drift - sits ABOVE the matte at low opacity, transforms
      side-to-side over 60s in a sine-wave loop. Reads as the clouds breathing. */
   .cloud-drift {
     position: fixed; inset: -8vmin; z-index: 0;
@@ -164,7 +175,9 @@
     background-size: cover;
     background-position: 50% 10%;
     opacity: 0.0;
-    mix-blend-mode: lighten;
+    /* mix-blend-mode: lighten was here - dropped for the same reason as
+       .cloudWisps: Chrome GPU-tiles viewport-sized blended elements,
+       producing a visible mosaic over the matte underneath. */
     will-change: transform, opacity;
     animation: cloudDrift 75s ease-in-out infinite alternate;
     pointer-events: none;
@@ -205,7 +218,7 @@
     filter: blur(0.4px);             /* faint atmospheric softening */
   }
 
-  /* Body group — sway + flap-coupled bob */
+  /* Body group - sway + flap-coupled bob */
   .bird .body {
     transform-origin: center;
     animation: birdBob 0.42s ease-in-out infinite;
@@ -214,7 +227,7 @@
     0%, 100% { transform: translateY(0)  rotate(-2deg); }
     50%      { transform: translateY(-2px) rotate(2deg); }
   }
-  /* Wing animation — each wing pivots about its inner edge so they flap up
+  /* Wing animation - each wing pivots about its inner edge so they flap up
      and down like real wings, not just scale-Y. The two wings have a tiny
      phase offset so they read as natural. */
   .bird .wing {
@@ -231,7 +244,7 @@
   .bird.f-fast .body, .bird.f-fast .wing { animation-duration: 0.32s; }
   .bird.f-slow .body, .bird.f-slow .wing { animation-duration: 0.55s; }
 
-  /* Flight paths — slow, gently arcing, with vertical sine-wave bob baked in.
+  /* Flight paths - slow, gently arcing, with vertical sine-wave bob baked in.
      Each path is unique so birds don't move in unison. */
   @keyframes birdPath1 {
     0%   { transform: translate3d(-10vw, 12vh, 0) scale(1); }
@@ -266,10 +279,14 @@
   }
   .vignette {
     position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    /* mix-blend-mode: multiply was here; was the Safari-only "fix" already
+       acknowledged at line 54. Chrome also GPU-tiles full-viewport
+       blended elements, so removing universally. Gradient alpha values
+       bumped slightly to keep the same visual depth without the blend
+       mode trick. */
     background:
-      radial-gradient(ellipse 90% 70% at 50% 40%, transparent 0%, rgba(0,0,0,0.0) 45%, rgba(0,0,0,0.32) 100%),
-      radial-gradient(ellipse 120% 100% at 50% 110%, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.0) 65%, rgba(0,0,0,0.45) 100%);
-    mix-blend-mode: multiply;
+      radial-gradient(ellipse 90% 70% at 50% 40%, transparent 0%, rgba(0,0,0,0.0) 45%, rgba(0,0,0,0.55) 100%),
+      radial-gradient(ellipse 120% 100% at 50% 110%, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.0) 65%, rgba(0,0,0,0.6) 100%);
   }
 
   /* ─── Creatives page code-driven motion ─────────────────────────────────
@@ -277,7 +294,7 @@
      background still (z 0) and the hero text (z 20). Same effect as the
      splash, scaled to the creatives composition. Beams bounce up/down
      slowly with independent timings; motes drift upward through the
-     beam zone. Pure CSS — no GPU filter pass that would soften the
+     beam zone. Pure CSS - no GPU filter pass that would soften the
      image underneath. */
   .creatives-beams {
     position: fixed;
@@ -306,7 +323,7 @@
       rgba(255, 200, 130, 0.0)  94%,
       transparent 100%
     );
-    /* Tight blur for sub-pixel softening only — keeps the inner core
+    /* Tight blur for sub-pixel softening only - keeps the inner core
        crisp while the box-shadow below carries the wider glow. */
     filter: blur(0.4px);
     /* Layered box-shadow = soft outer halo that doesn't blur the beam
@@ -323,9 +340,9 @@
   }
   /* Each beam runs THREE independent animations on different cycles so
      the cluster never moves in unison:
-       1) cbeamDrift  — vertical bounce + horizontal sway + slight skew
-       2) cbeamFlick  — opacity flicker (god-ray-through-clouds feel)
-       3) cbeamGlow   — width pulse (blooms wider when bright)
+       1) cbeamDrift  - vertical bounce + horizontal sway + slight skew
+       2) cbeamFlick  - opacity flicker (god-ray-through-clouds feel)
+       3) cbeamGlow   - width pulse (blooms wider when bright)
      Pairwise-prime-ish durations (4.3, 5.7, 7.1, 8.9 s) prevent any
      visible resonance. Each beam has a different combination so the
      swarm reads alive instead of metronomic. */
@@ -396,7 +413,11 @@
     .cbeam, .cmote { animation: none; }
   }
   .grain {
-    position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0.04; mix-blend-mode: overlay;
+    /* SVG noise grain overlay - mix-blend-mode: overlay was here, but
+       it triggered Chrome GPU tile rendering on viewport-sized fixed
+       elements. The 4% opacity grain reads almost identically as plain
+       compositing. */
+    position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0.04;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
 
@@ -414,19 +435,19 @@
     background: linear-gradient(180deg, rgba(8,5,2,0.55) 0%, rgba(8,5,2,0.32) 50%, rgba(8,5,2,0) 100%);
     pointer-events: none; z-index: -1;
   }
-  /* Top bar — pushed down 15px so it sits clear of the very top edge */
+  /* Top bar - pushed down 15px so it sits clear of the very top edge */
   /* Left padding bumped +10px globally (36 → 46) so the logo has more
      breathing room from the viewport edge on every page. Destination
-     pages keep their additional in-dest treatment — same +10 already
+     pages keep their additional in-dest treatment - same +10 already
      applied there, so no extra bump needed. */
   .bar { position: fixed; top: 15px; left: 0; right: 0; padding: 22px 51px 22px 46px; display: flex; align-items: center; justify-content: space-between; z-index: 40; pointer-events: none; transition: padding-left 320ms ease; }
-  /* On destination pages the wordmark doubles as a "return home" button —
+  /* On destination pages the wordmark doubles as a "return home" button -
      hover reveals a leading chevron. Keep matching the splash padding so
      the logo doesn't shift horizontally when switching pages. */
   body.in-dest .bar { padding-left: 46px; }
   .bar > * { pointer-events: auto; }
   /* ─────────────────────────────────────────────────────────────────────────
-     OLD WORDMARK (preserved for future restoration — boss is still using this
+     OLD WORDMARK (preserved for future restoration - boss is still using this
      logo at a conference, swap back when he's ready). Don't delete.
   .wordmark {
     font-family: var(--serif); font-weight: 400; letter-spacing: 0.42em;
@@ -454,7 +475,7 @@
   .wordmark .dot { display: inline-block; width: 6px; height: 6px; border-radius: 99px; background: var(--gold); box-shadow: 0 0 12px 3px rgba(240,198,115,0.7); }
   ───────────────────────────────────────────────────────────────────────── */
 
-  /* NEW WORDMARK — drops in the conference-approved beacon-logo.png file.
+  /* NEW WORDMARK - drops in the conference-approved beacon-logo.png file.
      The PNG is white-on-transparent (per the print mark), so it reads against
      the dark cloud sky with a soft black drop-shadow for legibility. */
   .wordmark {
@@ -480,7 +501,7 @@
       drop-shadow(0 0 10px rgba(255,210,140,0.45))
       drop-shadow(0 0 22px rgba(255,180,80,0.25));
   }
-  /* Button variant (destination pages) — wordmark doubles as "return home".
+  /* Button variant (destination pages) - wordmark doubles as "return home".
      Leading chevron slides out on hover, like the previous logo. */
   .wordmark-btn {
     appearance: none; background: transparent; border: 0; cursor: pointer;
@@ -498,7 +519,7 @@
   .wordmark-btn:hover { color: #ffe2a0; }
   .wordmark-btn:hover .wm-arrow { width: 14px; opacity: 1; }
   .wordmark-btn:hover .wm-sub { color: #ffe2a0; }
-  /* Top nav — minimal serif links, generous letter-spacing. Bright type + strong
+  /* Top nav - minimal serif links, generous letter-spacing. Bright type + strong
      dark text-shadow stack so it reads against the brightest cloud zones. */
   .top-nav { display: flex; gap: 38px; align-items: center; }
   .top-nav a {
@@ -527,7 +548,7 @@
     .top-nav a { font-size: 10.5px; letter-spacing: 0.22em; }
   }
 
-  /* Eyebrow — persistent at top, fades only on path-pick. Strong dark backing
+  /* Eyebrow - persistent at top, fades only on path-pick. Strong dark backing
      + bright type so it reads against the brightest cloud zones. */
   .eyebrow-fixed {
     position: fixed; left: 0; right: 0; top: 22vh; text-align: center;
@@ -555,7 +576,7 @@
   .hero { position: fixed; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; z-index: 20; pointer-events: none; will-change: opacity, transform; transition: opacity 700ms cubic-bezier(.55,.05,.25,1), transform 1800ms cubic-bezier(.5,.02,.2,1); transform-origin: 50% 50%; }
   /* Intro: hero wordmark + tagline are managed by their own per-child
      cascade in CreativesApp.jsx. The nav bar (logo + links) is left at
-     full opacity throughout — it sits behind the intro overlay during
+     full opacity throughout - it sits behind the intro overlay during
      playback (z-index 40 vs 9000) and is revealed naturally as the
      overlay fades out. That hands ~1.1s of head start to the logo over
      the previous "wait for body class flip" approach. */
@@ -642,10 +663,10 @@
     .cbeam, .cmote { animation: none; }
   }
   /* As the camera dollies into the landscape, the hero title scales up past
-     the viewer and blurs — like passing through it. */
+     the viewer and blurs - like passing through it. */
   body.zooming .hero { opacity: 0; transform: translateY(-50%) scale(1.35); filter: blur(6px); }
   .hero .eyebrow {
-    /* Cinematic kicker — small, sans, heavily-letterspaced, with a strong dark halo
+    /* Cinematic kicker - small, sans, heavily-letterspaced, with a strong dark halo
        so it reads cleanly against the busy bright cloud sky at the top of the matte. */
     font-family: var(--sans); font-style: normal; font-weight: 500;
     font-size: clamp(13px, 1.3vw, 17px); letter-spacing: 0.48em; text-transform: uppercase;
@@ -669,7 +690,7 @@
     letter-spacing: 0.16em; padding-left: 0.16em; line-height: 0.96;
     /* Pure white letterforms so the wordmark reads cleanly against the
        warm cloud background. The warm halos around the letters keep the
-       glow ambient — the letters themselves stay crisp white. */
+       glow ambient - the letters themselves stay crisp white. */
     color: #ffffff;
     text-shadow:
       0 1px 2px rgba(0, 0, 0, 0.85),
@@ -681,7 +702,7 @@
   .hero .title .glyph {
     display: inline-block; opacity: 0; transform: translateX(-18px);
     filter: blur(6px) brightness(1.4);
-    /* Letters slide in from the left at a slower, more deliberate pace —
+    /* Letters slide in from the left at a slower, more deliberate pace -
        1150ms per letter combined with the 35ms per-glyph stagger gives a
        BEACON cascade that lands over ~1.3s instead of snapping in. The
        blur clears with the slide so each letter eases into focus rather
@@ -702,7 +723,7 @@
   }
   .hero .tagline.show { opacity: 1; transform: translateX(0); }
 
-  /* Scroll hint — replaces the click button. More prominent so users notice it. */
+  /* Scroll hint - replaces the click button. More prominent so users notice it. */
   .scrollhint {
     position: fixed; left: 50%; bottom: 6vh; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 18px;
@@ -712,7 +733,7 @@
   .scrollhint .label {
     font-family: var(--sans); font-size: 12px; letter-spacing: 0.55em; text-transform: uppercase;
     /* padding-left matches the letter-spacing so the trailing space
-       after the final L is balanced by an equal lead before the S —
+       after the final L is balanced by an equal lead before the S -
        text now sits true-centred under the rail and chevron. */
     padding-left: 0.55em;
     color: rgba(255,247,222,0.95); font-weight: 500;
@@ -733,7 +754,7 @@
     animation: drip 2.0s cubic-bezier(.65,0,.35,1) infinite;
     box-shadow: 0 0 8px 1px rgba(255,220,150,0.65);
   }
-  /* Chevron arrow under the rail — visible cue */
+  /* Chevron arrow under the rail - visible cue */
   .scrollhint .chev {
     width: 10px; height: 10px;
     border-right: 1.5px solid rgba(255,232,180,0.85);
@@ -758,7 +779,7 @@
   }
   .fork-label::before {
     /* Soft dark halo so text reads against the busy matte. Deeper + wider
-       than before — the bright golden cloud zone was washing the labels. */
+       than before - the bright golden cloud zone was washing the labels. */
     content: ''; position: absolute; left: 50%; top: 50%;
     transform: translate(-50%, -50%);
     width: 380px; height: 280px;
@@ -780,7 +801,7 @@
     transition: transform 500ms ease, box-shadow 500ms ease;
     animation: forkBreathe 3.4s ease-in-out infinite;
   }
-  /* Idle "breathing" — the glow swells and recedes gently every ~3.4s so the
+  /* Idle "breathing" - the glow swells and recedes gently every ~3.4s so the
      orbs feel alive even before hover. Scale stays at 1 here so it composes
      cleanly with the hover-scale rule (.fork-label.hot .ring). */
   @keyframes forkBreathe {
@@ -796,10 +817,10 @@
   /* Pause the breathing on hover so the hot-state takes over cleanly. */
   .fork-label.hot .ring { animation: none; }
 
-  /* Rising embers — tiny gold sparks drift up from the orb when hovered.
+  /* Rising embers - tiny gold sparks drift up from the orb when hovered.
      Spans are positioned at the orb's center; each ember has a unique
      horizontal drift (--dx) and a staggered delay (set inline). The
-     animation only PLAYS when the parent is .hot — otherwise the embers
+     animation only PLAYS when the parent is .hot - otherwise the embers
      stay invisible at opacity 0. */
   .fork-label .ember {
     position: absolute;
@@ -878,7 +899,142 @@
   .fork-label.cold .ring { box-shadow: 0 0 14px 2px rgba(255,180,90,0.18), inset 0 0 8px rgba(255,200,120,0.18); opacity: 0.5; }
   .fork-label.cold::before { opacity: 0.6; }
 
-  /* Soft warm pulse on touchdown — a quiet “you’ve arrived” beat. */
+  /* ─── Mobile hamburger for the global .bar (creatives 3D-scene page).
+     The splash, brands, and journey pages each have scoped hamburger
+     styles in their own module CSS; the creatives page uses global
+     classes because its top bar is rendered with global .bar/.top-nav
+     classes. Below 760px the inline nav hides and the hamburger reveals
+     a right-side slide-in sheet. */
+  .bar-hamburger {
+    display: none;
+    background: transparent;
+    border: 1px solid rgba(240, 198, 115, 0.32);
+    border-radius: 4px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
+    transition: border-color 240ms, background 240ms;
+  }
+  .bar-hamburger:hover { border-color: rgba(240, 198, 115, 0.7); background: rgba(240, 198, 115, 0.06); }
+  .bar-hamburger span {
+    display: block;
+    width: 18px;
+    height: 1.5px;
+    background: #fff3d6;
+    transition: background 240ms;
+  }
+  .bar-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.62);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 280ms cubic-bezier(.22, .65, .21, 1);
+    z-index: 90;
+  }
+  .bar-menu-backdrop.is-open { opacity: 1; pointer-events: auto; }
+  .bar-side-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(85vw, 340px);
+    background: rgba(10, 8, 5, 0.98);
+    border-left: 1px solid rgba(240, 198, 115, 0.18);
+    padding: 80px 32px 32px;
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 320ms cubic-bezier(.22, .65, .21, 1);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .bar-side-menu.is-open { transform: translateX(0); }
+  .bar-side-menu-close {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid rgba(240, 198, 115, 0.32);
+    border-radius: 4px;
+    cursor: pointer;
+    color: #fff3d6;
+    transition: border-color 240ms, background 240ms;
+  }
+  .bar-side-menu-close:hover { border-color: rgba(240, 198, 115, 0.7); background: rgba(240, 198, 115, 0.06); }
+  .bar-side-menu-nav { display: flex; flex-direction: column; margin-top: 8px; }
+  .bar-side-menu-nav a {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 22px;
+    color: #fff3d6;
+    text-decoration: none;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(240, 198, 115, 0.16);
+    transition: color 240ms, transform 240ms;
+    letter-spacing: -0.005em;
+  }
+  .bar-side-menu-nav a:hover { color: #ffe2a0; transform: translateX(4px); }
+  .bar-side-menu-connect { margin-top: auto; padding-top: 24px; }
+  .bar-side-menu-label {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(240, 198, 115, 0.72);
+    margin: 0 0 10px;
+    font-weight: 500;
+  }
+  .bar-side-menu-connect a {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: #fff3d6;
+    text-decoration: none;
+  }
+  .bar-side-menu-connect a:hover { color: #ffe2a0; }
+
+  @media (max-width: 759px) {
+    .top-nav-desktop { display: none !important; }
+    .bar-hamburger { display: inline-flex; }
+  }
+
+  /* Mobile fork labels - the JS-projected (left, top) positions are
+     anchored to the 3D scene's left/right marker points, which puts the
+     two labels off-screen at iPhone-SE width (~375px). Force a centered
+     vertical stack on phones so both names + meta + Enter affordances are
+     fully readable. !important is needed because the inline style is
+     applied per-frame in the project() loop. */
+  @media (max-width: 720px) {
+    .fork-label {
+      left: 50% !important;
+      min-width: 0 !important;
+      padding: 14px 24px !important;
+      width: min(86vw, 320px);
+      box-sizing: border-box;
+    }
+    .fork-label:first-child { top: 38vh !important; }
+    .fork-label:nth-child(2) { top: 62vh !important; }
+    .fork-label::before {
+      width: 110% !important;
+      height: 140% !important;
+    }
+    .fork-label .name { font-size: 30px !important; }
+    .fork-label .meta { letter-spacing: 0.24em; font-size: 9.5px; }
+    .fork-label .enter { letter-spacing: 0.28em; font-size: 10px; margin-top: 14px; }
+  }
+
+  /* Soft warm pulse on touchdown - a quiet “you’ve arrived” beat. */
   .impact-pulse {
     position: fixed; left: 50%; top: 78%;
     transform: translate(-50%, -50%) scale(0.4);
@@ -990,9 +1146,27 @@
     min-height: 100vh;
     min-height: 100dvh;
     box-sizing: border-box;
-    display: grid;
+    /* Centered, zero-padding hero - same idiom as the brands page so the
+       headline reads at the same size, line-height, and visual weight on
+       /about and /contact too. */
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: clamp(72px, 8vh, 100px) 0 clamp(40px, 5vh, 64px);
+    justify-content: center;
+    text-align: center;
+    padding: 0;
+  }
+  .dest .hero-section .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .dest .hero-section .actions { justify-content: center; }
+  .dest .hero-section h1.display,
+  .dest .hero-section p.lead {
+    margin-left: auto;
+    margin-right: auto;
   }
   .dest .kicker {
     font-family: var(--sans); font-size: 11px; letter-spacing: 0.52em;
@@ -1011,7 +1185,7 @@
   }
   .dest .anim.in .kicker::after,
   .dest .kicker.anim.in::after { width: 92px; }
-  /* Larger sister display heading — tightened tracking, gold shadow */
+  /* Larger sister display heading - tightened tracking, gold shadow */
   .dest h1.display {
     font-family: var(--serif); font-weight: 300;
     font-size: clamp(44px, 5.2vw, 78px); line-height: 0.98; letter-spacing: -0.015em;
@@ -1053,7 +1227,7 @@
   }
   .cta.ghost:hover { box-shadow: 0 0 0 1px rgba(240,198,115,0.85) inset; }
 
-  /* Section labels — cinematic chapter marks. Roman numeral on the left in
+  /* Section labels - cinematic chapter marks. Roman numeral on the left in
      serif italic (auto-numbered per dest via CSS counter), then a sans-caps
      label, then a hairline gold rule that fades into the page edge. Filmstrip
      dashes flank the numeral for a film-canister feel. */
@@ -1168,7 +1342,7 @@
     padding-top: 11vh;
   }
   .dest .creative-journey > .container > .section-rule::before {
-    /* Hide the original Roman-numeral chapter mark — the new circular
+    /* Hide the original Roman-numeral chapter mark - the new circular
        badge below replaces it. */
     visibility: hidden;
     width: 0;
@@ -1177,7 +1351,7 @@
     min-width: 0;
   }
   .dest .creative-journey > .container > .section-rule::after {
-    /* Numbered milestone badge — decimal-leading-zero for the "01 / 02"
+    /* Numbered milestone badge - decimal-leading-zero for the "01 / 02"
        feel that matches the flyward step markers. */
     content: counter(chapter, decimal-leading-zero);
     position: absolute;
@@ -1209,7 +1383,7 @@
   }
 
   /* The horizontal hairline inside section-rule still anchors the label
-     to the right — but on the journey, draw it from the milestone toward
+     to the right - but on the journey, draw it from the milestone toward
      the page edge so it visually emerges from the badge itself. */
   .dest .creative-journey .section-rule .line::before {
     content: '';
@@ -1329,7 +1503,7 @@
   }
 
   /* Sections within the journey breathe a bit tighter than the open-page
-     layout — the vertical thread already implies separation so we don't
+     layout - the vertical thread already implies separation so we don't
      need the huge inter-section padding. */
   .dest .journey > .container + .container { margin-top: -4vh; }
   .dest .journey .closing { padding-top: 8vh; }
@@ -1340,8 +1514,8 @@
   }
   @media (min-width: 900px) {
     /* `align-items: stretch` (the grid default) lets the image column extend
-       to the bottom of the row — matching the height of the text+CTA column
-       — so there's no awkward dark gap below the image. The image inside
+       to the bottom of the row - matching the height of the text+CTA column
+       - so there's no awkward dark gap below the image. The image inside
        uses object-fit: cover so it crops gracefully when stretched. */
     .dest .case.split { grid-template-columns: 1.2fr 1fr; align-items: stretch; }
     .dest .case.split-flip { grid-template-columns: 1fr 1.2fr; align-items: stretch; }
@@ -1394,7 +1568,7 @@
     text-transform: uppercase; color: rgba(243,231,200,0.6);
   }
 
-  /* Service feature bullets — used in Brand destination service modules. */
+  /* Service feature bullets - used in Brand destination service modules. */
   .dest .features {
     list-style: none; padding: 0; margin: 22px 0 0;
     display: grid; gap: 14px;
@@ -1419,9 +1593,9 @@
   }
   .dest .features .ft-desc { display: block; }
 
-  /* Editorial capabilities roll — film-credits aesthetic for the Productions
+  /* Editorial capabilities roll - film-credits aesthetic for the Productions
      module. Each row: serif italic numeral, serif italic title, small-caps
-     description tag — separated by hairline gold rules. */
+     description tag - separated by hairline gold rules. */
   .dest .capabilities {
     list-style: none; padding: 0; margin: 28px 0 0;
     border-top: 1px solid rgba(240,198,115,0.18);
@@ -1464,7 +1638,7 @@
   }
   .dest .capabilities li:hover .cap-title { color: #ffe8a3; }
   .dest .capabilities li:hover .cap-n { color: rgba(255,228,160,0.85); }
-  /* Pillars grid — "Why Beacon" + "What you get" sections */
+  /* Pillars grid - "Why Beacon" + "What you get" sections */
   .dest .pillars {
     display: grid; gap: 28px; padding: 4vh 0 8vh;
   }
@@ -1519,7 +1693,7 @@
     color: rgba(243,231,200,0.74); margin: 0;
   }
 
-  /* Roles list — 2-column listing for Creative destination */
+  /* Roles list - 2-column listing for Creative destination */
   .dest .role-list {
     display: grid; gap: 0; padding: 1vh 0 6vh;
   }
@@ -1547,7 +1721,7 @@
     letter-spacing: 0.03em; line-height: 1.5;
   }
 
-  /* Benefits grid — concrete employment perks (CPF, leave, healthcare, etc.)
+  /* Benefits grid - concrete employment perks (CPF, leave, healthcare, etc.)
      Matched to the editorial-roll aesthetic: serif italic numerals on the
      left, hairline gold rule under each row. */
   .dest .benefits {
@@ -1588,7 +1762,7 @@
   .dest .benefit:hover .benefit-title { color: #ffe8a3; }
   .dest .benefit:hover .b-n { color: rgba(255,228,160,0.85); }
 
-  /* Testimonial — magazine pull-quote with a colossal serif glyph behind the
+  /* Testimonial - magazine pull-quote with a colossal serif glyph behind the
      copy. The decorative " sits at ~26vw, fades into the dark, and frames the
      human quote like a piece of editorial typography. */
   .dest .testimonial {
@@ -1635,11 +1809,11 @@
     background: rgba(240,198,115,0.32);
   }
 
-  /* Footer — cinematic, centered wordmark + spark divider + two-column nav. */
+  /* Footer - cinematic, centered wordmark + spark divider + two-column nav. */
   .dest .dest-footer {
     margin-top: 10vh;
     padding: 8vh 0 6vh;
-    text-align: left;
+    text-align: center;
     background: linear-gradient(180deg, rgba(8,5,2,0.0) 0%, rgba(20,12,4,0.45) 100%);
   }
   .dest .dest-footer .ft-mark {
@@ -1672,14 +1846,17 @@
   .dest .dest-footer .ft-spark { flex-shrink: 0; opacity: 0.85; }
 
   .dest .dest-footer .ft-cols {
-    display: grid; gap: 36px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
     margin: 0 auto 56px;
   }
   @media (min-width: 760px) {
-    .dest .dest-footer .ft-cols { grid-template-columns: 1fr 1fr; gap: 56px; }
+    .dest .dest-footer .ft-cols { gap: 56px; }
   }
   .dest .dest-footer .ft-col {
     display: flex; flex-direction: column; gap: 18px;
+    align-items: center; text-align: center;
   }
   .dest .dest-footer .ft-label {
     font-family: var(--sans); font-size: 11px;
@@ -1697,12 +1874,15 @@
   }
   .dest .dest-footer .ft-col a:hover,
   .dest .dest-footer .ft-connect .ft-email:hover {
-    color: #ffe2a0; transform: translateX(2px);
+    color: #ffe2a0;
   }
   .dest .dest-footer .ft-connect {
     display: flex; flex-direction: column; gap: 18px;
     margin-bottom: 56px;
+    align-items: center; text-align: center;
   }
+  .dest .dest-footer .ft-location { text-align: center; }
+  .dest .dest-footer .ft-social { justify-content: center; }
   .dest .dest-footer .ft-location {
     font-family: var(--serif); font-weight: 300;
     font-size: clamp(15px, 1.3vw, 17px); line-height: 1.7;
@@ -1735,6 +1915,7 @@
   }
   .dest .dest-footer .ft-meta {
     display: flex; gap: 12px; flex-wrap: wrap;
+    justify-content: center; text-align: center;
     padding-top: 32px;
     border-top: 1px solid rgba(240,198,115,0.18);
     font-family: var(--sans); font-size: 11px; letter-spacing: 0.04em;
@@ -1775,7 +1956,7 @@
   }
   .dest .scroll::-webkit-scrollbar { width: 6px; }
   .dest .scroll::-webkit-scrollbar-thumb { background: rgba(240,198,115,0.25); border-radius: 6px; }
-  /* Section underline — light sweep that draws in from left */
+  /* Section underline - light sweep that draws in from left */
   .dest .swipe {
     position: relative; height: 1px; width: 100%; overflow: hidden;
     background: rgba(240,198,115,0.08);
@@ -1819,10 +2000,10 @@
   /* Section dividers */
   .rule { height: 1px; background: linear-gradient(90deg, transparent, rgba(240,198,115,0.35), transparent); margin: 4px 0 36px; }
 
-  /* .back deprecated — kept hidden in case any stale markup still references it. */
+  /* .back deprecated - kept hidden in case any stale markup still references it. */
   .back { display: none !important; }
 
-  /* Flight dim — a gentle dark cross-fade during the camera dive. No bright
+  /* Flight dim - a gentle dark cross-fade during the camera dive. No bright
      flashes; we ease through a soft warm tint to a darker plate so the eye
      never gets punched. */
   .flight-dim {
@@ -1837,7 +2018,7 @@
     50%  { opacity: 0.7; }
     100% { opacity: 0; }
   }
-  /* Return flight — quiet dark cross-fade, even gentler */
+  /* Return flight - quiet dark cross-fade, even gentler */
   .flight-dim.dim-return {
     background: linear-gradient(180deg, rgba(8,5,2,0.55) 0%, rgba(8,5,2,0.75) 100%);
     animation: flightDimReturn 1400ms ease forwards;
@@ -1862,7 +2043,7 @@
     24%  { opacity: 1;    transform: scale(1.0);  }
     100% { opacity: 0;    transform: scale(2.0);  }
   }
-  /* Camera rig during meteor flight — page itself gets a tiny shake on impact */
+  /* Camera rig during meteor flight - page itself gets a tiny shake on impact */
   .meteor-flash + #root,
   .meteor-flash ~ #root { animation: rigShake 320ms ease-out; }
   @keyframes rigShake {
@@ -1875,7 +2056,7 @@
   }
   .static-hero { display: none; }
   body.rm canvas.three { display: none; }
-  /* On destination pages the 3D scene must be invisible — the dest layer
+  /* On destination pages the 3D scene must be invisible - the dest layer
      has its own background and the canvas underneath would show beam glow
      during the fade-in. */
   body.in-dest canvas.three,
@@ -1885,9 +2066,8 @@
      zoom-into-landscape transition can reverse smoothly on the way back. */
   body.rm .static-hero { display: block; }
 
-  /* ─── Responsive — tablet ───────────────────────────────────────────── */
+  /* ─── Responsive - tablet ───────────────────────────────────────────── */
   @media (max-width: 900px) {
-    .dest .hero-section { padding: clamp(64px, 7vh, 88px) 0 clamp(32px, 4vh, 52px); }
     .dest .section-rule { padding: 5vh 0 4vh; }
     .dest .case { padding: 4vh 0 6vh; gap: 36px; }
     .dest .closing { padding: 8vh 0 10vh; }
@@ -1896,7 +2076,7 @@
     .dest .slot-frame.tall { aspect-ratio: 3 / 2; }
   }
 
-  /* ─── Responsive — mobile ────────────────────────────────────────────── */
+  /* ─── Responsive - mobile ────────────────────────────────────────────── */
   @media (max-width: 720px) {
     /* Larger horizontal padding so the wordmark + hover back-arrow on the
        left, and the hamburger toggle on the right, both have breathing
@@ -1911,8 +2091,7 @@
        viewport edge on phones. Cumulative +25px from the original
        (5 + 10 + 10) - now 57px min on user request. */
     .dest .container { padding: 0 clamp(57px, 7vw, 69px); }
-    .dest .hero-section { padding: clamp(60px, 7vh, 80px) 0 clamp(28px, 4vh, 48px); }
-    .dest h1.display { font-size: clamp(32px, 7vw, 52px); margin: 12px 0 14px; }
+    .dest h1.display { font-size: clamp(2.5rem, 6.5vw, 5rem); margin: 12px 0 14px; }
     .dest p.lead { font-size: clamp(16px, 3.5vw, 19px); margin-bottom: 28px; }
     .dest .section-rule { padding: 4vh 0 3vh; gap: 20px; }
     .dest .case { padding: 3vh 0 5vh; gap: 28px; }
@@ -1942,18 +2121,24 @@
     .dest .cf-toggle-btn { padding: 14px 20px; min-height: 44px; }
 
     /* Footer */
-    .dest .dest-footer { padding: 5vh 0 4vh; margin-top: 4vh; }
+    .dest .dest-footer { padding: 5vh 0 4vh; margin-top: 4vh; text-align: center; }
     .dest .dest-footer .ft-mark { font-size: clamp(28px, 7vw, 42px); }
     .dest .dest-footer .ft-cols { gap: 24px; }
+    .dest .dest-footer .ft-col { align-items: center; text-align: center; }
     .dest .dest-footer .ft-col a,
     .dest .dest-footer .ft-connect .ft-email { font-size: clamp(17px, 4vw, 21px); }
+    .dest .dest-footer .ft-col a:hover,
+    .dest .dest-footer .ft-connect .ft-email:hover { transform: none; }
     .dest .dest-footer .ft-divider { margin: 36px auto; }
-    .dest .dest-footer .ft-connect { margin-bottom: 36px; }
+    .dest .dest-footer .ft-connect { margin-bottom: 36px; align-items: center; text-align: center; }
+    .dest .dest-footer .ft-location { text-align: center; }
+    .dest .dest-footer .ft-social { justify-content: center; }
+    .dest .dest-footer .ft-meta { justify-content: center; text-align: center; }
   }
 
-  /* ─── Responsive — small mobile ─────────────────────────────────────── */
+  /* ─── Responsive - small mobile ─────────────────────────────────────── */
   @media (max-width: 400px) {
-    .dest h1.display { font-size: clamp(30px, 8.5vw, 44px); }
+    .dest h1.display { font-size: clamp(2.5rem, 6.5vw, 5rem); }
     .dest p.lead { font-size: 15px; }
     /* Was 18px; bumped cumulatively (+5 +10 +10 = +25px) to 43px
        per user request for more breathing room on iPhone SE. */

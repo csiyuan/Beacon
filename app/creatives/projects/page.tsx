@@ -96,9 +96,9 @@ export default function ProjectsPathwayPage() {
         sectionLabel: 'Where the numbers land',
         heading: <>The shape of the <em>project roster</em>.</>,
         items: [
-          { value: '40+', label: 'Briefs delivered', caption: 'Per year across the roster - from social cuts to brand films and editorial photography.' },
-          { value: 'NET-15', label: 'Pay terms', caption: 'From final delivery, every project, regardless of when the brand pays Beacon.' },
-          { value: '24h', label: 'Avg producer reply', caption: 'How quickly a Beacon producer responds when something on a live brief shifts.' },
+          { value: '50+', label: 'Creatives engaged', caption: 'Across the roster, from embedded full-time seats to on-call project work.' },
+          { value: '6+', label: 'Brand partners', caption: 'Series B to listed - across tech, lifestyle, hospitality, healthcare.' },
+          { value: 'SG / SEA', label: 'Singapore + Southeast Asia', caption: 'Beacon places creatives and delivers projects across the region.' },
         ],
       }}
       fit={{
