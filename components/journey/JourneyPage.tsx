@@ -635,7 +635,7 @@ export default function JourneyPage({
       <section className={`${s.container} ${s.extraSection}`}>
         <p className={`${s.extraSectionLabel} ${s.reveal}`}>The two pathways</p>
         <h2 className={`${s.extraSectionHeading} ${s.reveal}`}>
-          <em>Embedded</em> vs <em>Project-based</em> — which one fits you?
+          <em>Embedded</em> vs <em>Project-based</em>. Which one fits you?
         </h2>
         <div className={s.compareTable} role="table">
           {/* Column header row - empty corner cell on the left, then the

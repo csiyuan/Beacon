@@ -136,13 +136,13 @@ export default function AboutClient() {
             </div>
             <div className={s.aboutCopy}>
               <p>
-                We started Beacon because the gap between brand and creative kept producing the same losses on both sides &mdash; brands burning budget on misaligned hires, creatives bouncing between gigs that didn&rsquo;t fit. The match wasn&rsquo;t failing because of the people. It was failing because nobody owned the introduction.
+                We started Beacon because the gap between brand and creative kept producing the same losses on both sides. Brands burning budget on misaligned hires, creatives bouncing between gigs that didn&rsquo;t fit. The match wasn&rsquo;t failing because of the people. It was failing because nobody owned the introduction.
               </p>
               <p>
                 Every Beacon creative is vetted on craft and culture. Every brand we place into has been briefed honestly about the role, the rate, and the rhythm. No recruiter middleware, no keyword filter, no &ldquo;maybe one day&rdquo; pipelines.
               </p>
               <p>
-                The body of work that follows isn&rsquo;t freelance output, and it isn&rsquo;t outsourced production. It&rsquo;s the work that only happens when someone actually <em>belongs</em> somewhere &mdash; long enough to learn the brand, to push back when it matters, and to build the kind of body of work you can point to two years from now.
+                The body of work that follows isn&rsquo;t freelance output, and it isn&rsquo;t outsourced production. It&rsquo;s the work that only happens when someone actually <em>belongs</em> somewhere, long enough to learn the brand, to push back when it matters, and to build the kind of body of work you can point to two years from now.
               </p>
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function AboutClient() {
               <span className={s.processNum}>01</span>
               <h4 className={s.processTitle}>50+ creatives</h4>
               <p className={s.processBody}>
-                Vetted across the roster &mdash; videographers, editors, designers, photographers, content creators, web developers.
+                Vetted across the roster. Videographers, editors, designers, photographers, content creators, web developers.
               </p>
             </li>
             <li className={s.processStep}>

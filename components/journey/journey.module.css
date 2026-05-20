@@ -447,7 +447,7 @@
 .hero {
   /* Full-viewport hero, stacked top-down (NOT centered). Centering used
      to float the switcher up or down depending on how tall the title +
-     sub + CTAs ended up on each pathway — meaning the switcher landed
+     sub + CTAs ended up on each pathway - meaning the switcher landed
      in a different y-position on Embedded vs Projects. Top-aligning
      with a generous padding-top pins the switcher at a known offset
      (~25% from the top of the viewport on a typical desktop) so the
@@ -557,8 +557,8 @@
   gap: 16px;
 }
 /* Equal-width hero buttons - the floor must be larger than the widest
-   natural label ("Join the roster") so every button — primary and
-   ghost — hits it and ends up at exactly the same pill width. A
+   natural label ("Join the roster") so every button - primary and
+   ghost - hits it and ends up at exactly the same pill width. A
    tighter floor only catches the short labels while longer ones
    grow past it, producing the mismatched pills the user flagged. */
 .heroActions .cta {
