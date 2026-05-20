@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import s from './journey.module.css';
 import { useNavWash } from '@/components/transitions/NavWash';
 import ArrivalWash from '@/components/transitions/ArrivalWash';
+import { useLenisScroll } from '@/lib/useLenisScroll';
+import { useCountUp } from '@/lib/useCountUp';
 
 /* ─────────────────────────────────────────────────────────────────────────
    <JourneyPage> - flyward.com-inspired single-page layout used by both
@@ -78,7 +80,10 @@ const PATHWAY_COMPARISON: { label: string; embedded: string; projects: string }[
 
 interface Props {
   pathway: PathwayKey;
-  heroEyebrow: string;
+  /** Optional - the pathway switcher already labels the active pathway,
+   *  so the eyebrow tends to repeat the switcher on the pathway pages.
+   *  Pass it only when you actually want a separate editorial label. */
+  heroEyebrow?: string;
   heroTitle: React.ReactNode;
   heroSub: React.ReactNode;
   primaryCta: { label: string; href: string };
@@ -150,6 +155,9 @@ export default function JourneyPage({
   // visual treatment used on /brands, /creatives, and elsewhere - keeps
   // every "back to home" feel consistent across the site.
   const { trigger: navWash, overlay: navWashOverlay } = useNavWash();
+  // Buttery smooth scroll across the whole journey page - hijacks
+  // wheel/trackpad and lerps the scroll position for a weighted glide.
+  useLenisScroll();
 
   // Mobile hamburger menu - ported from the brands page so the journey
   // pathway pages get the same nav treatment on phones (inline nav hides
@@ -165,6 +173,12 @@ export default function JourneyPage({
     }
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
+  // Tag the body for journey-scoped styles.
+  useEffect(() => {
+    document.body.classList.add('route-journey');
+    return () => document.body.classList.remove('route-journey');
+  }, []);
+
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
@@ -196,42 +210,7 @@ export default function JourneyPage({
   // the hero and the sections below.
   const [isInJourney, setIsInJourney] = useState(false);
   const milestoneRefs = useRef<(HTMLElement | null)[]>([]);
-  // Mobile-only journey connector refs - each connector is a dotted
-  // line + a ball; the ball travels along the line as the user scrolls
-  // through the connector's vertical range, mirroring the desktop
-  // traveling-orb idiom in a single-column mobile layout.
-  const connectorWrapRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const connectorBallRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  // SVG path ref for the curved (S-shape, two bends) connector. Used
-  // to compute the ball's position via getPointAtLength so the orb
-  // follows the curve, not a straight line.
-  const connectorPathRefs = useRef<(SVGPathElement | null)[]>([]);
-  const connectorSvgRefs = useRef<(SVGSVGElement | null)[]>([]);
   const journeyRef = useRef<HTMLElement>(null);
-  // SVG paths sharing the same `d`:
-  //   - dimPath: dotted full-path guide, always visible. Also used by
-  //     the scroll handler for length + getPointAtLength so the orb
-  //     rides along the visible dotted line.
-  //   - sparkleSegments: 3 stacked paths that together form a tapered
-  //     comet trail. The lead path is bright + thick, each subsequent
-  //     path lags slightly behind with lower opacity and thinner stroke
-  //     so the streak reads as head -> tail instead of a uniform dash.
-  // The orb (HTML, not SVG) rides along dimPath as the user scrolls.
-  const dimRef = useRef<SVGPathElement>(null);
-  const sparkleRefs = useRef<(SVGPathElement | null)[]>([]);
-  const orbRef = useRef<HTMLDivElement>(null);
-  const spineSvgRef = useRef<SVGSVGElement>(null);
-  // Refs to each chapter's knot element so the scroll handler can
-  // imperatively toggle the .Lit class the moment the orb crosses its
-  // path position. We do this outside React state because re-rendering
-  // every scroll frame would be wasteful and the burst keyframe should
-  // fire as a precise impact moment, not on chapter-text intersection.
-  const knotRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  // Refs to each chapter's image element for scroll-driven parallax.
-  // The scroll handler shifts each image's translateY based on the
-  // chapter's vertical position in the viewport - gives the images a
-  // subtle depth-of-field feel as their chapter passes through.
-  const imageRefs = useRef<(HTMLImageElement | null)[]>([]);
 
   // Milestone reveal is now driven by the scroll handler (below) - text and
   // images fade in as the orb passes each milestone's anchor on the path,
@@ -244,6 +223,45 @@ export default function JourneyPage({
       milestoneRefs.current.forEach((el) => el && el.classList.add(s.in));
     }
   }, []);
+
+  // Scroll-reveal observer for everything below the journey (compare
+  // table rows, stats tiles, fit cards, sector tags, etc.). Any element
+  // tagged with the `.reveal` class fades + slides into place when it
+  // crosses the viewport, once. Self-disconnects per element after
+  // reveal so we're not paying for inactive observers on a long page.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const targets = document.querySelectorAll<HTMLElement>(`.${s.reveal}`);
+    if (targets.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add(s.revealIn);
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.12 },
+    );
+    targets.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  // Programmatically scroll the nth chapter to the centre of the
+  // viewport. Wired to the floating prev/next buttons + dot navigator
+  // only - native scroll is left untouched, so the user's wheel/swipe
+  // flows naturally through the page without being hijacked. Smoothness
+  // comes from CSS scroll-behavior + the IntersectionObserver reveal
+  // animations, not from JS scroll interception.
+  const scrollToChapter = (index: number) => {
+    const clamped = Math.max(0, Math.min(index, milestones.length - 1));
+    const el = milestoneRefs.current[clamped];
+    if (!el) return;
+    setActiveStep(clamped);
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   // IntersectionObserver tracks which text block is currently crossing
   // the viewport's centre band. When a block enters that band, it
@@ -306,225 +324,12 @@ export default function JourneyPage({
     };
   }, [milestones.length]);
 
-  // Ambient sparkle streak with a tapered comet tail. Three stacked
-  // paths share the same `d`; each gets the same dashoffset animation
-  // but starts with a small delay so the trailing paths lag behind the
-  // head. Combined with descending stroke-width + opacity in CSS, this
-  // reads as a comet (bright head -> fading tail) instead of a uniform
-  // dash. Whip-fast easing accelerates through the curve and
-  // decelerates at the bottom for more dynamic motion.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const segments = sparkleRefs.current.filter(Boolean) as SVGPathElement[];
-    if (segments.length === 0) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      segments.forEach((seg) => { seg.style.opacity = '0'; });
-      return;
-    }
-    const total = segments[0].getTotalLength();
-    const sparkleLen = total * 0.07;
-    const cycleMs = 2000;
-    const anims: Animation[] = [];
-    segments.forEach((seg, i) => {
-      seg.style.strokeDasharray = `${sparkleLen} ${total}`;
-      // Lead segment (i=0) at full brightness, each subsequent segment
-      // lags 70ms behind and fades down; with cubic-bezier easing the
-      // lag reads as a tapered tail trailing the head.
-      const delayMs = i * 70;
-      const anim = seg.animate(
-        [
-          { strokeDashoffset: sparkleLen, opacity: 0, offset: 0 },
-          { strokeDashoffset: sparkleLen, opacity: 1, offset: 0.02 },
-          { strokeDashoffset: -total, opacity: 1, offset: 0.6 },
-          { strokeDashoffset: -total, opacity: 0, offset: 0.62 },
-          { strokeDashoffset: -total, opacity: 0, offset: 1 },
-        ],
-        {
-          duration: cycleMs,
-          iterations: Infinity,
-          delay: delayMs,
-          easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)',
-        },
-      );
-      anims.push(anim);
-    });
-    return () => anims.forEach((a) => a.cancel());
-  }, [milestones.length]);
-
-  // Scroll-driven orb position. The bright cumulative trail was removed
-  // entirely (per user request) - now only the dotted dimPath guides
-  // the orb, and the orb rides along it as the user scrolls. dimPath is
-  // used solely for length measurement and getPointAtLength.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const journey = journeyRef.current;
-    const path = dimRef.current;
-    const svg = spineSvgRef.current;
-    const orb = orbRef.current;
-    if (!journey || !path) return;
-    const total = path.getTotalLength();
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) {
-      if (orb) orb.style.opacity = '0';
-      return;
-    }
-    // ViewBox of the spine SVG - keep in sync with the JSX viewBox.
-    const viewBoxW = 100;
-    const viewBoxH = milestones.length * 100;
-    let len = total;
-    let svgRect = svg ? svg.getBoundingClientRect() : null;
-    const recomputeStatic = () => {
-      len = path.getTotalLength();
-      if (svg) svgRect = svg.getBoundingClientRect();
-    };
-    // Each chapter knot sits roughly at progress (i + 0.5) / count along
-    // the journey. We compute that threshold once and toggle the .Lit
-    // class on each knot when the orb's progress crosses it, so the
-    // burst keyframe fires as a precise impact moment. Removing the
-    // class on scroll-back is needed so the animation can re-fire when
-    // the user scrolls forward through the point again.
-    const count = milestones.length;
-    const knotThresholds = Array.from({ length: count }, (_, i) => (i + 0.5) / count);
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const rect = journey.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const past = vh / 2 - rect.top;
-      const p = Math.max(0, Math.min(1, past / rect.height));
-      const orbPos = len * p;
-      // Orb position along the dotted guide path.
-      if (svgRect && orb) {
-        const pt = path.getPointAtLength(orbPos);
-        const px = (pt.x / viewBoxW) * svgRect.width;
-        const py = (pt.y / viewBoxH) * svgRect.height;
-        orb.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -50%)`;
-        const orbFade = p < 0.01 ? p / 0.01 : p > 0.99 ? (1 - p) / 0.01 : 1;
-        orb.style.opacity = `${orbFade}`;
-      }
-      // Toggle knot Lit class based on whether the orb has crossed each
-      // knot's vertical position. Compares the element's current state
-      // first so we only mutate the class list when it actually changed,
-      // letting the CSS animation fire cleanly on each crossing.
-      const litClass = s.fullSpineKnotLit;
-      for (let i = 0; i < knotRefs.current.length; i++) {
-        const el = knotRefs.current[i];
-        if (!el) continue;
-        const shouldLit = p >= knotThresholds[i];
-        const isLit = el.classList.contains(litClass);
-        if (shouldLit && !isLit) el.classList.add(litClass);
-        else if (!shouldLit && isLit) el.classList.remove(litClass);
-      }
-    };
-    const schedule = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(update);
-    };
-    update();
-    const onResize = () => { recomputeStatic(); schedule(); };
-    window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', onResize);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [milestones.length]);
-
-  // Mobile-only connector orbs - each chapter (except the last) is
-  // followed by a small dotted-line connector with a glowing ball that
-  // travels along the line as the user scrolls through it. The ball's
-  // y position is driven by the viewport-centre relative to the
-  // connector's bounding rect, so it slides from top to bottom as the
-  // user reads from one chapter to the next. Same idiom as the desktop
-  // traveling orb, just compressed to one connector per chapter pair.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      connectorBallRefs.current.forEach((b) => { if (b) b.style.opacity = '0'; });
-      return;
-    }
-    // Cache path total-lengths + SVG viewBox so we don't re-measure
-    // every frame (getTotalLength is moderately expensive).
-    const VIEWBOX_W = 40;
-    const VIEWBOX_H = 200;
-    const pathLengths = connectorPathRefs.current.map((p) => p ? p.getTotalLength() : 0);
-
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const vh = window.innerHeight;
-      const centre = vh / 2;
-      for (let i = 0; i < connectorWrapRefs.current.length; i++) {
-        const wrap = connectorWrapRefs.current[i];
-        const ball = connectorBallRefs.current[i];
-        const path = connectorPathRefs.current[i];
-        const svg = connectorSvgRefs.current[i];
-        if (!wrap || !ball || !path || !svg) continue;
-        const rect = wrap.getBoundingClientRect();
-        if (rect.height <= 0) continue;
-        const raw = (centre - rect.top) / rect.height;
-        const p = Math.max(0, Math.min(1, raw));
-        // Map progress along the curve via getPointAtLength, then
-        // convert SVG user-space to pixel coords (preserveAspectRatio:
-        // none so x scales by svg.width/VIEWBOX_W, y by svg.height/H).
-        const len = pathLengths[i] || path.getTotalLength();
-        const pt = path.getPointAtLength(p * len);
-        const px = (pt.x / VIEWBOX_W) * rect.width;
-        const py = (pt.y / VIEWBOX_H) * rect.height;
-        ball.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -50%)`;
-        // Fade in/out at the edges so the ball materialises as it
-        // enters the connector range, instead of popping.
-        const fade = raw <= 0
-          ? Math.max(0, 1 + raw * 12)
-          : raw >= 1
-            ? Math.max(0, 1 - (raw - 1) * 12)
-            : 1;
-        ball.style.opacity = `${fade}`;
-      }
-    };
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [milestones.length]);
-
   return (
     <main className={s.page}>
       {/* Dark colour matches the journey-page background so the inbound
           fade-out from /creatives's pathway transition is seamless. */}
       <ArrivalWash color="#07060a" />
       {navWashOverlay}
-      {/* Creatives still as a fixed backdrop, with a translucent dark
-          overlay so the chapter content stays readable but the warm
-          landscape bleeds through. Same image the creatives landing
-          uses, so navigating between /creatives and the pathway pages
-          feels continuous. */}
-      <div className={s.creativesBg} aria-hidden="true">
-        {/* Responsive: ~376KB mobile JPG under 768px, full 4K version
-            on desktop. */}
-        <picture>
-          <source
-            media="(max-width: 768px)"
-            srcSet="/assets/beacon-creative-landing-page-still-mobile.jpg"
-          />
-          <img
-            className={s.creativesBgImg}
-            src="/assets/beacon-creative-landing-page-still.jpg"
-            alt=""
-          />
-        </picture>
-        <div className={s.creativesBgOverlay} />
-      </div>
-
       {/* Cinematic top chrome - matches the destination overlay's
           wordmark-btn pattern from the original /creatives 3D scene.
           Logo doubles as a return-home button; the back-arrow slides in
@@ -680,15 +485,12 @@ export default function JourneyPage({
           </Link>
         </div>
 
-        <p className={s.heroEyebrow}>{heroEyebrow}</p>
+        {heroEyebrow && <p className={s.heroEyebrow}>{heroEyebrow}</p>}
         <h1 className={s.heroTitle}>{heroTitle}</h1>
         <p className={s.heroSub}>{heroSub}</p>
         <div className={s.heroActions}>
           <Link href={primaryCta.href} className={s.cta}>
             {primaryCta.label}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
           </Link>
           {secondaryCta && (
             <a href={secondaryCta.href} className={`${s.cta} ${s.ctaGhost}`}>{secondaryCta.label}</a>
@@ -696,157 +498,109 @@ export default function JourneyPage({
         </div>
       </section>
 
-      {/* Full-bleed chapter journey - each milestone is its own viewport.
-          The image fills the section as a cinematic backdrop; a warm-dark
-          gradient overlays so the centred text overlay stays readable.
-          Scrolling moves between chapters one screen at a time, like a
-          slideshow on rails. */}
+      {/* Simple stacked journey - chapters render one after another in a
+          single column with no decorative spine, traveling orb, or
+          connector lines between them. Each chapter is its own card with
+          number, eyebrow, title, body, features, and (optionally) image. */}
       <section ref={journeyRef} id="journey" className={s.fullJourney}>
-        {/* Meandering connector - a single SVG that spans the entire
-            journey, snaking between alternating-side numbered markers
-            (1 on left, 2 on right, 3 on left, ...). Dim full path is
-            always visible behind the bright progress path that draws
-            itself in as the viewer scrolls. */}
-        <svg
-          ref={spineSvgRef}
-          className={s.fullSpine}
-          viewBox={`0 0 100 ${milestones.length * 100}`}
-          preserveAspectRatio="none"
-          aria-hidden="true"
+        {/* Edge fade overlays - top + bottom gradient masks that appear
+            when the journey section is partially scrolled into view, so
+            content fades into/out of the section boundaries instead of
+            cutting hard. Same idiom as the Scroller component's edge
+            overlays. */}
+        <div className={`${s.journeyFadeTop} ${activeStep > 0 ? s.journeyFadeOn : ''}`} aria-hidden="true" />
+        <div className={`${s.journeyFadeBottom} ${activeStep < milestones.length - 1 ? s.journeyFadeOn : ''}`} aria-hidden="true" />
+        {/* Floating prev / next buttons - pinned to the right edge of
+            the viewport while the user is reading the journey. Tapping
+            either smooth-scrolls the previous/next chapter to centre,
+            matching the Scroller's button-driven nav idiom. */}
+        <div
+          className={`${s.journeyNav} ${isInJourney ? s.journeyNavVisible : ''}`}
+          aria-hidden={!isInJourney}
         >
-          <defs>
-            <linearGradient id="fullSpineGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255, 240, 200, 0.95)" />
-              <stop offset="50%" stopColor="rgba(255, 220, 150, 1)" />
-              <stop offset="100%" stopColor="rgba(201, 138, 58, 0.9)" />
-            </linearGradient>
-          </defs>
-          {/* Only the dotted full-path guide and the periodic sparkle
-              streak remain visible on the spine itself. Sparkle is now
-              three stacked paths (head + 2 lagging trail segments) that
-              together draw a tapered comet. */}
-          <path ref={dimRef} className={s.fullSpinePathDim} d={buildFullSpinePath(milestones.length)} />
-          {[0, 1, 2].map((i) => (
-            <path
-              key={`sparkle-${i}`}
-              ref={(el) => { sparkleRefs.current[i] = el; }}
-              className={`${s.fullSpineSparkle} ${i === 0 ? s.fullSpineSparkleHead : i === 1 ? s.fullSpineSparkleMid : s.fullSpineSparkleTail}`}
-              d={buildFullSpinePath(milestones.length)}
-            />
-          ))}
-        </svg>
-        {/* Chapter waypoint lights - one ball of light at each milestone
-            point along the path. Hidden until the orb reaches/passes the
-            point. The scroll handler toggles the .Lit class imperatively
-            on knotRefs once the orb's path position crosses each knot's
-            threshold, so the burst keyframe fires as a precise impact
-            moment. */}
-        {milestones.map((_, i) => {
-          const isLeft = i % 2 === 0;
-          const yPct = ((i + 0.5) / milestones.length) * 100;
-          return (
-            <span
-              key={`knot-${i}`}
-              ref={(el) => { knotRefs.current[i] = el; }}
-              className={s.fullSpineKnot}
-              style={{ top: `${yPct}%`, left: isLeft ? '20%' : '80%' }}
-              aria-hidden="true"
-            >
-              {/* Core dot - runs the scale-overshoot burst keyframe.
-                  Separate from the wrapper so the ripple pseudo-elements
-                  on the wrapper aren't dragged along by the dot's scale. */}
-              <span className={s.fullSpineKnotCore} />
-            </span>
-          );
-        })}
-        {/* Traveling orb - rides the meandering path at the leading edge
-            of the bright progress trail. HTML rather than SVG <circle>
-            because the path SVG uses preserveAspectRatio="none" (which
-            would deform a circle into an ellipse). Position is computed
-            in the scroll handler via getPointAtLength → viewBox coords,
-            then mapped to rendered pixels using the SVG's bounding rect.
-            Sits between the SVG (z-index 0) and the content (z-index 2). */}
-        <div ref={orbRef} className={s.fullSpineOrb} aria-hidden="true" />
+          <button
+            type="button"
+            className={s.journeyNavBtn}
+            onClick={() => scrollToChapter(activeStep - 1)}
+            disabled={activeStep <= 0}
+            aria-label="Previous chapter"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 10l5-5 5 5" />
+            </svg>
+          </button>
+          <div className={s.journeyNavDots} aria-hidden="true">
+            {milestones.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`${s.journeyNavDot} ${i === activeStep ? s.journeyNavDotActive : ''}`}
+                onClick={() => scrollToChapter(i)}
+                aria-label={`Jump to chapter ${i + 1}`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            className={s.journeyNavBtn}
+            onClick={() => scrollToChapter(activeStep + 1)}
+            disabled={activeStep >= milestones.length - 1}
+            aria-label="Next chapter"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 6l5 5 5-5" />
+            </svg>
+          </button>
+        </div>
         <div className={`${s.container} ${s.flowJourneyInner}`}>
           {milestones.map((m, i) => {
-            // The path peaks at xLeft (30%) for even-i chapters and xRight
-            // (70%) for odd-i. The text+image group sits on the INSIDE of
-            // the curve (the concave side), so the curve reads as
-            // wrapping around the content. Group always goes opposite the
-            // peak: peak-left chapters → group on the right; peak-right
-            // chapters → group on the left.
-            const isLeft = i % 2 === 0;
+            // Alternating image side on desktop - even chapters have the
+            // image on the right (default), odd chapters on the left.
+            // Adds rhythm to the column without bringing back the spine.
+            const isReverse = i % 2 === 1;
             return (
-              <React.Fragment key={i}>
-              <article
-                ref={(el) => { milestoneRefs.current[i] = el; }}
-                className={`${s.flowChapter} ${isLeft ? s.flowLeft : s.flowRight} ${i === activeStep ? s.flowChapterActive : ''}`}
-                data-step={i}
-              >
-              {/* Group wrapper - image + content sit together on the inside
-                  of the curve. Image at top of the group, content below.
-                  CSS places the whole group in the column opposite the
-                  curve peak (.flowLeft → col 2, .flowRight → col 1). */}
-              <div className={s.flowChapterGroup}>
-                <div className={s.flowChapterContent}>
-                  <span className={s.flowChapterNum} aria-hidden="true">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <p className={s.flowChapterEyebrow}>{m.eyebrow}</p>
-                  <h2 className={s.flowChapterTitle}>{m.title}</h2>
-                  <p className={s.flowChapterBody}>{m.body}</p>
-                  {m.features && m.features.length > 0 && (
-                    <ul className={s.flowChapterFeatures}>
-                      {m.features.map((f, fi) => <li key={fi}>{f}</li>)}
-                    </ul>
-                  )}
-                </div>
-                {m.image && (
-                  <figure className={s.flowChapterImage}>
-                    <div className={s.flowChapterImageFrame}>
-                      <img
-                        ref={(el) => { imageRefs.current[i] = el; }}
-                        src={m.image.src}
-                        alt={m.image.alt}
-                        loading={i < 2 ? undefined : 'lazy'}
-                      />
+              <div key={i} className={s.flowChapterWrap}>
+                <article
+                  ref={(el) => { milestoneRefs.current[i] = el; }}
+                  className={`${s.flowChapter} ${isReverse ? s.flowChapterReverse : ''} ${i === activeStep ? s.flowChapterActive : ''}`}
+                  data-step={i}
+                >
+                  <div className={s.flowChapterGroup}>
+                    <div className={s.flowChapterContent}>
+                      <span className={s.flowChapterNum} aria-hidden="true">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <p className={s.flowChapterEyebrow}>{m.eyebrow}</p>
+                      <h2 className={s.flowChapterTitle}>{m.title}</h2>
+                      <p className={s.flowChapterBody}>{m.body}</p>
+                      {m.features && m.features.length > 0 && (
+                        <ul className={s.flowChapterFeatures}>
+                          {m.features.map((f, fi) => <li key={fi}>{f}</li>)}
+                        </ul>
+                      )}
                     </div>
-                  </figure>
+                    {m.image && (
+                      <figure className={s.flowChapterImage}>
+                        <div className={s.flowChapterImageFrame}>
+                          <img
+                            src={m.image.src}
+                            alt={m.image.alt}
+                            loading={i < 2 ? undefined : 'lazy'}
+                          />
+                        </div>
+                      </figure>
+                    )}
+                  </div>
+                </article>
+                {/* Hairline divider with a centred gold dot - sits between
+                    consecutive chapters as a quiet "next" beat. Hidden
+                    after the final chapter. */}
+                {i < milestones.length - 1 && (
+                  <div className={s.flowChapterDivider} aria-hidden="true">
+                    <span className={s.flowChapterDividerDot} />
+                  </div>
                 )}
               </div>
-              </article>
-              {i < milestones.length - 1 && (
-                <div
-                  ref={(el) => { connectorWrapRefs.current[i] = el; }}
-                  className={s.flowConnector}
-                  aria-hidden="true"
-                >
-                  {/* S-curve with two pronounced bends: from top-centre,
-                      swings well left (peak ~5.4px from edge), back to
-                      centre at midpoint, swings well right, lands at
-                      bottom-centre. preserveAspectRatio:none stretches
-                      the path to the SVG's pixel dimensions. */}
-                  <svg
-                    ref={(el) => { connectorSvgRefs.current[i] = el; }}
-                    className={s.flowConnectorSvg}
-                    viewBox="0 0 40 200"
-                    preserveAspectRatio="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      ref={(el) => { connectorPathRefs.current[i] = el; }}
-                      className={s.flowConnectorPath}
-                      d="M 20 0 C 3 28, 3 72, 20 100 C 37 128, 37 172, 20 200"
-                    />
-                  </svg>
-                  <span
-                    ref={(el) => { connectorBallRefs.current[i] = el; }}
-                    className={s.flowConnectorBall}
-                    aria-hidden="true"
-                  />
-                </div>
-              )}
-              </React.Fragment>
             );
           })}
         </div>
@@ -879,38 +633,45 @@ export default function JourneyPage({
           PATHWAY_COMPARISON; only the highlighted column changes between
           pages, driven by the `pathway` prop. */}
       <section className={`${s.container} ${s.extraSection}`}>
-        <p className={s.extraSectionLabel}>The two pathways</p>
-        <h2 className={s.extraSectionHeading}>Which one <em>fits you</em>?</h2>
+        <p className={`${s.extraSectionLabel} ${s.reveal}`}>The two pathways</p>
+        <h2 className={`${s.extraSectionHeading} ${s.reveal}`}>
+          <em>Embedded</em> vs <em>Project-based</em> — which one fits you?
+        </h2>
         <div className={s.compareTable} role="table">
+          {/* Column header row - empty corner cell on the left, then the
+              two pathway titles. Without this strip the reader can't tell
+              which column maps to which pathway until they read the cells. */}
           <div className={s.compareHead} role="row">
-            <div className={s.compareCorner} role="columnheader" />
+            <div className={s.compareCorner} role="columnheader" aria-hidden="true" />
             <div
               className={`${s.compareColHead} ${pathway === 'embedded' ? s.compareColActive : ''}`}
               role="columnheader"
             >
-              <span className={s.compareColLabel}>Pathway 01</span>
+              <span className={s.compareColLabel}>Pathway A</span>
               <span className={s.compareColName}>Embedded</span>
             </div>
             <div
               className={`${s.compareColHead} ${pathway === 'projects' ? s.compareColActive : ''}`}
               role="columnheader"
             >
-              <span className={s.compareColLabel}>Pathway 02</span>
+              <span className={s.compareColLabel}>Pathway B</span>
               <span className={s.compareColName}>Project-based</span>
             </div>
           </div>
           {PATHWAY_COMPARISON.map((row, i) => (
-            <div key={i} className={s.compareRow} role="row">
+            <div key={i} className={`${s.compareRow} ${s.reveal}`} role="row" style={{ transitionDelay: `${i * 60}ms` }}>
               <div className={s.compareRowLabel} role="rowheader">{row.label}</div>
               <div
                 className={`${s.compareCell} ${pathway === 'embedded' ? s.compareCellActive : ''}`}
                 role="cell"
+                data-pathway="Embedded"
               >
                 {row.embedded}
               </div>
               <div
                 className={`${s.compareCell} ${pathway === 'projects' ? s.compareCellActive : ''}`}
                 role="cell"
+                data-pathway="Project-based"
               >
                 {row.projects}
               </div>
@@ -939,11 +700,7 @@ export default function JourneyPage({
           {stats.heading && <h2 className={s.extraSectionHeading}>{stats.heading}</h2>}
           <div className={s.statsBand}>
             {stats.items.map((stat, i) => (
-              <div key={i} className={s.statTile}>
-                <div className={s.statValue}>{stat.value}</div>
-                <div className={s.statLabel}>{stat.label}</div>
-                {stat.caption && <div className={s.statCaption}>{stat.caption}</div>}
-              </div>
+              <StatTile key={i} stat={stat} index={i} />
             ))}
           </div>
         </section>
@@ -957,7 +714,7 @@ export default function JourneyPage({
           <p className={s.extraSectionLabel}>{fit.sectionLabel}</p>
           <h2 className={s.extraSectionHeading}>{fit.heading}</h2>
           <div className={s.fitGrid}>
-            <div className={`${s.fitCol} ${s.fitColFor}`}>
+            <div className={`${s.fitCol} ${s.fitColFor} ${s.reveal}`}>
               <div className={s.fitColHead}>
                 <span className={s.fitMark} aria-hidden="true">✓</span>
                 <span className={s.fitColTitle}>Built for</span>
@@ -966,7 +723,7 @@ export default function JourneyPage({
                 {fit.forItems.map((item, i) => <li key={i}>{item}</li>)}
               </ul>
             </div>
-            <div className={`${s.fitCol} ${s.fitColNot}`}>
+            <div className={`${s.fitCol} ${s.fitColNot} ${s.reveal}`} style={{ transitionDelay: '120ms' }}>
               <div className={s.fitColHead}>
                 <span className={s.fitMark} aria-hidden="true">-</span>
                 <span className={s.fitColTitle}>Not built for</span>
@@ -999,8 +756,8 @@ export default function JourneyPage({
           <p className={s.extraSectionLabel}>{sectors.sectionLabel}</p>
           <h2 className={s.extraSectionHeading}>{sectors.heading}</h2>
           <ul className={s.sectorList}>
-            {sectors.items.map((sec) => (
-              <li key={sec} className={s.sectorTag}>{sec}</li>
+            {sectors.items.map((sec, i) => (
+              <li key={sec} className={`${s.sectorTag} ${s.reveal}`} style={{ transitionDelay: `${i * 40}ms` }}>{sec}</li>
             ))}
           </ul>
         </section>
@@ -1037,7 +794,7 @@ export default function JourneyPage({
               // plus a free open/closed state that CSS can target via
               // [open]. Shared `name` makes the group behave like an
               // exclusive accordion - opening one auto-closes the others.
-              <details key={i} className={s.faqRow} name={`faq-${pathway}`}>
+              <details key={i} className={`${s.faqRow} ${s.reveal}`} style={{ transitionDelay: `${i * 60}ms` }} name={`faq-${pathway}`}>
                 <summary className={s.faqQ}>
                   <span className={s.faqQText}>{f.q}</span>
                   <span className={s.faqChevron} aria-hidden="true">
@@ -1205,128 +962,21 @@ export default function JourneyPage({
   );
 }
 
-/**
- * Build the SVG path that snakes between milestones. Each milestone is
- * ~400 viewbox units tall; the path alternates direction with smooth
- * S-curves so the centre column reads as a meandering thread rather
- * than a ruler-straight pipe.
- */
-function buildPath(count: number): string {
-  const w = 140;          // viewBox width
-  const stepY = 400;      // height per milestone
-  const midX = w / 2;
-  // Smaller swing → gentler S-curves that stay closer to the marker axis.
-  // The path still reads as a meander but markers don't drift far off the
-  // line at any given milestone's vertical centre.
-  const swing = 18;       // horizontal amplitude of the snake
-  let d = `M ${midX} 0`;
-  for (let i = 0; i < count; i++) {
-    const yStart = i * stepY;
-    const yEnd = (i + 1) * stepY;
-    const dir = i % 2 === 0 ? 1 : -1;
-    const c1y = yStart + stepY * 0.35;
-    const c2y = yStart + stepY * 0.65;
-    const peakX = midX + swing * dir;
-    d += ` C ${peakX} ${c1y}, ${peakX} ${c2y}, ${midX} ${yEnd}`;
-  }
-  return d;
+/* Stat tile with count-up - parses leading integer from the value
+   string (e.g. "50+" → 50) and animates 0 → 50 when the tile enters
+   the viewport. Non-numeric values ("SG / SEA") render unchanged. */
+function StatTile({ stat, index }: { stat: Stat; index: number }) {
+  const { ref, text } = useCountUp(stat.value);
+  return (
+    <div
+      ref={ref}
+      className={`${s.statTile} ${s.reveal}`}
+      style={{ transitionDelay: `${index * 100}ms` }}
+    >
+      <div className={s.statValue}>{text}</div>
+      <div className={s.statLabel}>{stat.label}</div>
+      {stat.caption && <div className={s.statCaption}>{stat.caption}</div>}
+    </div>
+  );
 }
 
-/**
- * Build the spine path used by the sticky-image journey. Unlike buildPath
- * (which keeps milestones near a centre axis), this path treats each
- * milestone as a DESTINATION: the curve travels from the previous
- * milestone's peak, bends through the centre, and arrives at the next
- * milestone's peak on the opposite side. That gives the line the
- * "winding route on a map" feel from flyward.com - milestone 1 on the
- * right, 2 on the left, 3 on the right again, with the path snaking
- * between them rather than returning to centre every step.
- *
- * viewBox is 80 wide × (count * 100) tall. peakX is midX ± 28 (= 12 / 68),
- * which matches the marker positions at 15% / 85% of container width.
- */
-/**
- * Build a meandering path that spans the FULL journey section, snaking
- * across alternating-side numbered markers. viewBox is 100 × (count * 100)
- * so progress reveals scale cleanly with section height. Marker positions:
- *   even i → (10, i*100 + 50) - left side
- *   odd  i → (90, i*100 + 50) - right side
- * The path enters from the top centre, curves to the first marker, then
- * cubic-Bezier between each adjacent marker, exiting back to centre.
- */
-function buildFullSpinePath(count: number): string {
-  const stepY = 100;
-  // Wider swing - peaks at 20/80 so the curve bows further out from the
-  // centre line, leaving more clear space INSIDE the bow for the
-  // chapter group (image + content) to live without crowding the path.
-  // Previously 30/70 was tight enough that the content group was kissing
-  // the line; pushing peaks 10 viewBox units further out opens up a
-  // noticeable breathing gap.
-  const xLeft = 20;
-  const xRight = 80;
-  const peakX = (i: number) => (i % 2 === 0 ? xLeft : xRight);
-  const peakY = (i: number) => i * stepY + stepY / 2;
-
-  // Enter from top centre, curve down to marker 0.
-  let d = `M 50 0 C 50 ${stepY * 0.25}, ${peakX(0)} ${peakY(0) - stepY * 0.3}, ${peakX(0)} ${peakY(0)}`;
-
-  // Cubic curve between each pair of adjacent markers. Control points are
-  // anchored to each marker's peakX at the midpoint Y, producing an S-curve
-  // that sweeps across the centre between them.
-  for (let i = 1; i < count; i++) {
-    const x0 = peakX(i - 1);
-    const y0 = peakY(i - 1);
-    const x1 = peakX(i);
-    const y1 = peakY(i);
-    const cy = y0 + (y1 - y0) * 0.5;
-    d += ` C ${x0} ${cy}, ${x1} ${cy}, ${x1} ${y1}`;
-  }
-
-  // Exit tail - curve from the final marker back toward centre at the
-  // bottom edge so the path doesn't end mid-swing.
-  const lastX = peakX(count - 1);
-  const lastY = peakY(count - 1);
-  d += ` C ${lastX} ${lastY + stepY * 0.3}, 50 ${lastY + stepY * 0.6}, 50 ${count * stepY}`;
-  return d;
-}
-
-function buildSpinePath(count: number): string {
-  const w = 80;
-  const stepY = 100;
-  const midX = w / 2;
-  // Reduced from 28 → 22 so the curve swings less aggressively. Combined
-  // with the narrower spine container (96px) this keeps the wandering
-  // line entirely within the column-gap. Markers anchored at the peak
-  // points are at viewBox x = 18 / 62 → 22% / 78% of the spine width,
-  // which the JSX mirrors as left: 22% / 78%.
-  const swing = 22;
-  const peakX = (i: number) => midX + (i % 2 === 0 ? 1 : -1) * swing;
-  const peakY = (i: number) => (i + 0.5) * stepY;
-
-  // Start at top centre and curve into the first marker's peak.
-  let d = `M ${midX} 0 C ${midX} ${stepY * 0.3}, ${peakX(0)} ${peakY(0) - stepY * 0.3}, ${peakX(0)} ${peakY(0)}`;
-
-  // For each subsequent marker, draw a cubic curve from the current
-  // peak to the next peak. Control points pull horizontally toward the
-  // incoming/outgoing peaks so the curve bends smoothly across the
-  // centre between markers.
-  for (let i = 1; i < count; i++) {
-    const x0 = peakX(i - 1);
-    const y0 = peakY(i - 1);
-    const x1 = peakX(i);
-    const y1 = peakY(i);
-    // Control points sit halfway down the gap, each anchored to its
-    // segment's own peakX - produces a clean S-curve between markers.
-    const cy = y0 + (y1 - y0) * 0.5;
-    d += ` C ${x0} ${cy}, ${x1} ${cy}, ${x1} ${y1}`;
-  }
-
-  // Tail: curve from the last marker's peak back to centre at the
-  // bottom edge so the path exits cleanly.
-  const lastX = peakX(count - 1);
-  const lastY = peakY(count - 1);
-  const endY = count * stepY;
-  d += ` C ${lastX} ${lastY + stepY * 0.3}, ${midX} ${endY - stepY * 0.3}, ${midX} ${endY}`;
-
-  return d;
-}

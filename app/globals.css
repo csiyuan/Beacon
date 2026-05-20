@@ -20,9 +20,12 @@
      defined by .flowChapter's scroll-snap-align: start. Applied at html
      so it affects the document-level scroll on the creatives pathway
      pages without disrupting other routes. */
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; scroll-padding-top: 96px; }
   body { overflow-x: hidden; scrollbar-width: none; }
   body.route-creatives { min-height: 220vh; }
+  /* Journey-page scroll-snap-type is set imperatively on <html> by
+     JourneyPage's mount effect - keeps the rule in JS where the route
+     is known, avoids :has() compat differences across browsers. */
   body::-webkit-scrollbar { display: none; width: 0; height: 0; }
   body.locked { overflow: hidden; height: 100vh; min-height: 0; }
   /* During flight, isolate the foreground chrome (vignette, grain, nav, hero
@@ -1658,24 +1661,68 @@
      one at narrow widths. Border-left rules give it editorial weight
      without competing with the pillar cards above. */
   .dest .brand-stats {
-    display: grid; gap: 28px 40px; padding: 4vh 0 8vh;
+    display: grid;
+    /* Three stats, three columns - keeps the row balanced at every
+       size that has room. Below 640px we collapse to a single column
+       (stacked vertically) so phones get clean, centered tiles
+       instead of squeezed text. The old 1→2→4 breakpoints left an
+       orphan tile alone on the second row at tablet widths. */
     grid-template-columns: 1fr;
+    gap: 36px 40px;
+    padding: 4vh 0 8vh;
+    justify-items: center;
+    text-align: center;
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
   }
-  @media (min-width: 760px)  { .dest .brand-stats { grid-template-columns: repeat(2, 1fr); } }
-  @media (min-width: 1100px) { .dest .brand-stats { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 640px) {
+    .dest .brand-stats { grid-template-columns: repeat(3, 1fr); gap: 28px 32px; }
+  }
   .dest .brand-stat {
-    display: flex; flex-direction: column; gap: 8px;
-    padding-left: 18px;
-    border-left: 1px solid rgba(240,198,115,0.45);
+    display: flex; flex-direction: column; gap: 10px;
+    align-items: center;
+    padding: 0;
+    border-left: 0;
+    /* Faint top border + breathing room on mobile so stacked tiles
+       feel deliberate (not just text running together). Hidden above
+       640px where the 3-col layout provides its own separation. */
+    width: 100%;
+    max-width: 320px;
   }
   .dest .brand-stat-num {
     font-family: var(--serif); font-style: italic; font-weight: 400;
     font-size: clamp(40px, 5.4vw, 64px); line-height: 1;
     color: #ffe2a0;
+    text-align: center;
   }
   .dest .brand-stat-label {
     font-family: var(--sans); font-size: 10.5px; letter-spacing: 0.32em;
     text-transform: uppercase; color: rgba(243,231,200,0.62);
+    text-align: center;
+  }
+  /* Mobile overrides must come AFTER the base rules above so they win
+     on the cascade (CSS specificity is equal, source order decides).
+     Below 640px: single column, much bigger numerals so each stat
+     fills the viewport width. */
+  @media (max-width: 639px) {
+    .dest .brand-stats { grid-template-columns: 1fr !important; gap: 36px !important; }
+    .dest .brand-stat {
+      max-width: none;
+      gap: 14px;
+    }
+    .dest .brand-stat + .dest .brand-stat {
+      padding-top: 32px;
+      border-top: 1px solid rgba(240, 198, 115, 0.22);
+    }
+    .dest .brand-stat-num {
+      font-size: clamp(56px, 16vw, 96px);
+      line-height: 1;
+    }
+    .dest .brand-stat-label {
+      font-size: 13px;
+      letter-spacing: 0.36em;
+    }
   }
   .dest .pillar-n {
     font-family: var(--serif); font-style: italic; font-weight: 400;
@@ -1996,6 +2043,24 @@
   .cta:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(255,230,180,0.65) inset, 0 22px 60px -16px rgba(255,180,70,0.75); }
   .cta.ghost { background: transparent; color: #fff3d6; box-shadow: 0 0 0 1px rgba(240,198,115,0.45) inset; }
   .cta.ghost:hover { box-shadow: 0 0 0 1px rgba(240,198,115,0.85) inset; }
+
+  /* Hero CTAs (brand hero - Lets talk / How we work) - equal width and
+     same pill height as the creatives journey CTAs. Padding/font-size
+     match journey.module.css .cta (16px 28px / 13px). Box-sizing and
+     line-height are pinned explicitly because the primary is a button
+     element while the ghost is an anchor, and browsers apply slightly
+     different user-agent defaults to the two - without these the
+     pills can come out 2-4px different in height even when the CSS
+     padding/font appear identical. */
+  .hero-section .actions .cta {
+    min-width: 200px;
+    padding: 16px 28px;
+    font-size: 13px;
+    line-height: 1.2;
+    letter-spacing: 0.22em;
+    box-sizing: border-box;
+    justify-content: center;
+  }
 
   /* Section dividers */
   .rule { height: 1px; background: linear-gradient(90deg, transparent, rgba(240,198,115,0.35), transparent); margin: 4px 0 36px; }

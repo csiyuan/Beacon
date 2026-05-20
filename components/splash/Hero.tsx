@@ -1,27 +1,18 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import TransitionOverlay, { type TransitionPath } from '@/components/transitions/TransitionOverlay';
 import ArrivalWash from '@/components/transitions/ArrivalWash';
 import { useNavWash } from '@/components/transitions/NavWash';
+import { useCountUp } from '@/lib/useCountUp';
 import s from '@/app/splash.module.css';
 
 export default function Hero() {
   const router = useRouter();
-  const [hover, setHover] = useState<TransitionPath | null>(null);
-  const [leaving, setLeaving] = useState<TransitionPath | null>(null);
-  // Cream-flash transition for non-path links (About / Contact).
+  // Cream-flash transition for all in-site navigation.
   const { trigger: navWash, overlay: navWashOverlay } = useNavWash();
-  // Enable the ambient mist loop only on desktop with motion allowed.
-  // Mobile keeps the PNG (battery/bandwidth); reduced-motion users see the
-  // PNG too. Decided after mount so SSR is consistent.
-  const [enableLoop, setEnableLoop] = useState(false);
-  // Mobile hamburger menu - the four nav links wrap awkwardly at iPhone-SE
-  // width. Below 760px we hide the inline nav and reveal a right-side
-  // slide-in sheet, same pattern as the brands page.
+  // Hamburger menu state - inline nav collapses below 760px.
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     if (menuOpen) document.body.style.overflow = 'hidden';
@@ -35,126 +26,85 @@ export default function Hero() {
     return () => window.removeEventListener('keydown', onKey);
   }, [menuOpen]);
 
-  // Prefetch both destination routes so the post-transition navigation isn't
-  // gated on a cold bundle.
+  // Warm both destination route bundles so navWash hands off instantly.
   useEffect(() => {
     router.prefetch('/brands?from=splash');
-    router.prefetch('/creatives?from=beam');
+    router.prefetch('/creatives/embedded');
   }, [router]);
 
-  useEffect(() => {
-    const ok =
-      window.matchMedia('(min-width: 768px)').matches &&
-      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setEnableLoop(ok);
-  }, []);
-
-  const onPathClick = (path: TransitionPath) => (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Modifier-clicks open in a new tab - leave default behaviour intact.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    e.preventDefault();
-    if (leaving) return;
-    // Clear the creatives intro's "seen this session" flag whenever the
-    // user re-enters via the cinematic transition. Without this, a
-    // splash → creatives → splash → creatives cycle in the same tab
-    // would skip the intro on the second arrival even though the user
-    // just sat through the 3.2s transition expecting it. IntroOverlay
-    // re-writes the flag the moment it starts, so React strict-mode's
-    // double-mount protection still works.
-    if (path === 'creative') {
-      try { sessionStorage.removeItem('beacon.creatives.introSession.v1'); } catch {}
-    }
-    setLeaving(path);
-  };
-
   return (
-    <section className={s.hero} data-hover={hover ?? 'none'}>
+    <>
+    <section className={s.hero}>
       <ArrivalWash />
       {navWashOverlay}
-      {/* Preload the transition videos as soon as the splash mounts so they
-          play instantly when a path is clicked. Browser caches both MP4s
-          opportunistically alongside the hero image. Also warm the cache
-          for the creatives-page intro so the user lands into a fully
-          loaded cinematic on the destination, not a buffering one. */}
-      {/* Preload the version the visitor will actually play. Mobile gets
-          the ~150-260KB variants; desktop gets the 1080p originals. Media
-          queries on <link rel=preload> are honoured by all evergreen
-          browsers, so the wrong variant is never fetched. */}
-      <link rel="preload" as="video" href="/assets/beacon-creative-transition-mobile.mp4" media="(max-width: 768px)" />
-      <link rel="preload" as="video" href="/assets/beacon-brand-transition-mobile.mp4" media="(max-width: 768px)" />
-      <link rel="preload" as="video" href="/assets/beacon-creative-landing-page-entry-mobile.mp4" media="(max-width: 768px)" />
-      <link rel="preload" as="video" href="/assets/beacon-creative-transition.mp4" media="(min-width: 769px)" />
-      <link rel="preload" as="video" href="/assets/beacon-brand-transition.mp4" media="(min-width: 769px)" />
-      <link rel="preload" as="video" href="/assets/beacon-creative-landing-page-entry.mp4" media="(min-width: 769px)" />
 
-      {/* Hero image - served via next/image for auto-WebP/AVIF and responsive
-          sizing. priority puts it in the LCP critical path. Acts as the
-          poster while the video loop loads, and as the persistent canvas on
-          mobile / reduced-motion. */}
-      <div className={s.heroImageWrap}>
-        <Image
-          src="/assets/beacon-landing-page.jpg"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className={s.heroImage}
-        />
-        {/* Ambient mist loop - palindromic, plays forever without a snap.
-            Mounts only on desktop with motion allowed. Crossfades in once
-            it has data so the swap from PNG to video is invisible. */}
-        {enableLoop && (
-          <video
-            className={s.heroLoop}
-            src="/assets/beacon-landing-loop.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-hidden="true"
-          />
-        )}
-        <div className={s.heroGradient} aria-hidden="true" />
-        {/* Soft warm-dark vignette that covers the AI-tool watermark burned
-            into the source PNG's bottom-right corner. */}
-        <div className={s.heroWatermarkCover} aria-hidden="true" />
+      {/* Planet horizon - large translucent circle with a thin glowing
+          rim creating the arc at the top of the hero. */}
+      <div className={s.heroHalo} aria-hidden="true" />
+      {/* Atmospheric haze layered above the horizon - softens the
+          transition from the bright rim into the dark space above. */}
+      <div className={s.heroHaloHaze} aria-hidden="true" />
+
+      {/* Star field - small particles drifting down from above. Each
+          span gets a deterministic position + delay so the layout is
+          identical on every render (no SSR hydration mismatch). */}
+      <div className={s.heroStars} aria-hidden="true">
+        {Array.from({ length: 70 }).map((_, i) => {
+          const left = (i * 7.31) % 100;
+          /* Stagger initial vertical positions so particles cluster
+             toward the bottom of the hero (the dome glow source) and
+             thin out toward the top. Pseudo-random distribution
+             weighted to 60-100% of hero height. */
+          const top = 60 + ((i * 3.7) % 40);
+          const delay = (i * 0.71) % 18;
+          const duration = 18 + ((i * 0.93) % 14);
+          return (
+            <span
+              key={i}
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                animationDelay: `${-delay}s`,
+                animationDuration: `${duration}s`,
+              }}
+            />
+          );
+        })}
       </div>
 
       <div className={s.overlay}>
         {/* ─── Top bar ──────────────────────────────────────────────────── */}
         <nav className={s.heroNav}>
-          {/* Logo doubles as a hard-refresh button. We're already on "/", so
-              a normal Link does nothing on click. window.location.reload()
-              gives the user the "reset the experience" affordance - page
-              re-fades-in, cards re-stagger, etc. The arrow + warm glow on
-              hover mirrors the creatives page wordmark so the affordance
-              reads consistently across the site. */}
+          {/* Logo on the splash doubles as a hard-refresh - resets the page
+              animation timeline since a normal Link to "/" is a no-op here. */}
           <button
             type="button"
             className={s.heroLogo}
             onClick={() => window.location.reload()}
             aria-label="Refresh home"
           >
-            {/* Arrow chevron removed - it was a "back" affordance that
-                made no sense on the home page itself. Matches the
-                /creatives mobile wordmark which also reads as just the
-                logo image (its arrow is hover-only and never shown on
-                touch devices). */}
             <img src="/assets/beacon-logo.png" alt="Beacon Media Solutions" />
           </button>
           <div className={`${s.heroNavLinks} ${s.heroNavLinksDesktop}`}>
             <Link
               href="/brands?from=splash"
               className={s.heroNavLink}
-              onClick={onPathClick('brand')}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                navWash('/brands?from=splash');
+              }}
             >
               For Brands
             </Link>
             <Link
-              href="/creatives?from=beam"
+              href="/creatives/embedded"
               className={s.heroNavLink}
-              onClick={onPathClick('creative')}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                navWash('/creatives/embedded');
+              }}
             >
               For Creatives
             </Link>
@@ -221,19 +171,18 @@ export default function Hero() {
                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                 e.preventDefault();
                 setMenuOpen(false);
-                if (!leaving) setLeaving('brand');
+                navWash('/brands?from=splash');
               }}
             >
               For Brands
             </Link>
             <Link
-              href="/creatives?from=beam"
+              href="/creatives/embedded"
               onClick={(e) => {
                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                 e.preventDefault();
                 setMenuOpen(false);
-                try { sessionStorage.removeItem('beacon.creatives.introSession.v1'); } catch {}
-                if (!leaving) setLeaving('creative');
+                navWash('/creatives/embedded');
               }}
             >
               For Creatives
@@ -267,70 +216,323 @@ export default function Hero() {
           </div>
         </aside>
 
-        {/* ─── Wordmark + tagline ───────────────────────────────────────── */}
-        <div className={s.heroWordmark}>
-          <h1 className={s.heroTitle}>BEACON</h1>
-          <p className={s.heroTagline}>Empowering creatives. Elevating brands.</p>
+        {/* ─── Hero content ─────────────────────────────────────────────
+            Centered, single-message position. Status pill → big serif
+            headline → sans subhead → primary + ghost CTAs. The two
+            audience-specific paths live in the section directly below
+            this hero, not in the hero itself - forcing the choice
+            upfront made the front door feel like a fork in the road
+            instead of a brand statement. */}
+        <div className={s.heroContent}>
+          <span className={s.heroBadge}>
+            <span className={s.heroBadgeDot} aria-hidden="true" />
+            Singapore &middot; Southeast Asia
+          </span>
+          <h1 className={s.heroHeading}>
+            The right creatives.<br /><em>Paired with the right brands</em>.
+          </h1>
+          <p className={s.heroSub}>
+            Beacon connects creative talent with brands that take craft seriously. Full-time embeds or per-project briefs, fully managed.
+          </p>
+          <div className={s.heroActions}>
+            <a
+              href="#contact"
+              className={s.cta}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              Let&rsquo;s talk
+            </a>
+            {/* Ghost pill - same outlined pill shape as the primary so the
+                two CTAs read as a paired set, but without the filled gold
+                highlight so "Let's talk" stays unambiguously primary. */}
+            <a
+              href="#paths"
+              className={`${s.cta} ${s.ctaGhost}`}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                document.getElementById('paths')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              How it works
+            </a>
+          </div>
         </div>
-
-        {/* ─── Two path cards ───────────────────────────────────────────── */}
-        <div className={s.paths}>
-          <Link
-            href="/brands?from=splash"
-            className={s.pathMarker}
-            onMouseEnter={() => setHover('brand')}
-            onMouseLeave={() => setHover(null)}
-            onFocus={() => setHover('brand')}
-            onBlur={() => setHover(null)}
-            onClick={onPathClick('brand')}
-            aria-describedby="brand-sub"
-          >
-            <span className={s.pathLabel}>I&rsquo;m a Brand</span>
-            <span className={s.pathSub} id="brand-sub">
-              Find creative talent or production services for your team
-            </span>
-            <span className={s.pathArrow}>
-              Enter <span aria-hidden="true">→</span>
-            </span>
-          </Link>
-
-          <Link
-            href="/creatives?from=beam"
-            className={s.pathMarker}
-            onMouseEnter={() => setHover('creative')}
-            onMouseLeave={() => setHover(null)}
-            onFocus={() => setHover('creative')}
-            onBlur={() => setHover(null)}
-            onClick={onPathClick('creative')}
-            aria-describedby="creative-sub"
-          >
-            <span className={s.pathLabel}>I&rsquo;m a Creative</span>
-            <span className={s.pathSub} id="creative-sub">
-              Get connected with vetted clients and ongoing work
-            </span>
-            <span className={s.pathArrow}>
-              Enter <span aria-hidden="true">→</span>
-            </span>
-          </Link>
-        </div>
-
-        {/* ─── Copyright ──────────────────────────────────────────────────
-            Quiet corner mark - signals "real business" without competing
-            with the centred tagline or the two path cards. Designer
-            credit sits on the same line so the footer stays one piece
-            of chrome, not two stacked items. */}
-        <p className={s.copyright}>
-          © {new Date().getFullYear()} Beacon Media Solutions. All rights reserved.
-          <span className={s.copyrightSep} aria-hidden="true"> · </span>
-          Designed by Kairos Cheng
-        </p>
       </div>
 
-      {/* Cinematic transition - mounts only after a path is clicked. Plays
-          the path-specific MP4, fades a color wash to full opacity at the
-          right beat, then pushes the route. Mobile + reduced-motion skip
-          the video and fall back to a 600ms color fade. */}
-      {leaving && <TransitionOverlay path={leaving} />}
     </section>
+
+    {/* ─── Section: Proof numbers strip ──────────────────────────────
+        Concrete credibility right after the hero positioning. Same
+        numbers carried by the /about and /creatives/embedded pages,
+        surfaced on the home so visitors have something to verify
+        the brand promise against before being asked to pick a path. */}
+    <section className={s.proofStrip}>
+      <div className={s.container}>
+        <ul className={s.proofList}>
+          <ProofStat value="50+" label="Creatives placed" />
+          <ProofStat value="6+" label="Brand partners" />
+          <ProofStat value="SG · SEA" label="Singapore + Southeast Asia" />
+        </ul>
+      </div>
+    </section>
+
+    {/* ─── Section: For Brands / For Creatives split ──────────────────
+        The two audience-specific paths live here, after the unified
+        hero. Visitors who scrolled this far have bought into the brand
+        statement above and are now ready to pick a door. */}
+    <section id="paths" className={s.section}>
+      <div className={s.container}>
+        <div className={s.sectionHead}>
+          <p className={s.sectionLabel}>Two ways in</p>
+          <h2 className={s.sectionHeading}>
+            Whichever side of the brief <em>you&rsquo;re on</em>.
+          </h2>
+          <p className={s.sectionLead}>
+            We serve both ends of the creative economy. Pick the door that fits and we&rsquo;ll handle the rest.
+          </p>
+        </div>
+        <div className={s.pathsGrid}>
+          <Link
+            href="/brands?from=splash"
+            className={s.pathCard}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/brands?from=splash');
+            }}
+          >
+            <p className={s.pathCardLabel}>For brands</p>
+            <h3 className={s.pathCardTitle}>
+              Embed a creative or scope a project.
+            </h3>
+            <p className={s.pathCardBody}>
+              Beacon places vetted creatives inside your team or delivers a tightly-scoped media project, end-to-end. Without the agency layer or freelancer churn.
+            </p>
+            <span className={s.pathCardCta}>
+              Explore for brands <span aria-hidden="true">&rarr;</span>
+            </span>
+          </Link>
+          <Link
+            href="/creatives/embedded"
+            className={s.pathCard}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/creatives/embedded');
+            }}
+          >
+            <p className={s.pathCardLabel}>For creatives</p>
+            <h3 className={s.pathCardTitle}>
+              Build a career inside brands that get you.
+            </h3>
+            <p className={s.pathCardBody}>
+              Two pathways - embed full-time inside a brand that takes its craft seriously, or take project briefs as they come. Either way, you get a team that has your back.
+            </p>
+            <span className={s.pathCardCta}>
+              Explore for creatives <span aria-hidden="true">&rarr;</span>
+            </span>
+          </Link>
+        </div>
+      </div>
+    </section>
+
+    {/* ─── Section: Mission ─────────────────────────────────────────
+        Single typographic statement. Sets the philosophy before the
+        process detail below. */}
+    <section className={`${s.section} ${s.missionSection}`}>
+      <div className={s.container}>
+        <p className={s.sectionLabel}>What we believe</p>
+        <p className={s.missionLine}>
+          The best work happens when the right creative lands inside the right brand, and stays long enough to <em>matter</em>.
+        </p>
+      </div>
+    </section>
+
+    {/* ─── Section: How we work (process strip) ─────────────────────
+        Four-step process, sequential numbered. Same idiom as the
+        journey page chapters but compressed into a row. */}
+    <section className={s.section}>
+      <div className={s.container}>
+        <div className={s.sectionHead}>
+          <p className={s.sectionLabel}>How we work</p>
+          <h2 className={s.sectionHeading}>
+            A simple <em>four-step</em> rhythm.
+          </h2>
+        </div>
+        <ol className={s.processSteps}>
+          <li className={s.processStep}>
+            <span className={s.processNum}>01</span>
+            <h4 className={s.processTitle}>Listen</h4>
+            <p className={s.processBody}>
+              A short call to understand the brand, the team, and what success actually looks like. No deck required.
+            </p>
+          </li>
+          <li className={s.processStep}>
+            <span className={s.processNum}>02</span>
+            <h4 className={s.processTitle}>Match</h4>
+            <p className={s.processBody}>
+              We pair you with creatives matched on craft and culture, not just availability. Both sides interview before anyone commits.
+            </p>
+          </li>
+          <li className={s.processStep}>
+            <span className={s.processNum}>03</span>
+            <h4 className={s.processTitle}>Deliver</h4>
+            <p className={s.processBody}>
+              Embedded full-time, or per-project. We handle payroll, contracts, and the admin; the creative ships the work.
+            </p>
+          </li>
+          <li className={s.processStep}>
+            <span className={s.processNum}>04</span>
+            <h4 className={s.processTitle}>Stay</h4>
+            <p className={s.processBody}>
+              Quarterly check-ins for everyone in the network. The relationship doesn&rsquo;t end at delivery. That&rsquo;s where it starts.
+            </p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    {/* ─── Section: Testimonial ─────────────────────────────────────
+        Single quote to anchor the page emotionally before the closing
+        CTA. The full About content lives at /about (standalone page);
+        the home page just teases the brand position above. */}
+    <section className={`${s.section} ${s.testimonialSection}`}>
+      <div className={s.container}>
+        <blockquote className={s.testimonialQuote}>
+          <p>
+            &ldquo;Working with Beacon gave me more than just a job. It gave me space to grow, and I finally feel like the work I make actually belongs somewhere.&rdquo;
+          </p>
+          <cite>A Beacon creative &middot; placed in 2024</cite>
+        </blockquote>
+      </div>
+    </section>
+
+    {/* ─── Section: Closing CTA ───────────────────────────────────
+        Final beat before footer - pushes to /contact instead of an
+        inline form. The full form lives on the standalone /contact
+        page so it can carry the same depth as the other deep dives. */}
+    <section className={`${s.section} ${s.closingSection}`}>
+      <div className={s.container}>
+        <div className={s.sectionHead}>
+          <p className={s.sectionLabel}>Get in touch</p>
+          <h2 className={s.sectionHeading}>
+            Tell us what you&rsquo;re <em>building</em>.
+          </h2>
+          <p className={s.sectionLead}>
+            One short message and we&rsquo;ll take it from there. We read every note personally and reply within two working days.
+          </p>
+        </div>
+        <div className={s.heroActions} style={{ justifyContent: 'center', display: 'flex' }}>
+          <Link
+            href="/contact"
+            className={s.cta}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/contact');
+            }}
+          >
+            Start a conversation
+          </Link>
+        </div>
+      </div>
+    </section>
+
+    {/* ─── Footer ───────────────────────────────────────────────── */}
+    <footer className={s.footer}>
+      <div className={s.container}>
+        <div className={s.footerMark}>BEACON</div>
+        <div className={s.footerTagline}>EMPOWERING CREATIVES. ELEVATING BRANDS.</div>
+        <div className={s.footerDivider} aria-hidden="true">
+          <span className={s.footerRule}></span>
+          <svg className={s.footerSpark} width="14" height="14" viewBox="0 0 14 14">
+            <path d="M7 0 L8.2 5.8 L14 7 L8.2 8.2 L7 14 L5.8 8.2 L0 7 L5.8 5.8 Z" fill="currentColor" />
+          </svg>
+          <span className={s.footerRule}></span>
+        </div>
+        <div className={s.footerCols}>
+          <div className={s.footerCol}>
+            <div className={s.footerColLabel}>Navigate</div>
+            <a href="#paths" onClick={(e) => { e.preventDefault(); document.getElementById('paths')?.scrollIntoView({ behavior: 'smooth' }); }}>Two ways in</a>
+            <Link
+              href="/about"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                navWash('/about');
+              }}
+            >
+              About
+            </Link>
+            <Link
+              href="/contact"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                navWash('/contact');
+              }}
+            >
+              Contact
+            </Link>
+          </div>
+          <div className={s.footerCol}>
+            <div className={s.footerColLabel}>Pathways</div>
+            <Link
+              href="/brands?from=splash"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                navWash('/brands?from=splash');
+              }}
+            >
+              For Brands
+            </Link>
+            <Link
+              href="/creatives/embedded"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                navWash('/creatives/embedded');
+              }}
+            >
+              For Creatives
+            </Link>
+          </div>
+          <div className={s.footerCol}>
+            <div className={s.footerColLabel}>Connect</div>
+            <a className={s.footerEmail} href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+            <div className={s.footerAddress}>
+              141 Cecil Street #08-07<br />
+              Tung Ann Association Building<br />
+              Singapore 069541
+            </div>
+          </div>
+        </div>
+        <div className={s.footerMeta}>
+          <span>&copy; {new Date().getFullYear()} Beacon Media Solutions. All rights reserved.</span>
+          <span aria-hidden="true"> &middot; </span>
+          <span>Designed by Kairos Cheng</span>
+        </div>
+      </div>
+    </footer>
+    </>
+  );
+}
+
+/* Single proof stat - parses leading number from the value string
+   (e.g. "50+" → 50) and animates 0 → 50 when scrolled into view.
+   Non-numeric values like "SG · SEA" render unchanged. */
+function ProofStat({ value, label }: { value: string; label: string }) {
+  const { ref, text } = useCountUp<HTMLLIElement>(value);
+  return (
+    <li ref={ref}>
+      <span className={s.proofNum}>{text}</span>
+      <span className={s.proofLabel}>{label}</span>
+    </li>
   );
 }

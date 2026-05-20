@@ -7,6 +7,8 @@ import BrandsArrivalWash from './BrandsArrivalWash';
 import { FORM_ENDPOINT, submitForm } from '@/lib/forms';
 import ThanksPopup from '@/components/ThanksPopup';
 import { useNavWash } from '@/components/transitions/NavWash';
+import { useLenisScroll } from '@/lib/useLenisScroll';
+import { useCountUp } from '@/lib/useCountUp';
 
 // Option lists for the toggle groups. Tuple is [internal code, human label].
 // The hidden inputs send the LABEL (so the email reads "1-3 months" instead
@@ -25,6 +27,39 @@ const BRAND_TIMELINE = [
 const labelFor = <T extends readonly (readonly [string, string])[]>(list: T, code: string): string =>
   list.find(([v]) => v === code)?.[1] ?? code;
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Selected clients shown in the "Selected Clients" section.
+
+   For each client:
+     - `name`: required - used as alt text on the logo (or as a wordmark
+       fallback if no logo is provided yet).
+     - `logo`: optional - path to an SVG (preferred) or transparent PNG
+       in /public/assets/clients/. CSS tints it to match the page palette,
+       so file format doesn't need to be cream-coloured already; even
+       full-colour logos will be rendered monochrome.
+
+   To add a real logo:
+     1. Drop the file into /public/assets/clients/[name].svg (or .png)
+     2. Reference it here as `logo: '/assets/clients/[name].svg'`
+     3. SVGs scale crisply at any size; PNGs need to be 2x for retina
+        (e.g. 200x100 displayed at 100x50).
+   ───────────────────────────────────────────────────────────────────────── */
+type Client = { name: string; logo?: string };
+// Real client roster, split into two rows. The two "heavy hitter"
+// bank clients sit on the top row at larger scale; the three faith /
+// ministry partners share the bottom row. Wordmark fallback shows
+// until a logo file is dropped into /public/assets/clients/ -
+// uncomment the `logo:` line for each one as you collect them.
+const CLIENTS_TOP: Client[] = [
+  { name: 'DBS Bank' /* , logo: '/assets/clients/dbs.svg' */ },
+  { name: 'Standard Chartered Bank' /* , logo: '/assets/clients/standard-chartered.svg' */ },
+];
+const CLIENTS_BOTTOM: Client[] = [
+  { name: 'YWAM Singapore' /* , logo: '/assets/clients/ywam-singapore.svg' */ },
+  { name: 'Barker Road Methodist Church' /* , logo: '/assets/clients/barker-road.svg' */ },
+  { name: 'N5 Stewardship Movement' /* , logo: '/assets/clients/n5-stewardship.svg' */ },
+];
+
 // Static-page port of the brand destination overlay from the immersive
 // /creatives scene. Uses the global `.dest` design language verbatim, with
 // brand-page nav + footer chrome wrapped around it. The .destStatic class on
@@ -40,6 +75,9 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
   const [submitting, setSubmitting] = useState(false);
   const [thanksOpen, setThanksOpen] = useState(false);
   const { trigger: navWash, overlay: navWashOverlay } = useNavWash();
+  // Buttery smooth scroll across the whole brands page - matches the
+  // journey-page treatment so the marketing surfaces feel unified.
+  useLenisScroll();
   const toggleBrandRole = (role: string) =>
     setBrandRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
 
@@ -102,6 +140,37 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
       { rootMargin: '0px 0px -60px 0px', threshold: 0.07 },
     );
     root.querySelectorAll('.anim').forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  // Dedicated FAQ reveal observer - each .faqRow stages in with a
+  // staggered slide-up so the list cascades into view rather than
+  // appearing as one block. CSS Module class for the "in" state because
+  // .faqRow is module-scoped.
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      root.querySelectorAll<HTMLElement>(`.${s.faqRow}`).forEach((el) => el.classList.add(s.faqRowIn));
+      return;
+    }
+    const rows = Array.from(root.querySelectorAll<HTMLElement>(`.${s.faqRow}`));
+    if (rows.length === 0) return;
+    rows.forEach((el, i) => {
+      el.style.transitionDelay = `${i * 90}ms`;
+    });
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add(s.faqRowIn);
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.15 },
+    );
+    rows.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
   }, []);
 
@@ -259,8 +328,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
               </p>
               <div className="actions anim" style={{ transitionDelay: '560ms' }}>
                 <button type="button" className="cta" onClick={scrollToForm}>
-                  Start the conversation
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                  Let&rsquo;s talk
                 </button>
                 <a href="#process" className="cta ghost">How we work</a>
               </div>
@@ -362,6 +430,64 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             </div>
           </div>
 
+          {/* Selected clients - editorial wordmark strip sitting between
+              the two service blocks and the comparison table. Provides
+              social proof at the moment the reader has just absorbed
+              what we DO and is deciding whether to keep reading. Names
+              are placeholders - replace with real client/brand names
+              once the roster is finalised. */}
+          <div className="container">
+            <div className="section-rule anim">
+              <div className="label">Selected Clients</div>
+              <div className="line"></div>
+            </div>
+            <div className={s.clientsBlock}>
+              <h2 className={`${s.clientsHeading} anim`}>
+                Brands we&rsquo;ve <em>scaled with</em>.
+              </h2>
+              <p className={`${s.clientsLead} anim`}>
+                A growing roster of teams across Singapore and Southeast Asia trusting Beacon to embed, produce, and deliver - across every brief that walks through the door.
+              </p>
+              <div className={`${s.clientsRows} anim`}>
+                <ul className={`${s.clientsGrid} ${s.clientsRowTop}`}>
+                  {CLIENTS_TOP.map((c) => (
+                    <li key={c.name} className={s.clientName}>
+                      {c.logo ? (
+                        <img
+                          src={c.logo}
+                          alt={c.name}
+                          className={s.clientLogo}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className={s.clientWordmark}>{c.name}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <ul className={`${s.clientsGrid} ${s.clientsRowBottom}`}>
+                  {CLIENTS_BOTTOM.map((c) => (
+                    <li key={c.name} className={s.clientName}>
+                      {c.logo ? (
+                        <img
+                          src={c.logo}
+                          alt={c.name}
+                          className={s.clientLogo}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className={s.clientWordmark}>{c.name}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <p className={`${s.clientsFootnote} anim`}>
+                + a handful of clients who&rsquo;d rather we didn&rsquo;t list them publicly.
+              </p>
+            </div>
+          </div>
+
           {/* Embedded vs Projects - decision-aid table. Sits right after
               the two service blocks so a reader who's just absorbed both
               can decide which fits before diving into How It Works. */}
@@ -373,8 +499,14 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             <div className={`${s.compareTable} anim`} role="table" aria-label="Embedded vs Project Delivery">
               <div className={s.compareRow} role="row">
                 <div className={s.compareLabel} role="rowheader" />
-                <div className={s.compareColHead} role="columnheader">Embedded</div>
-                <div className={s.compareColHead} role="columnheader">Projects</div>
+                <div className={s.compareColHead} role="columnheader">
+                  <span className={s.compareColLabel}>Service A</span>
+                  <span className={s.compareColName}>Embedded</span>
+                </div>
+                <div className={s.compareColHead} role="columnheader">
+                  <span className={s.compareColLabel}>Service B</span>
+                  <span className={s.compareColName}>Projects</span>
+                </div>
               </div>
               <div className={s.compareRow} role="row">
                 <div className={s.compareLabel} role="rowheader">Engagement</div>
@@ -558,19 +690,11 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             <div className="brand-stats anim">
               {/* Stats unified across brands, /creatives/embedded, and
                   /creatives/projects so the same numbers tell the same
-                  story everywhere on the site. */}
-              <div className="brand-stat">
-                <span className="brand-stat-num">50+</span>
-                <span className="brand-stat-label">Creatives engaged</span>
-              </div>
-              <div className="brand-stat">
-                <span className="brand-stat-num">6+</span>
-                <span className="brand-stat-label">Brand partners</span>
-              </div>
-              <div className="brand-stat">
-                <span className="brand-stat-num">SG / SEA</span>
-                <span className="brand-stat-label">Singapore + Southeast Asia</span>
-              </div>
+                  story everywhere on the site. Numeric stats count up
+                  from 0 when the band enters the viewport. */}
+              <BrandStat value="50+" label="Creatives engaged" />
+              <BrandStat value="6+" label="Brand partners" />
+              <BrandStat value="SG / SEA" label="Singapore + Southeast Asia" />
             </div>
           </div>
 
@@ -892,5 +1016,18 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
         </div>
       </div>
     </main>
+  );
+}
+
+/* Brand stat tile with count-up. Mirrors the StatTile component on the
+   journey pages so numeric stats animate from 0 → target the moment
+   the band enters the viewport. Non-numeric values pass through. */
+function BrandStat({ value, label }: { value: string; label: string }) {
+  const { ref, text } = useCountUp(value);
+  return (
+    <div className="brand-stat" ref={ref}>
+      <span className="brand-stat-num">{text}</span>
+      <span className="brand-stat-label">{label}</span>
+    </div>
   );
 }

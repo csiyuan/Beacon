@@ -27,11 +27,11 @@
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans: 'Inter', system-ui, sans-serif;
 
-  /* Background lives in .creativesBg (the fixed image + dark overlay
-     painted as the first child). Setting .page transparent lets the
-     image bleed through; the warm radial glow from .page::before stays
-     painted on top of it for the same body-glow feel as /brands. */
-  background: transparent;
+  /* Solid ink background - the painted dawn landscape was retired
+     so the page no longer needs to be transparent. .page::before
+     paints the warm gold glow on top, matching the brands + home
+     page treatment. */
+  background: var(--ink);
   color: var(--cream);
   font-family: var(--sans);
   font-weight: 300;
@@ -42,49 +42,6 @@
   overflow-x: hidden;
 }
 
-/* ─── Creatives still backdrop ─────────────────────────────────────────
-   Pinned full-viewport image (same still the /creatives landing uses)
-   with a translucent dark overlay on top. Gives the pathway pages the
-   same warm landscape that creatives carries, but darkened enough that
-   the chapter content stays comfortably readable. */
-.creativesBg {
-  position: fixed !important;
-  inset: 0;
-  z-index: 0 !important;
-  pointer-events: none;
-  overflow: hidden;
-  /* Force the fixed backdrop onto its own GPU compositor layer. Safari
-     re-rasterises position:fixed with object-fit:cover on every scroll
-     frame otherwise, and that was the dominant scroll cost on the
-     journey page. translateZ + isolation pins it to its own layer so
-     scroll just translates an already-rasterised texture. */
-  transform: translateZ(0);
-  will-change: transform;
-  isolation: isolate;
-  contain: paint;
-  backface-visibility: hidden;
-}
-.creativesBgImg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  /* Promote the image itself to its own layer too - some Safari builds
-     keep the image on the CPU even when the parent is on the GPU. */
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-}
-.creativesBgOverlay {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg,
-      rgba(7, 6, 10, 0.55) 0%,
-      rgba(7, 6, 10, 0.78) 30%,
-      rgba(7, 6, 10, 0.92) 65%,
-      rgba(7, 6, 10, 0.98) 100%);
-}
 
 /* ─── Pathway-switch brighten wash ─────────────────────────────────────
    Warm radial flash that fades in when the user clicks the OTHER
@@ -120,11 +77,24 @@
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 100% 60% at 50% -20%, rgba(201, 138, 58, 0.22) 0%, transparent 55%),
-    radial-gradient(ellipse 80% 40% at 80% 110%, rgba(240, 198, 115, 0.08) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 138, 58, 0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 45% at 50% 100%, rgba(240, 198, 115, 0.12) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(240, 198, 115, 0.08) 0%, transparent 65%);
 }
 
 .page > * { position: relative; z-index: 1; }
+/* The top nav uses the global `.bar` class which globals.css declares
+   as `position: fixed`. The `.page > *` rule above re-positioned it
+   to `relative`, scrolling it away with the page. Re-fix the bar so
+   it stays pinned to the viewport on all scroll positions. */
+.page > :global(.bar) {
+  /* Match the brands header exactly - just position: fixed (the
+     `.page > *` rule above turned it relative, so we re-fix it).
+     No backdrop, no blur, no scroll-state class. Same chrome
+     behaviour as /brands. */
+  position: fixed;
+  z-index: 40;
+}
 
 .container {
   max-width: 1180px;
@@ -372,12 +342,9 @@
   box-shadow: 0 0 6px rgba(255, 220, 150, 0.5);
 }
 
-/* Hero used to need extra top padding to clear the fixed nav, but the
-   new full-viewport centered hero handles its own vertical positioning
-   via flex centering inside height: 100vh. Forcing padding here would
-   shove the content into the bottom half. Intentionally zero. */
-.page > .hero { padding-top: 0; }
-@media (min-width: 768px) { .page > .hero { padding-top: 0; } }
+/* The hero is now stacked top-down (was centered when this override
+   was written), so its own padding-top clamp is what places the
+   switcher and the rest of the content. No override needed. */
 
 /* ─── Legacy nav (kept for backward compatibility but unused) ──────────── */
 .nav {
@@ -478,22 +445,35 @@
    sub / CTAs sit centered in the user's view on arrival (matching the
    creatives landing's centered title card). */
 .hero {
-  /* Full-viewport hero. The pathway switcher, eyebrow, title, sub, and
-     CTAs all live in the centered flex column so the layout stays
-     responsive across viewports without anything overlapping. Top
-     padding keeps the switcher clear of the fixed nav bar (~64-80px
-     tall); bottom padding gives the CTAs breathing room. The block is
-     vertically centered between those bounds. */
+  /* Full-viewport hero, stacked top-down (NOT centered). Centering used
+     to float the switcher up or down depending on how tall the title +
+     sub + CTAs ended up on each pathway — meaning the switcher landed
+     in a different y-position on Embedded vs Projects. Top-aligning
+     with a generous padding-top pins the switcher at a known offset
+     (~25% from the top of the viewport on a typical desktop) so the
+     two pathway pages match each other while the switcher still
+     reads as a centered visual anchor rather than something jammed
+     against the nav. */
   position: relative;
   min-height: 100vh;
-  padding-top: clamp(110px, 14vh, 160px);
+  margin-top: 20px;
+  padding-top: clamp(110px, 12vh, 150px);
   padding-bottom: clamp(48px, 8vh, 96px);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
+}
+/* Mobile shift - push the whole hero block down 20px on small/tablet
+   screens. Breakpoint bumped to 900px so it catches iPad portrait
+   (768px) and large phones in landscape, both of which still feel
+   "mobile" to the user. !important added because base .hero rules
+   in this file aren't reliably overridden without it (same issue
+   that affected .hero .switcher earlier). */
+@media (max-width: 900px) {
+  .hero { padding-top: calc(clamp(110px, 12vh, 150px) + 20px) !important; }
 }
 
 .hero .heroEyebrow,
@@ -502,9 +482,9 @@
 .hero .heroActions,
 .hero .switcher { margin-left: auto; margin-right: auto; }
 .hero .heroActions { justify-content: center; }
-.hero .switcher { margin-bottom: 32px; }
+.hero .switcher { margin-bottom: 40px !important; }
 @media (max-width: 720px) {
-  .hero .switcher { margin-bottom: 24px; }
+  .hero .switcher { margin-bottom: 32px !important; }
 }
 
 .heroEyebrow {
@@ -520,11 +500,18 @@
   align-items: center;
   gap: 14px;
 }
-.heroEyebrow::before {
+.heroEyebrow::before,
+.heroEyebrow::after {
   content: '';
-  width: 32px;
+  width: 56px;
   height: 1px;
-  background: var(--gold);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 230, 170, 0) 0%,
+    rgba(255, 230, 170, 0.95) 50%,
+    rgba(255, 230, 170, 0) 100%
+  );
+  box-shadow: 0 0 4px rgba(255, 215, 140, 0.5);
 }
 
 .heroTitle {
@@ -536,7 +523,11 @@
   line-height: 1.04;
   letter-spacing: -0.012em;
   margin: 0 0 32px;
-  max-width: 22ch;
+  /* Wider measure so the title settles into a 2-line shape - regular
+     intro phrase on top, italic em phrase on a dedicated second line
+     (driven by an explicit <br /> before each em in the pathway pages'
+     heroTitle props). 22ch forced the title into 3-4 line stacks. */
+  max-width: 32ch;
   color: #fff3d6;
   text-shadow: 0 0 60px rgba(255, 170, 80, 0.18);
 }
@@ -565,6 +556,15 @@
   flex-wrap: wrap;
   gap: 16px;
 }
+/* Equal-width hero buttons - the floor must be larger than the widest
+   natural label ("Join the roster") so every button — primary and
+   ghost — hits it and ends up at exactly the same pill width. A
+   tighter floor only catches the short labels while longer ones
+   grow past it, producing the mismatched pills the user flagged. */
+.heroActions .cta {
+  min-width: 220px;
+  justify-content: center;
+}
 
 .cta {
   appearance: none;
@@ -576,13 +576,16 @@
   border: 0;
   font-family: var(--sans);
   font-weight: 500;
-  /* 13px matches brands .ctaPrimary so primary actions look identical
-     across both surfaces. */
+  /* 13px + line-height/box-sizing pinned so this matches the brand hero
+     .cta exactly. Heights can drift by a few pixels otherwise depending
+     on whether the CTA is a button or an anchor element. */
   font-size: 13px;
+  line-height: 1.2;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   padding: 16px 28px;
   border-radius: 999px;
+  box-sizing: border-box;
   cursor: pointer;
   text-decoration: none;
   box-shadow:
@@ -613,7 +616,7 @@
   /* Tight segmented-control feel - the visible "gap" is the cushion
      inside each pill rather than space between them. */
   gap: 4px;
-  margin-bottom: 56px;
+  margin-bottom: 40px;
   border: 1px solid var(--rule);
   border-radius: 999px;
   padding: 4px;
@@ -631,6 +634,12 @@
   border-radius: 999px;
   transition: background 200ms, color 200ms;
   font-weight: 500;
+  /* Equal pill geometry - "PROJECT-BASED" is wider than "EMBEDDED",
+     so without a min-width the two pills look uneven. min-width is
+     sized to fit the longer label comfortably; text-align centers
+     the shorter label inside its pill. */
+  min-width: 160px;
+  text-align: center;
   /* Keep "PROJECT-BASED" on one line - without this it wraps to two
      lines on narrow viewports, breaking the pill geometry. */
   white-space: nowrap;
@@ -640,6 +649,7 @@
     font-size: 10px;
     letter-spacing: 0.16em;
     padding: 9px 16px;
+    min-width: 130px;
   }
 }
 .switcherLink:hover { color: var(--cream); }
@@ -1181,15 +1191,17 @@
    same label → heading → content pattern so the page reads as one
    continuous voice instead of a stack of independent modules. */
 .extraSection {
-  /* Vertical-only padding so .container's horizontal padding flows
-     through (shorthand `padding: 96px 0` would wipe out the 20px
-     mobile gutter). Padding matched to brands .section (96 / 128). */
-  padding-top: 96px;
+  /* Tighter top padding so the section eyebrow sits closer to the
+     hairline above - removes the small dead-space gap that was
+     opening up between the previous section's bottom rule and this
+     section's content. Bottom padding stays generous so the section
+     breathes into the next one. */
+  padding-top: 56px;
   padding-bottom: 96px;
   border-top: 1px solid var(--rule);
 }
 @media (min-width: 768px) {
-  .extraSection { padding-top: 128px; padding-bottom: 128px; }
+  .extraSection { padding-top: 72px; padding-bottom: 128px; }
 }
 
 .extraSectionLabel {
@@ -1457,33 +1469,31 @@
    without having to read every row. Mobile collapses the table into
    stacked rows so it stays scannable on narrow screens. */
 .compareTable {
-  /* Stacked rows; each row owns its own equal-column grid. Simpler
-     and more predictable than display:contents subgrid - col widths
-     are forced identical on every row, value columns get equal share,
-     row label stays compact. */
+  /* Stacked rows; each row owns its own equal-column grid. The row
+     label column is locked to a tight max so the two value columns
+     get the lion's share of the width and stay equal. No outer border
+     - the corner cell is invisible, so the table reads as "header
+     strip + rows" rather than a fully-boxed table. The internal cells
+     carry the borders to define the structure. */
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  overflow: hidden;
+  width: 100%;
   background: rgba(20, 17, 12, 0.5);
 }
 .compareHead {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(0, 2.4fr) minmax(0, 2.4fr);
+  grid-template-columns: minmax(100px, 160px) minmax(0, 1fr) minmax(0, 1fr);
 }
 .compareCorner {
-  /* Padding matches the row labels below so the corner cell and the
-     label column share a consistent left inset. */
-  padding: 22px 20px;
-  background: rgba(14, 12, 9, 0.55);
-  border-bottom: 1px solid var(--rule);
-  /* Stretch the corner cell so its background fills the grid row height
-     - the column headers next to it are taller (flex column + two child
-     spans), and without explicit stretch the corner's background
-     collapses to its padding box, creating a visible alignment gap. */
-  align-self: stretch;
-  box-sizing: border-box;
+  /* Invisible spacer cell - the grid needs SOMETHING in the top-left
+     to maintain three-column alignment, but visually we want the
+     label column to look like it starts at "EMPLOYER" not at an empty
+     box above it. Transparent background + no border = the corner
+     reads as empty page space, so the table appears to start cleanly
+     at the column-header row. */
+  padding: 0;
+  background: transparent;
+  border-bottom: 0;
 }
 .compareColHead {
   padding: 22px 20px;
@@ -1519,12 +1529,15 @@
 
 .compareRow {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(0, 2.4fr) minmax(0, 2.4fr);
+  grid-template-columns: minmax(100px, 160px) minmax(0, 1fr) minmax(0, 1fr);
 }
 .compareRowLabel {
   /* Consistent left inset matches the cell padding so labels and
-     values share the same column rhythm. */
-  padding: 20px 20px;
+     values share the same column rhythm. Top-aligned (not center) so
+     the small-caps label sits on the same baseline as the first line
+     of cell content - the previous center alignment made labels drift
+     mid-paragraph next to multi-line cells. */
+  padding: 22px 20px;
   font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.18em;
@@ -1532,7 +1545,7 @@
   color: var(--cream-mute);
   font-weight: 500;
   border-top: 1px solid var(--rule);
-  align-self: center;
+  align-self: start;
   min-width: 0;
 }
 .compareCell {
@@ -1543,7 +1556,7 @@
   font-size: 1rem;
   line-height: 1.5;
   color: var(--cream);
-  align-self: center;
+  align-self: start;
   min-width: 0;
   overflow-wrap: break-word;
 }
@@ -1560,7 +1573,7 @@
   justify-content: center;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .compareHead {
     grid-template-columns: 1fr 1fr;
   }
@@ -1591,11 +1604,55 @@
   }
   .compareCell + .compareCell { border-left: 1px solid var(--rule); }
 }
-@media (max-width: 480px) {
+/* Below 600px the side-by-side cells get cramped - collapse each row
+   into a stacked card: pathway header on top, "Embedded value" then
+   "Project-based value" below. Cleanest possible mobile layout, no
+   horizontal grid math at all. */
+@media (max-width: 600px) {
+  .compareHead { grid-template-columns: 1fr; }
+  .compareColHead {
+    border-left: 0 !important;
+    text-align: center;
+    align-items: center;
+    padding: 16px 18px;
+  }
+  .compareColHead + .compareColHead { border-top: 1px solid var(--rule); }
+  .compareRow {
+    grid-template-columns: 1fr;
+    border-top: 1px solid var(--rule);
+  }
+  .compareRowLabel {
+    grid-column: auto;
+    text-align: center;
+    padding: 14px 18px;
+    border-top: 0;
+    border-bottom: 1px solid var(--rule);
+    background: rgba(14, 12, 9, 0.55);
+  }
+  .compareCell {
+    border-left: 0 !important;
+    border-top: 0;
+    padding: 16px 18px;
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .compareCell + .compareCell { border-top: 1px solid var(--rule); }
+  /* Show which pathway each value belongs to via a small label above
+     the value text. Pseudo-content uses the data-pathway attribute set
+     in the JSX so each cell labels itself. */
+  .compareCell::before {
+    content: attr(data-pathway);
+    display: block;
+    font-family: var(--sans);
+    font-size: 9px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(240, 198, 115, 0.65);
+    margin-bottom: 6px;
+  }
   .compareColLabel { font-size: 9px; letter-spacing: 0.24em; }
-  .compareColName { font-size: 1.05rem; }
-  .compareCell { font-size: 0.9rem; padding: 14px 12px; }
-  .compareColHead { padding: 14px 12px; }
+  .compareColName { font-size: 1.1rem; }
 }
 
 /* ─── FAQ list ─────────────────────────────────────────────────────────
@@ -1619,6 +1676,17 @@
   padding: 0;
   /* Hide the default disclosure triangle that some browsers add to
      <summary>; the chevron span inside the summary IS the indicator. */
+  transition: background 280ms ease;
+}
+/* Subtle warm gradient sweep on hover - matches the brands FAQ. */
+.faqRow:hover {
+  background: linear-gradient(90deg, rgba(240, 198, 115, 0.05) 0%, transparent 70%);
+}
+.faqRow[open] {
+  background: linear-gradient(90deg, rgba(240, 198, 115, 0.04) 0%, transparent 65%);
+}
+.faqRow:hover > .faqQ > .faqChevron {
+  color: var(--gold-bright);
 }
 .faqRow:last-of-type { border-bottom: 1px solid var(--rule); }
 .faqRow summary::-webkit-details-marker { display: none; }
@@ -2638,6 +2706,199 @@
   padding: 0;
 }
 
+/* ─── Scroll-reveal primitive ─────────────────────────────────────────
+   Generic reveal class used outside the journey itself - applied to
+   compare-table rows, stats tiles, fit cards, etc. The
+   IntersectionObserver in JourneyPage toggles .reveal-in when these
+   cross the viewport, fading + sliding them into place. */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 900ms cubic-bezier(.22, .65, .21, 1),
+              transform 900ms cubic-bezier(.22, .65, .21, 1);
+  will-change: opacity, transform;
+}
+.revealIn {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ─── Journey navigation + edge fades ─────────────────────────────────
+   Floating prev/next + chapter-dot navigator pinned to the right edge
+   of the viewport while the user is reading the journey. Plus top +
+   bottom edge gradients that appear when there's a chapter above or
+   below the viewport, fading the journey into its boundaries. Same UX
+   idiom as the shadcn Scroller component, native to this codebase. */
+.journeyFadeTop,
+.journeyFadeBottom {
+  position: sticky;
+  z-index: 4;
+  height: 80px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+.journeyFadeTop {
+  top: 0;
+  margin-bottom: -80px;
+  background: linear-gradient(180deg, rgba(7, 6, 10, 0.95) 0%, rgba(7, 6, 10, 0) 100%);
+}
+.journeyFadeBottom {
+  bottom: 0;
+  margin-top: -80px;
+  background: linear-gradient(0deg, rgba(7, 6, 10, 0.95) 0%, rgba(7, 6, 10, 0) 100%);
+}
+.journeyFadeOn { opacity: 1; }
+
+.journeyNav {
+  position: fixed;
+  right: clamp(16px, 3vw, 32px);
+  top: 50%;
+  transform: translateY(-50%) translateX(20px);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 10px;
+  border-radius: 999px;
+  background: rgba(8, 7, 10, 0.55);
+  border: 1px solid var(--rule);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms cubic-bezier(.22, .65, .21, 1),
+              transform 500ms cubic-bezier(.22, .65, .21, 1);
+}
+.journeyNavVisible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0);
+}
+.journeyNavBtn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(240, 198, 115, 0.28);
+  border-radius: 50%;
+  color: rgba(240, 198, 115, 0.85);
+  cursor: pointer;
+  transition: background 200ms, border-color 200ms, color 200ms, transform 200ms;
+}
+.journeyNavBtn:hover:not(:disabled) {
+  background: rgba(240, 198, 115, 0.12);
+  border-color: rgba(240, 198, 115, 0.55);
+  color: var(--gold-bright);
+  transform: translateY(-1px);
+}
+.journeyNavBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.journeyNavDots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+.journeyNavDot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(240, 198, 115, 0.28);
+  cursor: pointer;
+  transition: background 200ms, transform 200ms;
+}
+.journeyNavDot:hover {
+  background: rgba(240, 198, 115, 0.6);
+}
+.journeyNavDotActive {
+  background: var(--gold-bright);
+  transform: scale(1.4);
+  box-shadow: 0 0 8px rgba(255, 200, 120, 0.6);
+}
+@media (max-width: 720px) {
+  .journeyNav {
+    right: 12px;
+    padding: 10px 8px;
+    gap: 8px;
+  }
+  .journeyNavBtn { width: 28px; height: 28px; }
+  .journeyNavDot { width: 5px; height: 5px; }
+}
+
+/* ─── Rotating chapter-eyebrow marker ─────────────────────────────────
+   Sticky strip at the top of the journey section that displays the
+   current chapter's eyebrow via <TextRotate>. As the user scrolls
+   between chapters, activeStep changes and the marker letters
+   re-animate in. Small label + larger rotating text on the same row. */
+.flowJourneyMarkerStick {
+  /* Sticky wrapper - full width so the inner pill can centre via
+     justify-content. Sticky itself sits in normal flow and only pins
+     when the user scrolls past its top: offset. */
+  position: sticky;
+  top: 24px;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding: 0 16px;
+}
+.flowJourneyMarker {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 24px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: rgba(8, 7, 10, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px -12px rgba(0, 0, 0, 0.5);
+}
+.flowJourneyMarkerLabel {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.65);
+  font-weight: 500;
+}
+.flowJourneyMarkerText {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(18px, 1.8vw, 24px);
+  letter-spacing: 0.04em;
+  color: var(--gold-bright, #ffe2a0);
+  line-height: 1.1;
+  /* Hide overflow so glyphs animating in from below 100% are clipped
+     until they reach the visible band. */
+  overflow: hidden;
+}
+.flowJourneyMarkerSplit {
+  overflow: hidden;
+  padding-bottom: 2px;
+}
+@media (max-width: 759px) {
+  .flowJourneyMarkerStick { top: 16px; }
+  .flowJourneyMarker {
+    padding: 10px 18px;
+    gap: 12px;
+  }
+  .flowJourneyMarkerLabel { font-size: 9px; letter-spacing: 0.36em; }
+  .flowJourneyMarkerText { font-size: 16px; }
+}
+
 /* ─── Meandering connector SVG ───────────────────────────────────────
    Spans the entire journey section as an absolute overlay. Path snakes
    between alternating left/right anchors at each chapter's vertical
@@ -3210,7 +3471,11 @@
   display: flex;
   flex-direction: column;
   gap: 24vh;
-  padding: 18vh 0;
+  /* No top/bottom padding so the journey flows directly into the
+     hero above and the next section below - no "empty band" between
+     them. The first chapter has its own 100vh and centres its
+     content vertically; that's enough clearance from the hero CTAs. */
+  padding: 0;
   /* Wider container for the journey than the rest of the page - each
      chapter needs room for an image + content side-by-side without
      either feeling cramped. Overrides the inherited 1180px from the
@@ -3221,7 +3486,10 @@
   padding-right: clamp(28px, 4vw, 64px);
 }
 @media (max-width: 760px) {
-  .flowJourneyInner { gap: 12vh; padding: 12vh 0; }
+  /* Mobile: no flex gap or outer padding - each chapter owns one full
+     viewport and the next chapter starts exactly where the previous
+     one ends, so mandatory scroll-snap tap-throughs cleanly. */
+  .flowJourneyInner { gap: 0; padding: 0; }
 }
 
 .flowChapter {
@@ -3229,18 +3497,16 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 28px;
-  opacity: 0.42;
-  transition: opacity 900ms cubic-bezier(.22, .65, .21, 1);
-  /* scroll-snap removed - even in proximity mode it fought the user's
-     scroll velocity on this long page and made the whole journey feel
-     laggy. Free-form scrolling reads as smoother. */
-  /* Every chapter is exactly one viewport tall - gives all six rows
-     the same fixed height so the SVG curve's peak position (which is
-     anchored at (i+0.5)/N of the section) lands at the visual centre
-     of each chapter regardless of how many bullets or how much text
-     the milestone has. align-items: center on the grid (below) then
-     pins the content group to that same centre. */
-  min-height: 100vh;
+  /* Each chapter sits faded + slightly lower until it's the active
+     step (centered in the viewport). The IntersectionObserver toggles
+     .flowChapterActive, which fades to full opacity + settles in. The
+     long ease feels like the chapter "rises into view" rather than
+     just flicking visible. */
+  opacity: 0.32;
+  transform: translateY(32px);
+  transition: opacity 1100ms cubic-bezier(.22, .65, .21, 1),
+              transform 1100ms cubic-bezier(.22, .65, .21, 1);
+  will-change: opacity, transform;
 }
 /* On mobile the alternating-side layout is gone (everything stacks in
    one column) so the snaking SVG spine + orb + knots can't anchor to
@@ -3249,7 +3515,37 @@
    sizes to content and the journey doesn't become 5+ viewports of
    scroll on a phone. */
 @media (max-width: 759px) {
-  .flowChapter { min-height: 0; position: relative; }
+  /* Mobile chapters own a full viewport AND vertically centre their
+     content inside that viewport - so the chapter number / eyebrow /
+     title / body / bullet list all sit as a single centered block
+     instead of starting at the top edge. */
+  .flowChapter {
+    min-height: 100vh;
+    position: relative;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .flowChapterWrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .flowChapterGroup {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .flowChapterContent {
+    width: 100%;
+    text-align: left;
+  }
 
   /* Mobile journey - kills the desktop SVG curve + orb + knots (they
      compress poorly into a side column) and replaces them with a
@@ -3285,154 +3581,44 @@
      when the number is a block-level chapter heading. */
   .flowChapterNum::before { display: none !important; }
 
-  /* Chapter images on mobile match the brands page slot-frame
-     treatment - square aspect, warm-brown gradient backdrop, soft gold
-     hairline border. Quieter than the desktop's full portrait 4:5
-     drop-shadow card; reads as a sealed editorial tile. */
-  .flowChapterImage {
-    aspect-ratio: 1 / 1 !important;
-    max-width: 100% !important;
-    /* 10px gap between the chapter text block above and the image. */
-    margin-top: 10px !important;
-  }
-  .flowChapterImageFrame {
-    background: linear-gradient(180deg, rgba(40, 26, 10, 0.5) 0%, rgba(18, 12, 6, 0.5) 100%);
-    border-radius: 4px;
-    /* Real 1px gold border matches brands .workCard + .slot-frame
-       exactly (color: rgba(240,198,115,0.18) - the --rule token).
-       Soft drop shadow kept underneath for depth. */
-    border: 1px solid rgba(240, 198, 115, 0.18);
-    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.55);
-  }
-  .flowChapterImageFrame img {
-    filter: saturate(1) brightness(0.92);
-    transform: none !important;
-  }
-  /* Drop the top-darken overlay - the cleaner brands-style frame
-     doesn't need it. */
-  .flowChapterImageFrame::after { display: none; }
-
-  /* Mobile-only journey connector between consecutive chapters.
-     SVG path with two bends (S-curve) + a glowing gold ball that
-     follows the curve as the user scrolls (ball pos driven by JS in
-     JourneyPage.tsx via path.getPointAtLength). Hidden on desktop. */
-  .flowConnector {
-    position: relative;
-    align-self: center;
-    /* Tall + wide enough for two pronounced bends. 240px gives the
-       ball a slow, deliberate travel; 72px container lets the curve
-       swing close to the edges (peaks at x=3/x=37 of a 40-unit viewBox
-       map to ~5.4px and ~66.6px from the container left, giving an
-       ~61px visible swing). */
-    width: 72px;
-    height: 240px;
-    margin: 56px 0 40px;
-    pointer-events: none;
-  }
-  .flowConnectorSvg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-  }
-  .flowConnectorPath {
-    fill: none;
-    stroke: var(--gold, #f0c673);
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    /* Dotted - 1.5px dot + 7px gap. opacity softens the path so the
-       ball reads as the brightest element on the curve. */
-    stroke-dasharray: 1.5 7;
-    opacity: 0.7;
-    /* preserveAspectRatio:none on the SVG means stroke-width gets
-       scaled non-uniformly. vector-effect keeps the stroke 1.5px wide
-       regardless of axis scale. */
-    vector-effect: non-scaling-stroke;
-  }
-  .flowConnectorBall {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    /* Transform is set by JS every frame:
-         translate3d(px, py, 0) translate(-50%, -50%)
-       Pre-set to (0, 0) with the centring offset so the ball isn't
-       visible at the corner before the first scroll-handler tick. */
-    transform: translate3d(0, 0, 0) translate(-50%, -50%);
-    background: radial-gradient(circle at 32% 28%, #fff8e2 0%, #ffd98a 45%, rgba(201, 138, 58, 0.55) 100%);
-    border: 1px solid rgba(255, 235, 180, 0.9);
-    box-shadow:
-      0 0 0 3px rgba(7, 6, 10, 0.95),
-      0 0 12px rgba(255, 220, 150, 0.75),
-      0 0 28px rgba(255, 200, 120, 0.45);
-    opacity: 0;
-    will-change: transform, opacity;
-    pointer-events: none;
-  }
-}
-/* Desktop hides the mobile connector - the desktop SVG curve + orb
-   already covers this role. */
-@media (min-width: 760px) {
-  .flowConnector { display: none; }
+  /* Mobile drops chapter images entirely - phones get a tighter,
+     text-focused read; saves bandwidth and shortens each chapter so
+     scroll-snap stops feel natural. */
+  .flowChapterImage { display: none !important; }
 }
 .flowChapter.in,
-.flowChapterActive { opacity: 1; }
+.flowChapterActive {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 @media (min-width: 760px) {
+  /* Desktop journey - chapters stack in a single centred column. Each
+     chapter contains an image + content group laid out side-by-side.
+     Odd-index chapters reverse direction so image/content alternate
+     left↔right - adds rhythm without bringing back the spine. */
   .flowChapter {
-    /* Asymmetric grid - the column that holds the group (image +
-       content side-by-side) gets MORE of the row (1.4fr) than the
-       column the curve sweeps through (1fr). That gives the image
-       cinematic size without crowding the path. The per-chapter
-       rules below place the group in the bigger column based on the
-       chapter's curve direction. */
-    grid-template-columns: 1fr 1.4fr;
+    grid-template-columns: 1fr;
     align-items: center;
-    gap: 48px;
+    justify-items: center;
+    /* Each chapter owns one full viewport - same self-contained "screen"
+       feel as the /creatives main page's descent / fork / destination
+       phases. Content is centred vertically inside the 100vh box. */
+    min-height: 100vh;
+    padding: 0;
   }
-  /* For peak-right chapters (group on LEFT), invert the columns so
-     the LEFT column is the bigger one. */
-  .flowRight { grid-template-columns: 1.4fr 1fr; }
   .flowChapterGroup {
-    /* Side-by-side layout - image sits beside the content text rather
-       than above it. Image always on the OUTER edge of the chapter
-       (away from the curve); content sits between the image and the
-       curve. row-reverse for peak-right chapters flips the DOM order
-       so the image lands on the left of the group when the group is
-       positioned in the left column.
-       Width bumped up so the image is cinematic, not a thumbnail, and
-       the text has room to breathe at a comfortable measure. */
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 56px;
     width: 100%;
-    max-width: 760px;
-    /* Explicit grid-item alignment - pins the group to the chapter's
-       vertical centre even though the chapter is now a fixed 100vh.
-       Without align-self the grid item would stretch to fill the row
-       height and the content text would anchor to the top of the
-       group instead of sitting at the curve's peak. */
-    align-self: center;
+    max-width: 880px;
+    transition: opacity 600ms cubic-bezier(.22, .65, .21, 1);
   }
-  /* Peak-right chapters: group on left column. Reverse so image (last
-     in DOM) lands on the LEFT (outer edge) and content lands on the
-     RIGHT (inner, near the curve). Extra right padding so the content
-     edge doesn't kiss the curve at the chapter's vertical mid-point. */
-  .flowRight .flowChapterGroup { flex-direction: row-reverse; padding-right: clamp(24px, 4vw, 56px); }
-  /* Mirror padding on peak-left chapters - content sits on the left of
-     the group, so we add LEFT padding to push it away from the curve. */
-  .flowLeft .flowChapterGroup { padding-left: clamp(24px, 4vw, 56px); }
-  /* Peak-left chapters: group on right column. Default DOM order →
-     content on LEFT (inner, near curve), image on RIGHT (outer edge). */
-
-  /* Image cell - pulled back to ~42% of the group so the content text
-     beside it has more horizontal room. Text was wrapping too narrow
-     before and stacking tall; trading a bit of image width for content
-     measure makes each chapter read in fewer lines. */
+  .flowChapterReverse .flowChapterGroup {
+    flex-direction: row-reverse;
+  }
   .flowChapterImage {
     flex: 0 0 42%;
     aspect-ratio: 4 / 5;
@@ -3442,35 +3628,90 @@
   .flowChapterContent {
     flex: 1 1 58%;
     min-width: 0;
-  }
-  /* Image + content live together inside a single .flowChapterGroup,
-     which sits on the INSIDE of the curve (the concave side, opposite
-     the path peak). The other half of the chapter row is empty - the
-     meander path passes through it.
-       • peak-left chapters (.flowLeft, peak at 30%)  → group on the RIGHT
-       • peak-right chapters (.flowRight, peak at 70%) → group on the LEFT
-     Inside the group, image stacks on top of the content text. */
-  .flowLeft  .flowChapterGroup { grid-column: 2; justify-self: start; }
-  .flowRight .flowChapterGroup { grid-column: 1; justify-self: end; }
-  .flowChapterContent {
-    grid-column: auto;
     text-align: left;
     max-width: 38ch;
   }
-  .flowChapterImage { grid-column: auto; justify-self: stretch; }
-  /* Right-side mirrored typography rules removed - now that image +
-     content are grouped into one container on the inside-of-curve side,
-     the text inside the group is consistently left-aligned regardless
-     of which half of the chapter the group lives in. The old rules
-     (flipping the eyebrow tick, right-padding the bullets) were for the
-     earlier alternating-content layout and would break the readable
-     left-aligned flow inside the new group. */
+  /* Image emphasis when the chapter is the active step in view.
+     Inactive chapters dim slightly and stay flat; the active chapter
+     brightens and lifts subtly so the eye lands on it without any
+     decorative spine. */
+  .flowChapterImageFrame img {
+    transition: transform 800ms cubic-bezier(.22, .65, .21, 1),
+                filter 800ms cubic-bezier(.22, .65, .21, 1);
+    filter: saturate(0.92) brightness(0.85);
+    transform: scale(1);
+  }
+  .flowChapterActive .flowChapterImageFrame img {
+    filter: saturate(1.05) brightness(1);
+    transform: scale(1.025);
+  }
+}
+
+/* Hairline divider between consecutive chapters - a single thin gold
+   rule (~80px wide) with a small filled dot at its centre. Quiet
+   "next chapter" beat without resurrecting the elaborate spine. */
+.flowChapterWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.flowChapterDivider {
+  position: relative;
+  width: 80px;
+  height: 1px;
+  margin: 32px 0;
+  background: linear-gradient(
+    90deg,
+    rgba(240, 198, 115, 0) 0%,
+    rgba(240, 198, 115, 0.55) 50%,
+    rgba(240, 198, 115, 0) 100%
+  );
+}
+.flowChapterDividerDot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 35%, #ffd98a 0%, rgba(201, 138, 58, 0.8) 100%);
+  box-shadow: 0 0 8px rgba(255, 200, 120, 0.45);
+}
+@media (max-width: 759px) {
+  /* Compact divider on mobile - chapters scroll free-form so the
+     divider serves as the visual "next chapter" beat. */
+  .flowChapterDivider {
+    width: 56px;
+    margin: 32px 0;
+  }
 }
 
 .flowChapterContent {
   position: relative;
   max-width: 52ch;
 }
+
+/* ─── Per-element reveal stagger ────────────────────────────────────
+   Inner content rises + fades in as a stagger when the chapter
+   becomes active. Each child has a progressively longer delay so
+   they don't all pop at once - reads as the chapter "writing
+   itself in" rather than the whole block flipping visible. */
+.flowChapterContent > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 900ms cubic-bezier(.22, .65, .21, 1),
+              transform 900ms cubic-bezier(.22, .65, .21, 1);
+}
+.flowChapterActive .flowChapterContent > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+.flowChapterActive .flowChapterContent > *:nth-child(1) { transition-delay: 80ms; }
+.flowChapterActive .flowChapterContent > *:nth-child(2) { transition-delay: 200ms; }
+.flowChapterActive .flowChapterContent > *:nth-child(3) { transition-delay: 320ms; }
+.flowChapterActive .flowChapterContent > *:nth-child(4) { transition-delay: 440ms; }
+.flowChapterActive .flowChapterContent > *:nth-child(5) { transition-delay: 560ms; }
 
 .flowChapterNum {
   display: inline-flex;

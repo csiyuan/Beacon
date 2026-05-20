@@ -10,15 +10,40 @@
    #f0c673 / #c98a3a / #0a0805).
    ───────────────────────────────────────────────────────────────────────── */
 
+/* Fixed background glow - same treatment as the brands page so the
+   home and brands pages share a cohesive scroll experience. Stays
+   pinned to the viewport while content scrolls past, so the warm
+   gold wash never moves. The hero section has its own dark-plus-
+   dome background that covers this within the hero; the wash
+   becomes visible once the visitor scrolls past it. */
+.page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    /* Top-center: dominant warm gold wash matching the brands page. */
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 138, 58, 0.22) 0%, transparent 60%),
+    /* Bottom-center: subtle warm balance so the page isn't top-heavy. */
+    radial-gradient(ellipse 70% 45% at 50% 100%, rgba(240, 198, 115, 0.12) 0%, transparent 65%),
+    /* Bottom-right: original accent kept for asymmetric warmth. */
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(240, 198, 115, 0.08) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+.page > * { position: relative; z-index: 1; }
+
 .page {
   --gold: #f0c673;
   --gold-bright: #ffd98a;
   --gold-deep: #c98a3a;
   --gold-soft: rgba(240, 198, 115, 0.14);
   --ember: #ff9a3c;
-  --ink: #07060a;
-  --ink-soft: #14110c;
-  --ink-lift: #1a160f;
+  /* Ink palette adopted from arise.framer.media (#00020f) - cooler,
+     slightly more navy than the previous warm-black #07060a. Sets
+     the dark-typographic tone for the whole site. */
+  --ink: #00020f;
+  --ink-soft: #060814;
+  --ink-lift: #0a0d1a;
   --cream: #f3e7c8;
   --cream-mute: rgba(243, 231, 200, 0.72);
   --cream-faint: rgba(243, 231, 200, 0.48);
@@ -39,7 +64,7 @@
 }
 
 .container {
-  max-width: 1180px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 28px;
 }
@@ -49,84 +74,148 @@
 /* ─── Hero ──────────────────────────────────────────────────────────────── */
 .hero {
   position: relative;
-  /* 100svh stays stable across the iOS Safari toolbar show/hide, so the
-     absolute-positioned overlay (paths, scrollHint, trust strip) doesn't
-     jump when the address bar collapses. 100vh fallback for browsers that
-     don't support svh yet. */
+  /* 100svh stays stable across the iOS Safari toolbar show/hide. */
   height: 100vh;
   height: 100svh;
   min-height: 640px;
   width: 100%;
   overflow: hidden;
-  background: radial-gradient(ellipse 90% 70% at 50% 60%, #1a0e05 0%, #0a0604 70%, #050302 100%);
+  /* Base ink - the dome glow is a positioned circle (.heroHalo) below,
+     not a background gradient. Keeping this layer flat so the orb's
+     blur reads cleanly over the dark plate. */
+  background: var(--ink);
 }
 
-/* Hero image - fills the hero, sits behind everything in the overlay. */
-.heroImageWrap {
+/* The arise "dome" - a giant blue circle with a heavy CSS blur,
+   positioned at the top-center of the hero so only its bottom half is
+   visible. Reads as a luminous semicircle rising from the top.
+   Values ported directly from arise.framer.media:
+     - Solid blue (#5c7df4 / rgba(92, 125, 244)) at center
+     - Radial fade to transparent
+     - border-radius: 100% (circle)
+     - filter: blur(150px) for the diffuse glow
+   The circle's diameter and offset crop the bottom half into view. */
+/* Arise planet horizon - a huge transparent circle positioned so only
+   its TOP arc enters the visible hero. The 1px border + glowing
+   box-shadow create the "rim" effect; the rest of the circle extends
+   far below the hero and is clipped by overflow: hidden.
+
+   Key trick: top: 25% anchors the circle's TOP EDGE near the upper
+   third of the hero, not the centre. With height: 200vh, the circle
+   extends from 25% of the hero down to 225% of the hero (way below
+   the viewport). The only thing the viewer sees is the curved top
+   line - which reads as the planet's horizon. */
+.heroHalo {
+  position: absolute;
+  left: 50%;
+  /* Anchor higher so the arc sits well above the headline area,
+     giving the centred copy room to breathe instead of crowding
+     against the rim line. */
+  top: calc(10% + 15px);
+  opacity: 0;
+  animation: heroBgFade 2600ms cubic-bezier(0.22, 0.61, 0.36, 1) 100ms forwards;
+  transform: translateX(-50%);
+  width: min(200vh, 2200px);
+  height: min(200vh, 2200px);
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: transparent;
+  /* Warm gold rim - matches the Beacon palette. The blue arise port was
+     the only cool-tone element on the page; gold makes the hero feel
+     like the same family as the warm sections below. */
+  border: 1px solid rgba(255, 220, 150, 0.55);
+  box-shadow:
+    0 0 30px rgba(255, 200, 120, 0.35),
+    0 0 80px rgba(255, 170, 80, 0.22),
+    0 0 200px rgba(240, 150, 60, 0.12);
+}
+
+/* Soft atmospheric haze rising from the dome rim - a warm gold bloom
+   that dissolves smoothly into the dark space above and below. The
+   element spans the full hero so the gradient has room to fade out
+   gracefully on all sides; previously height: 50% clipped the bloom
+   at the bottom edge, creating a visible horizontal cut-off line. */
+.heroHaloHaze {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: #06040a;
-}
-
-.heroImage {
-  object-fit: cover;
-  object-position: center;
-}
-
-/* Ambient mist loop - sits over the still PNG on desktop, crossfades in
-   once the video has enough data to start playing smoothly. The Image
-   underneath remains as the poster for the first paint, the mobile
-   fallback, and the reduced-motion experience. */
-.heroLoop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 1;
   pointer-events: none;
-  /* Browser-native fade-in is unreliable across engines, so we leave the
-     element at full opacity and let the underlying PNG hold the visual
-     until the first video frame paints. */
-}
-
-/* Subtle dark gradient over the top + bottom edges so the wordmark and the
-   path cards stay legible against the warmest parts of the image, while
-   the centre stays largely visible. */
-.heroGradient {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(6, 4, 10, 0.55) 0%, transparent 18%, transparent 72%, rgba(6, 4, 10, 0.6) 100%);
-}
-
-/* Full-width dark band at the bottom of the hero that covers the AI-tool
-   watermark baked into the source PNG. Vertical gradient from transparent
-   at the top to fully opaque at the bottom - reads as cinematic
-   letterboxing / atmospheric falloff rather than a mask. */
-.heroWatermarkCover {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 160px;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(6, 4, 10, 0.55) 22%,
-    rgba(6, 4, 10, 0.95) 45%,
-    rgba(6, 4, 10, 1) 60%,
-    rgba(6, 4, 10, 1) 100%
+  background: radial-gradient(
+    ellipse 70% 45% at 50% 20%,
+    rgba(255, 200, 120, 0.16) 0%,
+    rgba(240, 170, 80, 0.05) 40%,
+    rgba(0, 2, 15, 0) 78%
   );
+  opacity: 0;
+  animation: heroBgFade 2600ms cubic-bezier(0.22, 0.61, 0.36, 1) 100ms forwards;
 }
 
-@media (max-width: 640px) {
-  .heroWatermarkCover { height: 120px; }
+/* ─── Star field ─────────────────────────────────────────────────────
+   Tiny particles slowly drifting down from above the hero. Adds the
+   "deep space" feel from the arise reference. Pure CSS - each span
+   is animated independently with staggered delays/durations so they
+   never sync. Quantity is capped at ~50 so it stays readable on
+   small devices without overrunning the GPU. */
+.heroStars {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  animation: heroBgFade 3000ms cubic-bezier(0.22, 0.61, 0.36, 1) 300ms forwards;
+}
+.heroStars span {
+  position: absolute;
+  /* Particles start near the bottom (the glow source) and rise upward,
+     like embers from the warm horizon. Initial vertical position is
+     set per-particle in JSX (top: 60-100% of hero) so they cluster
+     near the dome rather than uniformly across the canvas. */
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(243, 231, 200, 0.85);
+  box-shadow: 0 0 6px rgba(240, 198, 115, 0.5);
+  animation-name: emberRise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+/* Smaller, fainter - the distant ember layer */
+.heroStars span:nth-child(3n) {
+  width: 1.5px;
+  height: 1.5px;
+  opacity: 0.7;
+}
+/* Brighter warm-gold mid-tier */
+.heroStars span:nth-child(5n) {
+  width: 2.5px;
+  height: 2.5px;
+  background: rgba(255, 217, 138, 0.85);
+  box-shadow: 0 0 8px rgba(255, 200, 120, 0.55);
+}
+/* Hero tier - a few prominent embers with a much larger bloom halo,
+   the visual anchor of the field. Every 11th particle gets this. */
+.heroStars span:nth-child(11n) {
+  width: 3.5px;
+  height: 3.5px;
+  background: rgba(255, 230, 170, 0.95);
+  box-shadow:
+    0 0 6px rgba(255, 220, 150, 0.8),
+    0 0 18px rgba(255, 190, 100, 0.5),
+    0 0 32px rgba(240, 150, 60, 0.25);
+}
+/* Embers rise from the dome glow upward into the dark navy space,
+   fading in as they leave the source and out as they ascend into
+   the void. */
+@keyframes emberRise {
+  0%   { transform: translateY(0);       opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-110vh);  opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heroStars span { animation: none !important; opacity: 0.4; }
 }
 
 /* ─── Hero overlay ──────────────────────────────────────────────────────── */
@@ -266,514 +355,322 @@
 }
 
 /* Wordmark + tagline near top-center */
-.heroWordmark {
-  text-align: center;
-  /* Was clamp(8px, 4vh, 32px) - sitting tight to the top, floating above
-     the composition. Pushed down so the wordmark lands in the bright
-     cloud break above the lighthouse rather than above the whole scene,
-     reading as part of the painting instead of UI chrome over it. */
-  margin-top: clamp(40px, 11vh, 120px);
-  padding: 0 24px;
-  opacity: 0;
-  animation: fadeUp 1100ms 200ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-}
-
-.heroEyebrow {
-  font-family: var(--sans);
-  font-size: 11px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin: 0 0 14px;
-  font-weight: 500;
-  opacity: 0.85;
-}
-
-.heroTitle {
-  font-family: var(--serif);
-  /* Weight 400 to match the creatives page wordmark - keeping a single
-     letterform weight across the site so the two contextual treatments
-     (cool-white front door vs warm-honey cinematic) read as the same
-     wordmark in different light, not two different brands. */
-  font-weight: 400;
-  font-size: clamp(3.5rem, 9vw, 6.5rem);
-  line-height: 0.95;
-  letter-spacing: 0.14em;
-  /* Compensate for letter-spacing pushing the visual centre right of
-     true centre - padding-left equal to one letter-spacing keeps the
-     wordmark optically balanced beneath the lighthouse. */
-  padding-left: 0.14em;
-  margin: 0;
-  color: #fff8e2;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.95),
-    0 0 14px rgba(0, 0, 0, 0.85),
-    0 1px 16px rgba(240, 198, 115, 0.45),
-    0 0 60px rgba(0, 0, 0, 0.7);
-}
-
-.heroTagline {
-  font-family: var(--serif);
-  font-style: italic;
-  /* Full cream + tighter shadow stack so the tagline reads cleanly
-     instead of dissolving into the painted clouds. */
-  font-weight: 400;
-  font-size: clamp(1rem, 1.8vw, 1.25rem);
-  line-height: 1.4;
-  margin: 18px 0 0;
-  color: rgba(255, 245, 220, 0.96);
-  letter-spacing: 0.02em;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.95),
-    0 0 18px rgba(0, 0, 0, 0.75),
-    0 0 30px rgba(0, 0, 0, 0.6);
-}
-
-/* Two path markers - anchored to the bottom of the scene where the paths
-   terminate at the viewer. Each marker is centered on its path. */
-.paths {
+/* ─── Hero content ──────────────────────────────────────────────────────
+   Centered single-message hero. Status pill → big serif headline →
+   sans subhead → primary CTA + ghost CTA. Anchors vertically so the
+   composition lands in the bright cloud break above the lighthouse in
+   the painted backdrop. The arise.framer.media layout, but typeset in
+   our serif and warm-gold palette. */
+.heroContent {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: clamp(160px, 26vh, 240px);
-  display: flex;
-  justify-content: center;
-  /* Wider gap so the two cards sit further off the central light pillar
-     and don't get washed out by it - was clamp(48, 14vw, 200) which let
-     them crowd the beam at narrow widths. */
-  gap: clamp(140px, 22vw, 360px);
-  padding: 0 24px;
-  pointer-events: auto;
-  opacity: 0;
-  animation: fadeUp 1100ms 900ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-}
-
-.pathMarker {
-  flex: 0 0 auto;
-  width: clamp(240px, 30vw, 340px);
+  left: 50%;
+  top: calc(54% + 10px);
+  transform: translate(-50%, -50%);
+  width: 100%;
+  /* Wider than 760px so the title fits cleanly in 2 lines at the
+     large clamp value. Was forcing the headline to wrap mid-phrase
+     into a 3-line stack. */
+  max-width: 980px;
+  padding: 0 28px;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  text-align: center;
-  text-decoration: none;
-  color: var(--cream);
-  padding: 22px 24px;
-  /* Default state: denser dark backing + sharper border so the label and
-     sub-copy read cleanly against the bright cloud sky. Was 0.18 / 0.28
-     border - text was getting lost in the painted background.
-     Backdrop blur removed - the 0.42 opacity already isolates the text;
-     adding blur was making the surrounding lighthouse painting read as
-     out-of-focus, which looked like a bug. */
-  background: rgba(12, 8, 4, 0.42);
-  border: 1px solid rgba(240, 198, 115, 0.42);
-  border-radius: 2px;
-  box-shadow:
-    0 0 24px rgba(240, 198, 115, 0.22),
-    inset 0 0 24px rgba(240, 198, 115, 0.06);
-  cursor: pointer;
-  transition:
-    transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    opacity 320ms ease,
-    border-color 320ms ease,
-    box-shadow 320ms ease,
-    background-color 320ms ease;
+  gap: 22px;
+  pointer-events: auto;
+  opacity: 0;
+  animation: fadeUp 3100ms 250ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
-.pathMarker:hover {
-  transform: translateY(-4px) scale(1.03);
-  border-color: rgba(255, 217, 138, 0.7);
-  background: rgba(40, 28, 14, 0.42);
-  box-shadow:
-    0 0 36px rgba(255, 217, 138, 0.32),
-    inset 0 0 28px rgba(255, 217, 138, 0.08);
-}
-
-/* No sibling-dim on hover - each card stands on its own; hovering one
-   shouldn't make the other react. The "focus pull" effect read as the
-   brand card also responding, which was confusing. */
-
-.pathLabel {
-  font-family: var(--serif);
-  /* Bumped weight 400 → 500 and added a tight black base shadow so the
-     "I'm a Brand / I'm a Creative" labels hold against the bright
-     cloud sky regardless of where they land on the painted backdrop. */
-  font-weight: 500;
-  font-size: clamp(1.5rem, 3vw, 2.125rem);
-  line-height: 1.1;
-  letter-spacing: 0;
-  color: #fff8e2;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.95),
-    0 0 14px rgba(0, 0, 0, 0.8),
-    0 0 18px rgba(240, 198, 115, 0.55),
-    0 0 36px rgba(0, 0, 0, 0.6);
-  transition: color 240ms ease, text-shadow 240ms ease;
-}
-
-.pathMarker:hover .pathLabel {
-  color: var(--gold-bright);
-  text-shadow:
-    0 0 22px rgba(255, 217, 138, 0.85),
-    0 0 48px rgba(0, 0, 0, 0.7);
-}
-
-.pathSub {
-  font-family: var(--sans);
-  font-size: clamp(0.8rem, 1.1vw, 0.925rem);
-  line-height: 1.45;
-  /* Bumped from cream-mute to cream and from weight 300 → 400 so the
-     description line carries past the box backdrop instead of dissolving
-     into the painted cloud. */
-  color: var(--cream);
-  font-weight: 400;
-  max-width: 28ch;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.95),
-    0 0 14px rgba(0, 0, 0, 0.85);
-}
-
-.pathArrow {
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 14px;
   font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--gold);
-  margin-top: 6px;
-  /* Up from 0.7 - the CTA hint shouldn't read as half-disabled at rest. */
-  opacity: 0.95;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-  transition: opacity 240ms ease, transform 240ms ease;
-}
-
-.pathMarker:hover .pathArrow {
-  opacity: 1;
-  transform: translateY(2px);
-}
-
-/* Mobile: stack path markers vertically, keep big tappable area */
-@media (max-width: 640px) {
-  .paths {
-    flex-direction: column;
-    align-items: stretch;
-    bottom: clamp(120px, 18vh, 180px);
-    gap: 14px;
-  }
-  .pathMarker {
-    width: 100%;
-    background: rgba(20, 17, 12, 0.55);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: 1px solid var(--rule);
-    padding: 18px 20px;
-  }
-}
-
-/* Tiny copyright mark - bottom-centre, faded enough that it reads as
-   legal chrome rather than content. Centred so it doesn't pull the eye
-   to a single corner; pairs visually with the centred subtagline above
-   it. Same fade-up timing so the page settles in one beat. */
-.copyright {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  margin: 0;
-  text-align: center;
-  font-family: var(--sans);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: rgba(243, 231, 200, 0.42);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
-  pointer-events: none;
-  opacity: 0;
-  animation: fadeUp 900ms 1500ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-}
-
-/* Middle-dot separator between the copyright and designer credit -
-   slightly more faded than the surrounding text so it reads as a
-   typographic divider rather than punctuation. */
-.copyrightSep {
-  color: rgba(243, 231, 200, 0.28);
-  margin: 0 4px;
-}
-
-@media (max-width: 640px) {
-  .copyright {
-    font-size: 9px;
-    letter-spacing: 0.12em;
-  }
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ─── Below the fold ────────────────────────────────────────────────────── */
-.section {
-  padding: 96px 0;
-}
-
-@media (min-width: 768px) { .section { padding: 128px 0; } }
-
-.sectionLabel {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--gold);
+  color: var(--cream);
   font-weight: 500;
-  margin: 0 0 24px;
+  background: rgba(20, 17, 12, 0.55);
+  border: 1px solid rgba(240, 198, 115, 0.32);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 0 24px rgba(240, 198, 115, 0.18);
 }
 
-.sectionLabel::before {
-  content: '';
-  width: 32px;
-  height: 1px;
-  background: var(--gold);
+.heroBadgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 8px var(--gold), 0 0 14px rgba(255, 217, 138, 0.45);
+  animation: pulseDot 2400ms ease-in-out infinite;
 }
 
-.sectionHeading {
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+
+/* Matched to the journey page .heroTitle so the home headline and the
+   pathway page headlines feel like the same typographic system. Single
+   subtle warm glow - lets the dome rim be the dominant light source
+   in the composition rather than competing with it. */
+.heroHeading {
   font-family: var(--serif);
   font-weight: 400;
-  font-size: clamp(2rem, 4.5vw, 3.25rem);
-  line-height: 1.1;
-  letter-spacing: -0.005em;
-  margin: 0 0 24px;
-  max-width: 24ch;
-  border-bottom: 1px solid var(--rule);
-  padding-bottom: 24px;
-}
-
-.sectionLead {
-  font-size: 1.0625rem;
-  line-height: 1.6;
-  color: var(--cream-mute);
-  max-width: 60ch;
-  margin: 0 0 24px;
-}
-
-.serviceRow {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 28px;
-  margin-top: 32px;
-}
-
-@media (min-width: 880px) { .serviceRow { grid-template-columns: 1fr 1fr; gap: 32px; } }
-
-.serviceCard {
-  background: var(--ink-soft);
-  border: 1px solid var(--rule);
-  padding: 36px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  transition: border-color 240ms ease, background 240ms ease;
-}
-
-.serviceCard:hover {
-  border-color: var(--rule-strong);
-  background: var(--ink-lift);
-}
-
-.serviceTitle {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 1.5rem;
-  line-height: 1.15;
+  font-size: clamp(2.5rem, 6.5vw, 5rem);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
   margin: 0;
-  color: var(--cream);
+  max-width: 32ch;
+  color: #fff3d6;
+  text-shadow: 0 0 60px rgba(255, 170, 80, 0.18);
+}
+.heroHeading em {
+  font-style: italic;
+  background: linear-gradient(180deg, #fff3d6, #ffd98a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
-.serviceBody {
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--cream-mute);
-  margin: 0;
-}
-
-.serviceCta {
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--gold);
-  text-decoration: none;
-  font-weight: 500;
-  margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid var(--rule);
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  transition: color 200ms ease, gap 200ms ease;
-}
-
-.serviceCta:hover {
-  color: var(--gold-bright);
-  gap: 14px;
-}
-
-.creativeBlurb {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-  max-width: 60ch;
-}
-
-.creativeCta {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  align-self: flex-start;
-  font-family: var(--sans);
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-weight: 500;
-  padding: 16px 28px;
-  background: var(--gold-deep);
-  color: var(--ink);
-  text-decoration: none;
-  border: 1px solid var(--gold-deep);
-  transition: background 200ms ease;
-}
-
-.creativeCta:hover {
-  background: var(--gold);
-  border-color: var(--gold);
-}
-
-/* ─── Footer (minimal) ──────────────────────────────────────────────────── */
-.footer {
-  padding: 48px 0 32px;
-  border-top: 1px solid var(--rule);
-}
-
-.footerInner {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-
-@media (min-width: 768px) {
-  .footerInner {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-}
-
-.footerBrand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.heroSub {
   font-family: var(--serif);
-  font-size: 18px;
-  color: var(--cream);
-  text-decoration: none;
-  font-weight: 500;
-  letter-spacing: 0.05em;
+  font-weight: 300;
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  line-height: 1.55;
+  color: rgba(243, 231, 200, 0.88);
+  max-width: 56ch;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
-.footerBrand img { height: 22px; }
-
-.footerLinks {
+.heroActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 6px;
 }
 
-.footerLinks a {
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  color: var(--cream-faint);
+/* Primary + ghost CTA - matches journey/brand hero CTA geometry so all
+   three surfaces share one pill language. */
+.cta {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 200px;
+  padding: 16px 28px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border: 0;
+  border-radius: 999px;
+  box-sizing: border-box;
+  cursor: pointer;
   text-decoration: none;
-  transition: color 200ms ease;
+  background: linear-gradient(180deg, #ffd98a, #d28a36);
+  color: #1a1207;
+  box-shadow:
+    0 0 0 1px rgba(255, 220, 150, 0.4) inset,
+    0 18px 50px -16px rgba(255, 170, 60, 0.55);
+  transition: transform 240ms, box-shadow 240ms;
+}
+.cta:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 180, 0.65) inset,
+    0 22px 60px -16px rgba(255, 180, 70, 0.75);
+}
+.ctaGhost {
+  background: transparent;
+  color: #fff3d6;
+  box-shadow: 0 0 0 1px rgba(240, 198, 115, 0.45) inset;
+}
+.ctaGhost:hover {
+  background: rgba(240, 198, 115, 0.06);
+  box-shadow: 0 0 0 1px rgba(240, 198, 115, 0.85) inset;
 }
 
-.footerLinks a:hover { color: var(--gold); }
+/* Hero secondary link - the demoted "How it works" affordance.
+   Sans-caps, small, gold underline on hover. Sits next to the
+   primary CTA without competing visually. */
+.heroSecondaryLink {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-decoration: none;
+  padding: 14px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 200ms, transform 200ms, gap 200ms;
+}
+.heroSecondaryLink:hover {
+  color: var(--gold-bright);
+  gap: 12px;
+}
 
-.footerCopy {
+/* Proof strip - thin band of credibility numbers between the hero
+   and the paths split. No card chrome, no big section padding -
+   reads as one quiet beat, not a full section. */
+.proofStrip {
+  position: relative;
+  padding: clamp(28px, 4vh, 44px) 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+}
+.proofList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  text-align: center;
+}
+@media (min-width: 760px) {
+  .proofList { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+}
+.proofList li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.proofNum {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(1.6rem, 2.6vw, 2.125rem);
+  line-height: 1;
+  background: linear-gradient(180deg, #fff3d6, #ffd98a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.proofLabel {
+  font-family: var(--sans);
   font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--cream-faint);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--cream-mute);
+  font-weight: 500;
 }
 
-/* ─── Departure wash overlays ────────────────────────────────────────────
-   Rendered on top of the hero when the user clicks a path marker. The
-   brand variant is a quick atmospheric fade-in; the creative variant
-   ramps slower and scales subtly so it feels like flying *into* the
-   light. Each fades from 0 → 1, then the route navigates at peak. */
-@keyframes washInBrand {
+@media (max-width: 640px) {
+  .heroContent { gap: 18px; max-width: 100%; }
+  .heroBadge { font-size: 10px; letter-spacing: 0.2em; padding: 7px 14px 7px 12px; }
+  .heroActions { width: 100%; flex-direction: column; align-items: stretch; }
+  .cta { width: 100%; min-width: 0; }
+}
+
+/* fadeUp preserves the absolute-centering transform on .heroContent
+   (translate(-50%, -50%)) and just nudges Y on top of it. Without
+   the X portion the animation's end-state would overwrite the
+   centering and drop the content to the bottom-right of centre. */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* Background elements (dome, haze, stars) fade in alongside the
+   content so the whole hero materialises together instead of the
+   words appearing on top of an already-present backdrop. Plain
+   opacity fade - no transform - so we don't fight any positioning
+   that's already on the elements. */
+@keyframes heroBgFade {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
-@keyframes washInCreative {
-  0%   { opacity: 0;    transform: scale(1); }
-  60%  { opacity: 0.85; transform: scale(1.04); }
-  100% { opacity: 1;    transform: scale(1.1); }
-}
-
-.washBrand,
-.washCreative {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 75% 55% at 50% 45%, #fff0c8 0%, #f0c673 30%, #c98a3a 65%, #2a1a0d 100%);
-  opacity: 0;
-  transform-origin: 50% 45%;
-  will-change: opacity, transform;
-}
-
-.washBrand {
-  animation: washInBrand 600ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
-}
-
-.washCreative {
-  animation: washInCreative 1100ms cubic-bezier(0.5, 0, 0.85, 0.1) forwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .washBrand, .washCreative {
-    animation: none !important;
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* ─── Short-viewport handling (landscape phones) ─────────────────────────
-   On viewports shorter than 640px the .hero min-height was forcing
-   internal scroll - paths dropped below the fold. Compress vertical
-   rhythm and let the hero shrink to fit. */
-@media (max-height: 640px) {
-  .hero { min-height: 0; height: 100svh; }
-  .heroWordmark { margin-top: clamp(4px, 2vh, 16px); }
-  .heroTitle { font-size: clamp(2.5rem, 6.5vw, 5rem); }
-  .heroTagline { margin-top: 8px; }
-  .paths { bottom: clamp(72px, 12vh, 140px); }
-  .trust { display: none; }
-}
-
 /* ─── Reduced motion ─────────────────────────────────────────────────────
-   Disable the hero entrance keyframes and the scroll-hint drip pulse.
-   Departure washes and FadeIn (Framer Motion) handle this separately. */
+   Disable the hero entrance keyframe so users who opt out of motion see
+   the content immediately at its final state. */
 @media (prefers-reduced-motion: reduce) {
-  .heroWordmark,
-  .paths,
-  .trust,
-  .scrollHint {
+  .heroContent,
+  .heroHalo,
+  .heroHaloHaze,
+  .heroStars {
     animation: none !important;
     opacity: 1;
   }
-  .scrollHintLine::after { animation: none !important; }
-  .pathMarker:hover { transform: none; }
+  .heroBadgeDot { animation: none !important; }
+}
+
+/* ─── Utility pages (about, contact) ───────────────────────────────
+   Shared chrome for non-hero pages. Top nav has the logo + the same
+   nav links as the splash, but the page itself doesn't have a hero
+   image - just a typographic title block on the dark backdrop. */
+.utilityNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px clamp(20px, 5vw, 56px);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(7, 6, 10, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+.utilityNavLogo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  transition: opacity 200ms;
+}
+.utilityNavLogo:hover { opacity: 0.85; }
+.utilityNavLogo img { height: 34px; width: auto; }
+
+.utilityHero {
+  padding: clamp(80px, 14vh, 160px) 0 clamp(48px, 7vh, 80px);
+  text-align: center;
+}
+.utilityHero .sectionLabel { margin-bottom: 22px; }
+.utilityHero .sectionLead {
+  margin: 18px auto 0;
+  max-width: 56ch;
+}
+.utilityHeroTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.014em;
+  margin: 0;
+  color: #fff3d6;
+  max-width: 24ch;
+  margin-inline: auto;
+}
+.utilityHeroTitle em {
+  font-style: italic;
+  background: linear-gradient(180deg, #fff3d6, #ffd98a 50%, #d99846);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Closing CTA section — used on home page and about page. */
+.closingSection {
+  background: transparent;
 }
 
 /* ─── Mobile hamburger + side menu ───────────────────────────────────────
@@ -889,4 +786,413 @@
 @media (max-width: 759px) {
   .heroNavLinksDesktop { display: none !important; }
   .hamburger { display: inline-flex; }
+}
+
+/* ─── Below-the-fold sections ─────────────────────────────────────────
+   Multi-section scroll layout adapted from arise.framer.media. Each
+   section uses .section for vertical rhythm; .sectionHead bundles
+   the eyebrow + heading + lead. */
+
+.section {
+  position: relative;
+  padding: clamp(72px, 12vh, 144px) 0;
+  /* Transparent so the fixed .page::before glow shows through. The
+     warm wash now stays pinned to the viewport while content
+     scrolls, matching the brands page treatment. */
+  background: transparent;
+}
+
+.sectionHead {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto clamp(48px, 7vh, 80px);
+  padding: 0 8px;
+}
+.sectionLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 18px;
+}
+.sectionHeading {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  margin: 0 0 18px;
+  color: #fff3d6;
+}
+.sectionHeading em {
+  font-style: italic;
+  background: linear-gradient(180deg, #fff3d6, #ffd98a 50%, #d99846);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.sectionLead {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  line-height: 1.55;
+  color: var(--cream-mute);
+  max-width: 56ch;
+  margin: 0 auto;
+}
+
+/* ─── Paths split (#paths) ───────────────────────────────────────────
+   Two cards side-by-side on desktop, stacked on mobile. Replaces the
+   old hero path markers - same idea but lives below the hero so the
+   visitor has bought into the brand before being asked to pick. */
+.pathsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 760px) {
+  .pathsGrid { grid-template-columns: 1fr 1fr; gap: 24px; }
+}
+.pathCard {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(28px, 4vw, 44px);
+  background: rgba(20, 17, 12, 0.55);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--cream);
+  transition: border-color 320ms, transform 320ms, box-shadow 320ms;
+  min-height: 260px;
+}
+.pathCard:hover {
+  border-color: rgba(240, 198, 115, 0.6);
+  transform: translateY(-4px);
+  box-shadow: 0 24px 60px -28px rgba(255, 170, 60, 0.45);
+}
+.pathCardLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 18px;
+}
+.pathCardTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 3vw, 2.125rem);
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+  color: #fff3d6;
+  margin: 0 0 14px;
+}
+.pathCardBody {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--cream-mute);
+  margin: 0 0 28px;
+  flex: 1;
+}
+.pathCardCta {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  transition: transform 240ms, color 240ms;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+.pathCard:hover .pathCardCta {
+  color: var(--gold-bright);
+  transform: translateX(4px);
+}
+
+/* ─── Mission ───────────────────────────────────────────────────────
+   Single typographic line. No card, no CTA - it's a beat. */
+.missionSection {
+  background: transparent;
+}
+.missionLine {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: rgba(243, 231, 200, 0.92);
+  text-align: center;
+  max-width: 32ch;
+  margin: 0 auto;
+}
+.missionLine em {
+  font-style: italic;
+  background: linear-gradient(180deg, #fff3d6, #ffd98a 50%, #d99846);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ─── Process strip ────────────────────────────────────────────────
+   Four numbered steps in a row on desktop, stacked on mobile. */
+.processSteps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 760px) {
+  .processSteps { grid-template-columns: repeat(4, 1fr); gap: 32px; }
+}
+.processStep {
+  padding: 28px 24px;
+  background: rgba(20, 17, 12, 0.4);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.processNum {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  color: rgba(240, 198, 115, 0.55);
+  letter-spacing: 0.06em;
+}
+.processTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  margin: 8px 0 12px;
+  color: #fff3d6;
+  letter-spacing: -0.005em;
+}
+.processBody {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  margin: 0;
+}
+
+/* ─── About ─────────────────────────────────────────────────────────
+   Two-column layout on desktop: heading left, body copy right. */
+.aboutGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .aboutGrid { grid-template-columns: 1fr 1fr; gap: 80px; }
+}
+.aboutGrid .sectionLabel { margin-bottom: 18px; }
+.aboutGrid .sectionHeading { margin: 0; text-align: left; }
+.aboutCopy p {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--cream-mute);
+  margin: 0 0 18px;
+}
+.aboutCopy p:last-child { margin-bottom: 0; }
+
+/* ─── Testimonial ──────────────────────────────────────────────────
+   Single centered pull-quote. */
+.testimonialSection {
+  background: transparent;
+}
+.testimonialQuote {
+  margin: 0;
+  text-align: center;
+  max-width: 64ch;
+  margin-inline: auto;
+}
+.testimonialQuote p {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1.4rem, 2.6vw, 2rem);
+  line-height: 1.4;
+  color: #fff3d6;
+  margin: 0 0 24px;
+}
+.testimonialQuote cite {
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+/* ─── Contact ──────────────────────────────────────────────────────
+   Simple inline form. Posts to /api/contact with kind=general. */
+.contactSection {
+  background: transparent;
+}
+.contactForm {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.contactRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 600px) {
+  .contactRow { grid-template-columns: 1fr 1fr; }
+}
+.contactField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.contactLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+.contactInput {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.4;
+  padding: 14px 16px;
+  background: rgba(20, 17, 12, 0.55);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--cream);
+  outline: none;
+  transition: border-color 200ms, box-shadow 200ms;
+  resize: vertical;
+}
+.contactInput:focus {
+  border-color: rgba(240, 198, 115, 0.6);
+  box-shadow: 0 0 0 3px rgba(240, 198, 115, 0.12);
+}
+.contactInput::placeholder { color: var(--cream-faint); }
+.contactForm .cta {
+  align-self: center;
+  margin-top: 8px;
+}
+
+/* ─── Footer ───────────────────────────────────────────────────────
+   Mirrors the journey + brand page footer chrome: centered wordmark,
+   sans-caps tagline, gold hairline + spark divider, three nav columns,
+   meta line. */
+.footer {
+  background: transparent;
+  padding: clamp(64px, 9vh, 120px) 0 clamp(36px, 5vh, 60px);
+  text-align: center;
+  border-top: 1px solid var(--rule);
+}
+.footerMark {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: 0.14em;
+  color: #fff8e2;
+  margin: 0 0 8px;
+}
+.footerTagline {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 36px;
+}
+.footerDivider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 0 0 48px;
+  color: var(--gold);
+}
+.footerRule {
+  width: clamp(60px, 14vw, 140px);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(240, 198, 115, 0) 0%,
+    rgba(240, 198, 115, 0.55) 50%,
+    rgba(240, 198, 115, 0) 100%
+  );
+}
+.footerSpark { color: var(--gold); }
+.footerCols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 36px;
+  text-align: center;
+  margin: 0 auto 36px;
+  max-width: 800px;
+}
+@media (min-width: 760px) {
+  .footerCols { grid-template-columns: repeat(3, 1fr); gap: 48px; text-align: left; }
+}
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+@media (min-width: 760px) {
+  .footerCol { align-items: flex-start; }
+}
+.footerColLabel {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(240, 198, 115, 0.72);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.footerCol a {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--cream);
+  text-decoration: none;
+  transition: color 200ms;
+}
+.footerCol a:hover { color: var(--gold-bright); }
+.footerEmail { font-size: 1rem; }
+.footerAddress {
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  margin-top: 4px;
+}
+.footerMeta {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--cream-faint);
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  max-width: 800px;
+  margin: 0 auto;
 }
