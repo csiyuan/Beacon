@@ -5,6 +5,7 @@ import { useRef, useState, useEffect, type FormEvent } from 'react';
 import s from './brands.module.css';
 import nav from '@/app/splash.module.css';
 import BrandsArrivalWash from './BrandsArrivalWash';
+import ArrivalWash from '@/components/transitions/ArrivalWash';
 import { FORM_ENDPOINT, submitForm } from '@/lib/forms';
 import ThanksPopup from '@/components/ThanksPopup';
 import { useNavWash } from '@/components/transitions/NavWash';
@@ -204,7 +205,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
     <main className={s.page}>
       <ThanksPopup open={thanksOpen} onClose={() => setThanksOpen(false)} />
       {navWashOverlay}
-      {fromSplash && <BrandsArrivalWash />}
+      {fromSplash ? <BrandsArrivalWash /> : <ArrivalWash />}
 
       {/* Top nav - mirrors the home page header (splash.module.css
           .heroNav + .heroLogo + .heroNavLinks). Brands-specific links:

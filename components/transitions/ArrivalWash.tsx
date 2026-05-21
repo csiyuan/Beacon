@@ -2,42 +2,50 @@
 
 import { useEffect, useState } from 'react';
 import t from './transition.module.css';
-import { NAV_WASH_FLAG } from './NavWash';
+import { NAV_WASH_FLAG, NAV_WASH_TITLE } from './NavWash';
 
 /* ─────────────────────────────────────────────────────────────────────────
-   <ArrivalWash> - the destination half of a <NavWash> nav transition.
-   Mounted on any page that wants to receive the cream-wash handoff from a
-   logo or pathway click. On mount:
-     - Reads + clears the session-storage flag set by NavWash
-     - If the flag was present, renders a full-screen cream overlay starting
-       at opacity 1, then fades it out over 1100ms (matches the existing
-       BrandsArrivalWash duration so all arrivals feel consistent)
-     - Otherwise renders nothing (refreshes / deep-links don't see the wash)
+   <ArrivalWash> - destination half of the title-card nav transition. On
+   mount it reads the session flag set by <NavWash>; if present, it renders
+   the cream panel still covering the viewport with the destination's
+   title centred on it, holds for a brief beat, then sweeps the panel off
+   to the left to reveal the new page.
 
-   Drop into any destination page or a shared layout component.
+   Mount once per destination page. Refreshes / deep-links don't see the
+   flag so the component renders nothing.
    ───────────────────────────────────────────────────────────────────────── */
 
-export default function ArrivalWash({ color = '#F5E6D3' }: { color?: string }) {
-  const [show, setShow] = useState(false);
+// Hold the panel + title on arrival, then run the sweep-out, then a tail
+// buffer before unmounting so the `forwards` end-state holds onscreen
+// while the destination paints behind it.
+const HOLD_MS = 180;
+const SWEEP_OUT_MS = 380;
+const TAIL_MS = 60;
+const TOTAL_MS = HOLD_MS + SWEEP_OUT_MS + TAIL_MS;
+
+export default function ArrivalWash() {
+  const [title, setTitle] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       if (sessionStorage.getItem(NAV_WASH_FLAG) === '1') {
+        const savedTitle = sessionStorage.getItem(NAV_WASH_TITLE) || '';
         sessionStorage.removeItem(NAV_WASH_FLAG);
-        setShow(true);
-        const id = window.setTimeout(() => setShow(false), 1300);
+        sessionStorage.removeItem(NAV_WASH_TITLE);
+        setTitle(savedTitle);
+        const id = window.setTimeout(() => setTitle(null), TOTAL_MS);
         return () => window.clearTimeout(id);
       }
     } catch {}
   }, []);
 
-  if (!show) return null;
+  if (title === null) return null;
 
   return (
-    <div
-      className={t.arrivalWashOverlay}
-      style={{ background: color }}
-      aria-hidden="true"
-    />
+    <div className={t.titleCardArrivalOverlay} aria-hidden="true">
+      <div className={t.titleCardArrivalPanel}>
+        {title && <span className={t.titleCardArrivalLabel}>{title}</span>}
+      </div>
+    </div>
   );
 }

@@ -81,27 +81,130 @@
   to   { opacity: 1; }
 }
 
-/* ─── Arrival wash ────────────────────────────────────────────────────────
-   Destination half of a <NavWash> transition. Starts fully opaque (the
-   handoff colour) and fades out over 1100ms, revealing the underlying
-   page. Matches the existing BrandsArrivalWash timing so all routes feel
-   consistent. */
-.arrivalWashOverlay {
+/* ─── Title-card nav transition ──────────────────────────────────────────
+   Editorial wipe used for all top-level nav (Home, About, Contact, For
+   Brands, For Creatives). A cream panel sweeps in from the right, the
+   destination's name fades onto it in big italic serif, router.push fires
+   at peak coverage, then the destination's <ArrivalWash> sweeps the same
+   panel off to the left revealing the new page. Reads as a title-card
+   moment rather than a generic crossfade. */
+
+/* Source side - sweep in from the right edge */
+.titleCardOverlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 9999;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.titleCardPanel {
+  position: absolute;
+  inset: 0;
+  background: #F5E6D3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(100%);
+  animation: titleCardSweepIn 260ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  will-change: transform;
+}
+
+@keyframes titleCardSweepIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0%); }
+}
+
+/* Title fades in mid-sweep so it lands the moment the panel covers the
+   viewport - reads as one continuous gesture rather than two beats. */
+.titleCardLabel {
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(48px, 9vw, 132px);
+  line-height: 1;
+  color: #1a1208;
+  letter-spacing: -0.015em;
+  padding: 0 6vw;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: titleCardLabelIn 220ms cubic-bezier(0.22, 0.61, 0.36, 1) 100ms forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes titleCardLabelIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Destination side - panel starts covering, holds, sweeps off left */
+.titleCardArrivalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
   pointer-events: none;
-  animation: arrivalWashFadeOut 1100ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-  will-change: opacity;
+  overflow: hidden;
 }
 
-@keyframes arrivalWashFadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+.titleCardArrivalPanel {
+  position: absolute;
+  inset: 0;
+  background: #F5E6D3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(0%);
+  animation: titleCardSweepOut 380ms cubic-bezier(0.65, 0, 0.35, 1) 180ms forwards;
+  will-change: transform;
 }
 
+@keyframes titleCardSweepOut {
+  from { transform: translateX(0%); }
+  to   { transform: translateX(-100%); }
+}
+
+/* Same look as source-side label but it's already visible on arrival,
+   then drifts left with the panel via the parent's transform. The label
+   itself fades out slightly faster than the panel slides so the cream
+   reads as the last thing to leave. */
+.titleCardArrivalLabel {
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(48px, 9vw, 132px);
+  line-height: 1;
+  color: #1a1208;
+  letter-spacing: -0.015em;
+  padding: 0 6vw;
+  opacity: 1;
+  animation: titleCardLabelOut 280ms cubic-bezier(0.4, 0, 0.2, 1) 140ms forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes titleCardLabelOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
+/* Reduced-motion: skip the sweep, fall back to a quick cream fade so the
+   route change still has a visible beat without any horizontal travel. */
 @media (prefers-reduced-motion: reduce) {
-  .arrivalWashOverlay { display: none; }
+  .titleCardPanel,
+  .titleCardArrivalPanel {
+    transform: none;
+    animation: titleCardReducedFade 220ms ease-out forwards;
+  }
+  .titleCardArrivalPanel {
+    animation-direction: reverse;
+    animation-delay: 120ms;
+  }
+  .titleCardLabel,
+  .titleCardArrivalLabel { animation: none; opacity: 1; transform: none; }
+}
+
+@keyframes titleCardReducedFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ─── Pathway transition ─────────────────────────────────────────────────

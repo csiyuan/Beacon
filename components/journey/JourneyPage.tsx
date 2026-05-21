@@ -321,7 +321,7 @@ export default function JourneyPage({
     <main className={s.page}>
       {/* Dark colour matches the journey-page background so the inbound
           fade-out from /creatives's pathway transition is seamless. */}
-      <ArrivalWash color="#07060a" />
+      <ArrivalWash />
       {navWashOverlay}
       {/* Cinematic top chrome - matches the destination overlay's
           wordmark-btn pattern from the original /creatives 3D scene.
