@@ -235,17 +235,17 @@ export default function Hero() {
             50+ creatives placed across Southeast Asia. Embedded or per-project, fully managed.
           </p>
           <div className={s.heroActions}>
-            <a
-              href="#contact"
+            <Link
+              href="/contact?from=splash"
               className={s.cta}
               onClick={(e) => {
                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                 e.preventDefault();
-                document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                navWash('/contact?from=splash');
               }}
             >
               Let&rsquo;s talk
-            </a>
+            </Link>
             {/* Ghost pill - same outlined pill shape as the primary so the
                 two CTAs read as a paired set, but without the filled gold
                 highlight so "Let's talk" stays unambiguously primary. */}

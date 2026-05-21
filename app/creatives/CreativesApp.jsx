@@ -1919,8 +1919,8 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
               arrow to /creatives instead of the default home, so users
               who came from this page can get back to it without browser
               back. Direct navigation (no query) still routes to "/". */}
-          <a href="/about?from=creatives" onClick={(e) => { e.preventDefault(); router.push('/about?from=creatives'); }}>About</a>
-          <a href="/contact?from=creatives" onClick={(e) => { e.preventDefault(); router.push('/contact?from=creatives'); }}>Contact</a>
+          <a href="/about?from=creatives" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); navWash('/about?from=creatives'); }}>About</a>
+          <a href="/contact?from=creatives" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); navWash('/contact?from=creatives'); }}>Contact</a>
         </nav>
         <button
           type="button"
@@ -1958,8 +1958,8 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
         <nav className="bar-side-menu-nav" aria-label="Primary mobile">
           <a href="/brands" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navWash('/brands'); }}>For Brands</a>
           <a href="/creatives/embedded" onClick={(e) => { e.preventDefault(); setMenuOpen(false); navWash('/creatives/embedded'); }}>For Creatives</a>
-          <a href="/about?from=creatives" onClick={(e) => { e.preventDefault(); setMenuOpen(false); router.push('/about?from=creatives'); }}>About</a>
-          <a href="/contact?from=creatives" onClick={(e) => { e.preventDefault(); setMenuOpen(false); router.push('/contact?from=creatives'); }}>Contact</a>
+          <a href="/about?from=creatives" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/about?from=creatives'); }}>About</a>
+          <a href="/contact?from=creatives" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/contact?from=creatives'); }}>Contact</a>
         </nav>
         <div className="bar-side-menu-connect">
           <p className="bar-side-menu-label">Connect</p>
