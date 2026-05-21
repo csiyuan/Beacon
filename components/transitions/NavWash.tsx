@@ -30,7 +30,7 @@ export const NAV_WASH_TITLE = 'beacon.navWash.title.v1';
 
 // Source-side sweep-in + title fade-in completes at this beat; we push
 // the route here so the destination mounts under the still-covered panel.
-const PUSH_AT_MS = 260;
+const PUSH_AT_MS = 340;
 
 /* Map a destination href to the title card label. Strips query + hash
    first so /about?from=splash → "About". Unknown routes fall back to an

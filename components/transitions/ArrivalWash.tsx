@@ -18,8 +18,8 @@ import { NAV_WASH_FLAG, NAV_WASH_TITLE } from './NavWash';
 // Hold the panel + title on arrival, then run the sweep-out, then a tail
 // buffer before unmounting so the `forwards` end-state holds onscreen
 // while the destination paints behind it.
-const HOLD_MS = 180;
-const SWEEP_OUT_MS = 380;
+const HOLD_MS = 360;
+const SWEEP_OUT_MS = 460;
 const TAIL_MS = 60;
 const TOTAL_MS = HOLD_MS + SWEEP_OUT_MS + TAIL_MS;
 

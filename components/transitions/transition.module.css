@@ -106,7 +106,7 @@
   align-items: center;
   justify-content: center;
   transform: translateX(100%);
-  animation: titleCardSweepIn 260ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation: titleCardSweepIn 340ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
   will-change: transform;
 }
 
@@ -128,7 +128,7 @@
   padding: 0 6vw;
   opacity: 0;
   transform: translateY(8px);
-  animation: titleCardLabelIn 220ms cubic-bezier(0.22, 0.61, 0.36, 1) 100ms forwards;
+  animation: titleCardLabelIn 260ms cubic-bezier(0.22, 0.61, 0.36, 1) 140ms forwards;
   will-change: opacity, transform;
 }
 
@@ -154,7 +154,7 @@
   align-items: center;
   justify-content: center;
   transform: translateX(0%);
-  animation: titleCardSweepOut 380ms cubic-bezier(0.65, 0, 0.35, 1) 180ms forwards;
+  animation: titleCardSweepOut 460ms cubic-bezier(0.65, 0, 0.35, 1) 360ms forwards;
   will-change: transform;
 }
 
@@ -177,7 +177,7 @@
   letter-spacing: -0.015em;
   padding: 0 6vw;
   opacity: 1;
-  animation: titleCardLabelOut 280ms cubic-bezier(0.4, 0, 0.2, 1) 140ms forwards;
+  animation: titleCardLabelOut 320ms cubic-bezier(0.4, 0, 0.2, 1) 320ms forwards;
   will-change: opacity, transform;
 }
 
