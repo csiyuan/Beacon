@@ -5,6 +5,56 @@
    atmospheric chrome than the cinematic creative site.
    ───────────────────────────────────────────────────────────────────────── */
 
+/* Brands hero with three CTAs (Embedded Placements / Media Production /
+   Let's talk). Desktop: 2-col grid - Embedded + Media side-by-side on
+   the first row, "Let's talk" centred on its own second row below.
+   All three buttons share the same fixed width so the layout reads
+   intentional regardless of label length. Mobile: stacks full-width
+   so each pill is a comfortable tap target.
+
+   !important is needed on the button width because the global
+   .hero-section .actions .cta rule has higher specificity and would
+   otherwise let each button size to its content. */
+.heroActionsTriple {
+  display: grid !important;
+  grid-template-columns: 280px 280px;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+.heroActionsTriple :global(.cta) {
+  width: 280px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  justify-content: center !important;
+  /* white-space: nowrap forces every label to render on one line so
+     "Embedded Placements" doesn't wrap and grow the button height,
+     keeping all three pills visually identical. */
+  white-space: nowrap !important;
+}
+.heroActionsTriple :global(.cta):nth-child(3) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  /* Extra breathing room above "Let's talk" so it reads as a deliberate
+     primary action rather than crowding the row above. */
+  margin-top: 8px;
+}
+@media (max-width: 759px) {
+  .heroActionsTriple {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+  .heroActionsTriple :global(.cta) { width: 100% !important; }
+  .heroActionsTriple :global(.cta):nth-child(3) {
+    grid-column: auto;
+    justify-self: stretch;
+    /* Reset the desktop margin - on mobile all three buttons share
+       the same 10px gap and don't need extra space above "Let's talk". */
+    margin-top: 0;
+  }
+}
+
 .page {
   --gold: #f0c673;
   --gold-bright: #ffd98a;
@@ -1266,6 +1316,29 @@
 @media (max-width: 899px) {
   .destStatic :global(.case.split-flip) > :global(.slot-frame) {
     order: -1;
+  }
+}
+
+/* ─── Service section equal-height + image centering ────────────────────
+   Embedded Placements (3 features) and Media Production (5 features)
+   render at different heights by default because the text columns
+   differ in length. Forcing a shared min-height makes both .case
+   sections feel consistent in the page rhythm. Restoring the slot-frame
+   to its natural 4/5 aspect ratio (instead of stretching to fill the
+   row) means the image keeps reasonable proportions; align-items:
+   center then vertically centres the shorter element (usually the
+   image) against the taller column. */
+@media (min-width: 900px) {
+  .destStatic :global(.case.split),
+  .destStatic :global(.case.split-flip) {
+    min-height: 640px;
+    align-items: center;
+  }
+  .destStatic :global(.case) :global(.slot-frame.tall) {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 4 / 5;
+    align-self: center;
   }
 }
 

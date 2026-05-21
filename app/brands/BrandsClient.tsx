@@ -63,6 +63,9 @@ const CLIENTS_BOTTOM: Client[] = [
   { name: 'YWAM Singapore', logo: '/assets/clients/ywamsg.png' },
   { name: 'Barker Road Methodist Church', logo: '/assets/clients/barker-road-methodist-church.png' },
   { name: 'N5 Stewardship Movement', logo: '/assets/clients/n5-logo.png' },
+  // Karrot Gold is a square 500x500 PNG vs the banks' wide horizontal
+  // marks - boost the height so it reads at similar visual weight.
+  { name: 'Karrot Gold', logo: '/assets/clients/karrot-gold.png', height: 70 },
 ];
 
 // Static-page port of the brand destination overlay from the immersive
@@ -310,19 +313,20 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
               <p className="lead anim" style={{ transitionDelay: '380ms' }}>
                 Some teams need ongoing, in-house creative capability. Others need a full project delivered, end-to-end. Beacon does both - without the agency layer, the freelancer churn, or the cost of building a creative team from scratch.
               </p>
-              <div className="actions anim" style={{ transitionDelay: '560ms' }}>
+              <div className={`actions anim ${s.heroActionsTriple}`} style={{ transitionDelay: '560ms' }}>
+                <a href="#services" className="cta ghost">Embedded Placements</a>
+                <a href="#production" className="cta ghost">Media Production</a>
                 <button type="button" className="cta" onClick={scrollToForm}>
                   Let&rsquo;s talk
                 </button>
-                <a href="#process" className="cta ghost">How we work</a>
               </div>
             </div>
           </section>
 
-          {/* SERVICE 01 - Embedded Solutions */}
+          {/* SERVICE 01 - Embedded Placements */}
           <div id="services" className="container">
             <div className="section-rule anim">
-              <div className="label">01 · Embedded Solutions</div>
+              <div className="label">01 · Embedded Placements</div>
               <div className="line"></div>
             </div>
             <div className="case split anim">
@@ -358,7 +362,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
           </div>
 
           {/* SERVICE 02 - Media Production */}
-          <div className="container">
+          <div id="production" className="container">
             <div className="section-rule anim">
               <div className="label">02 · Media Production</div>
               <div className="line"></div>
@@ -370,34 +374,14 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                 <p>
                   When you need a project shipped at scale, our in-house production team takes it from brief to final cut. Thoughtful creative direction. Disciplined execution. Built for organisations that need consistency without managing the people who produce it.
                 </p>
-                <ol className="capabilities anim">
-                  <li>
-                    <span className="cap-n">01</span>
-                    <span className="cap-title">Video production</span>
-                    <span className="cap-tag">Brand films · Campaign work · Social-first formats</span>
-                  </li>
-                  <li>
-                    <span className="cap-n">02</span>
-                    <span className="cap-title">Social media content</span>
-                    <span className="cap-tag">Vertical-native · Platform-fluent · Ship-ready</span>
-                  </li>
-                  <li>
-                    <span className="cap-n">03</span>
-                    <span className="cap-title">Content strategy</span>
-                    <span className="cap-tag">Tied to outcomes · Not just deliverables</span>
-                  </li>
-                  <li>
-                    <span className="cap-n">04</span>
-                    <span className="cap-title">Studio rentals</span>
-                    <span className="cap-tag">Fully-equipped · Shoots, interviews, content days</span>
-                  </li>
-                  <li>
-                    <span className="cap-n">05</span>
-                    <span className="cap-title">Virtual production</span>
-                    <span className="cap-tag">LED volume · Real-time workflows</span>
-                  </li>
-                </ol>
-                <div className="actions" style={{ marginTop: 32 }}>
+                <ul className="features anim">
+                  <li>Video production: brand films, campaign work, social-first formats.</li>
+                  <li>Social media content: vertical-native, platform-fluent, ship-ready.</li>
+                  <li>Content strategy: tied to outcomes, not just deliverables.</li>
+                  <li>Studio rentals: fully-equipped for shoots, interviews, content days.</li>
+                  <li>Virtual production: LED volume and real-time workflows.</li>
+                </ul>
+                <div className="actions">
                   <button type="button" className="cta" onClick={scrollToForm}>
                     Brief a project
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -412,6 +396,16 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Mid-page CTA - sits centred under the two service blocks
+              so a reader who's absorbed both pathways can jump straight
+              to the form without scrolling further. */}
+          <div className="container anim" style={{ textAlign: 'center', padding: '24px 0 48px' }}>
+            <button type="button" className="cta" onClick={scrollToForm}>
+              Let&rsquo;s talk
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
           </div>
 
           {/* Selected clients - editorial wordmark strip sitting between
