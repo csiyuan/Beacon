@@ -798,9 +798,16 @@
   transition: background 240ms;
 }
 
+/* !important on position + inset so the journey page's `.page > *
+   { position: relative }` blanket rule (used to stack children above
+   the .page::before glow) doesn't displace the fixed-overlay menu
+   into the normal flow on mobile. Same reason globals.css's `.bar`
+   needs a re-fix in journey.module.css - the blanket child rule
+   would otherwise steal positioning from any fixed overlay rendered
+   as a direct child of .page. */
 .menuBackdrop {
-  position: fixed;
-  inset: 0;
+  position: fixed !important;
+  inset: 0 !important;
   background: rgba(0, 0, 0, 0.62);
   opacity: 0;
   pointer-events: none;
@@ -810,10 +817,10 @@
 .menuBackdropOpen { opacity: 1; pointer-events: auto; }
 
 .sideMenu {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   width: min(85vw, 340px);
   background: rgba(10, 8, 5, 0.98);
   border-left: 1px solid rgba(240, 198, 115, 0.18);
