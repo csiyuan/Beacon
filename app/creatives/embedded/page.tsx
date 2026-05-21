@@ -13,7 +13,7 @@ export default function EmbeddedPathwayPage() {
       pathway="embedded"
       heroTitle={<>Build a creative career inside<br /><em>brands that actually want you</em>.</>}
       heroSub={<>Beacon is for videographers, editors, designers, and content creators who&rsquo;d rather grow inside a brand than rotate through gig work. We place you full-time, support you long-term, and pair you with organisations that take their creative seriously.</>}
-      primaryCta={{ label: 'Apply now', href: '/contact?from=creatives&pathway=embedded' }}
+      primaryCta={{ label: 'Apply now', href: '#apply' }}
       secondaryCta={{ label: 'How it works', href: '#journey' }}
       milestones={[
         {

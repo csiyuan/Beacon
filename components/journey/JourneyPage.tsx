@@ -459,9 +459,9 @@ export default function JourneyPage({
         <h1 className={s.heroTitle}>{heroTitle}</h1>
         <p className={s.heroSub}>{heroSub}</p>
         <div className={s.heroActions}>
-          <Link href={primaryCta.href} className={s.cta}>
+          <a href={primaryCta.href} className={s.cta}>
             {primaryCta.label}
-          </Link>
+          </a>
           {secondaryCta && (
             <a href={secondaryCta.href} className={`${s.cta} ${s.ctaGhost}`}>{secondaryCta.label}</a>
           )}

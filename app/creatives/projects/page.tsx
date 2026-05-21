@@ -13,7 +13,7 @@ export default function ProjectsPathwayPage() {
       pathway="projects"
       heroTitle={<>Project work -<br /><em>without the freelance grind</em>.</>}
       heroSub={<>Briefed clearly. Paid on delivery. No chasing leads, no scoping calls that go nowhere. Beacon brings vetted brand projects to your inbox and handles the rest of the noise.</>}
-      primaryCta={{ label: 'Join the roster', href: '/contact?from=creatives&pathway=projects' }}
+      primaryCta={{ label: 'Join the roster', href: '#apply' }}
       secondaryCta={{ label: 'How it works', href: '#journey' }}
       milestones={[
         {
