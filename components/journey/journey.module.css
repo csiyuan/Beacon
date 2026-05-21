@@ -448,19 +448,13 @@
    sub / CTAs sit centered in the user's view on arrival (matching the
    creatives landing's centered title card). */
 .hero {
-  /* Full-viewport hero, stacked top-down (NOT centered). Centering used
-     to float the switcher up or down depending on how tall the title +
-     sub + CTAs ended up on each pathway - meaning the switcher landed
-     in a different y-position on Embedded vs Projects. Top-aligning
-     with a generous padding-top pins the switcher at a known offset
-     (~25% from the top of the viewport on a typical desktop) so the
-     two pathway pages match each other while the switcher still
-     reads as a centered visual anchor rather than something jammed
-     against the nav. */
+  /* Top-aligned hero so the switcher pins at a known offset regardless
+     of the pathway. Padding-top just needs to clear the sticky nav +
+     give a touch of breathing room (the previous 110-150px clamp was
+     sized to push the switcher down ~25% of the viewport, which read
+     as way too much empty space at the top on desktop). */
   position: relative;
-  min-height: 100vh;
-  margin-top: 20px;
-  padding-top: clamp(110px, 12vh, 150px);
+  padding-top: clamp(40px, 6vh, 72px);
   padding-bottom: clamp(48px, 8vh, 96px);
   box-sizing: border-box;
   display: flex;
@@ -469,14 +463,17 @@
   justify-content: flex-start;
   text-align: center;
 }
-/* Mobile shift - push the whole hero block down 20px on small/tablet
-   screens. Breakpoint bumped to 900px so it catches iPad portrait
-   (768px) and large phones in landscape, both of which still feel
-   "mobile" to the user. !important added because base .hero rules
-   in this file aren't reliably overridden without it (same issue
-   that affected .hero .switcher earlier). */
+/* Mobile - tighten the hero so the pill switcher sits closer to the
+   nav instead of being pushed deep into the viewport. The full-
+   viewport min-height is also dropped to auto so the section sizes
+   to its content rather than reserving 100vh. */
 @media (max-width: 900px) {
-  .hero { padding-top: calc(clamp(110px, 12vh, 150px) + 20px) !important; }
+  .hero {
+    padding-top: clamp(28px, 5vh, 56px) !important;
+    padding-bottom: clamp(32px, 6vh, 72px) !important;
+    min-height: 0 !important;
+    margin-top: 0 !important;
+  }
 }
 
 .hero .heroEyebrow,
@@ -1474,66 +1471,76 @@
    a faint top hairline that lights gold on hover - subtle reward for
    the eye that lands on it. */
 .statsBand {
+  /* Brand-page treatment: flat, centered tiles in a 3-col band - no
+     card chrome, no border, no description. Matches the global
+     .dest .brand-stats block on the brands page exactly. */
   display: grid;
   grid-template-columns: 1fr;
-  gap: 18px;
+  gap: 36px 40px;
+  padding: 4vh 0 8vh;
+  justify-items: center;
+  text-align: center;
+  max-width: 920px;
+  margin-left: auto;
+  margin-right: auto;
 }
-@media (min-width: 720px) { .statsBand { grid-template-columns: repeat(3, 1fr); gap: 28px; } }
+@media (min-width: 640px) {
+  .statsBand { grid-template-columns: repeat(3, 1fr); gap: 28px 32px; }
+}
 
 .statTile {
-  position: relative;
-  padding: 36px 28px 32px;
-  background: rgba(20, 17, 12, 0.55);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  text-align: left;
-  transition: border-color 240ms, background 240ms, transform 240ms;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  text-align: center;
+  width: 100%;
+  max-width: 320px;
 }
-.statTile::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: 24px;
-  right: 24px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
-  opacity: 0.45;
-  transition: opacity 240ms;
-}
-.statTile:hover {
-  border-color: rgba(240, 198, 115, 0.42);
-  background: rgba(26, 22, 15, 0.7);
-  transform: translateY(-2px);
-}
-.statTile:hover::before { opacity: 1; }
 
 .statValue {
   font-family: var(--serif);
-  font-weight: 300;
-  font-size: clamp(2.75rem, 5.6vw, 4rem);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(40px, 5.4vw, 64px);
   line-height: 1;
-  letter-spacing: -0.015em;
-  color: var(--gold-bright);
-  background: linear-gradient(180deg, #fff3d6, #ffd98a);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  margin: 0 0 12px;
+  letter-spacing: 0;
+  color: #ffe2a0;
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+  margin: 0;
+  text-align: center;
 }
 .statLabel {
   font-family: var(--sans);
-  font-size: 12px;
-  letter-spacing: 0.18em;
+  font-size: 10.5px;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: var(--cream);
+  color: rgba(243, 231, 200, 0.62);
   font-weight: 500;
+  text-align: center;
 }
-.statCaption {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--cream-mute);
-  margin-top: 10px;
+/* Brand version has no caption - hide it so the visual matches. */
+.statCaption { display: none; }
+
+/* Mobile: single column, larger numerals, hairline divider between
+   stacked tiles. Mirrors the brands page's @media (max-width: 639px)
+   .dest .brand-stat overrides. */
+@media (max-width: 639px) {
+  .statsBand { grid-template-columns: 1fr; gap: 36px; }
+  .statTile { max-width: none; gap: 14px; }
+  .statTile + .statTile {
+    padding-top: 32px;
+    border-top: 1px solid rgba(240, 198, 115, 0.22);
+  }
+  .statValue { font-size: clamp(56px, 16vw, 96px); }
+  .statLabel { font-size: 13px; letter-spacing: 0.36em; }
 }
 
 /* ─── Fit panel ────────────────────────────────────────────────────────
@@ -1712,13 +1719,9 @@
   color: var(--cream-mute);
   font-weight: 500;
   border-top: 1px solid var(--rule);
-  border-left: 1px solid var(--rule);
   border-right: 1px solid var(--rule);
   align-self: start;
   min-width: 0;
-}
-.compareRow:last-child .compareRowLabel {
-  border-bottom: 1px solid var(--rule);
 }
 .compareCell {
   padding: 20px 20px;
@@ -1770,9 +1773,8 @@
   .compareRowLabel {
     grid-column: 1 / -1;
     /* Row label spans full width on mobile - subtle gold rules on
-       top + sides. Bottom border dropped except on the last row so
-       adjacent labels don't stack into a doubled stripe; cells
-       below provide the divider via their borders. */
+       top + sides only. No bottom border (cells below provide the
+       divider via their borders). */
     text-align: center;
     justify-content: center;
     padding: 16px 24px;
@@ -1781,10 +1783,42 @@
     border-right: 1px solid var(--rule);
     background: transparent;
   }
+  /* Override the desktop "last row gets a bottom border" rule on
+     mobile - the BEST FOR label shouldn't have a hairline directly
+     above its value cells when the table is in stacked-row mode. */
+  .compareRow:last-child .compareRowLabel {
+    border-bottom: 0;
+  }
   .compareCell {
     border-top: 0;
     padding: 16px 16px;
     font-size: 0.95rem;
+  }
+  /* Last row's active cell: keep ONLY the left + right glow lines and
+     extend them past the cell's bottom edge so they appear to bleed
+     downward into the area below. The bottom horizontal cap is removed
+     so the column "opens" at the bottom on mobile. */
+  .compareRow:last-child .compareCellActive {
+    box-shadow:
+      inset 1px 0 0 rgba(240, 198, 115, 0.55),
+      inset -1px 0 0 rgba(240, 198, 115, 0.55);
+    position: relative;
+  }
+  .compareRow:last-child .compareCellActive::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 32px;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg,
+        rgba(240, 198, 115, 0.55) 0 1px,
+        transparent 1px calc(100% - 1px),
+        rgba(240, 198, 115, 0.55) calc(100% - 1px) 100%);
+    mask-image: linear-gradient(180deg, rgba(0,0,0,1), rgba(0,0,0,0));
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,1), rgba(0,0,0,0));
   }
 }
 /* Very-narrow mobile (under 400px): the 2-col layout starts to feel
@@ -2896,6 +2930,14 @@
   background: linear-gradient(0deg, rgba(7, 6, 10, 0.95) 0%, rgba(7, 6, 10, 0) 100%);
 }
 .journeyFadeOn { opacity: 1; }
+/* Mobile - hide the edge fades. The dark gradient strip reads as an
+   unwanted divider between the hero and the journey on narrow viewports
+   where the content stacks tightly without the breathing room desktop
+   has. */
+@media (max-width: 900px) {
+  .journeyFadeTop,
+  .journeyFadeBottom { display: none; }
+}
 
 .journeyNav {
   position: fixed;
@@ -3754,7 +3796,7 @@
   .flowChapterGroup {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
     gap: 56px;
     width: 100%;
     max-width: 880px;
@@ -3763,11 +3805,20 @@
   .flowChapterReverse .flowChapterGroup {
     flex-direction: row-reverse;
   }
+  /* Image stretches top-to-bottom to match the content column (text +
+     features + any CTA below it) - same treatment as the brands page
+     service cases. object-fit: cover on the inner img crops cleanly. */
   .flowChapterImage {
     flex: 0 0 42%;
-    aspect-ratio: 4 / 5;
+    aspect-ratio: auto;
     max-width: none;
-    max-height: 64vh;
+    max-height: none;
+    align-self: stretch;
+  }
+  .flowChapterImage :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
   .flowChapterContent {
     flex: 1 1 58%;

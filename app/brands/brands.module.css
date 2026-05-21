@@ -1319,27 +1319,42 @@
   }
 }
 
-/* ─── Service section equal-height + image centering ────────────────────
+/* ─── Service section equal-height + image stretches to content ─────────
    Embedded Placements (3 features) and Media Production (5 features)
    render at different heights by default because the text columns
    differ in length. Forcing a shared min-height makes both .case
-   sections feel consistent in the page rhythm. Restoring the slot-frame
-   to its natural 4/5 aspect ratio (instead of stretching to fill the
-   row) means the image keeps reasonable proportions; align-items:
-   center then vertically centres the shorter element (usually the
-   image) against the taller column. */
+   sections feel consistent in the page rhythm. The slot-frame stretches
+   top-to-bottom to match the full content column (text + features +
+   CTA), with object-fit: cover on the inner image so it crops cleanly
+   instead of stretching. */
 @media (min-width: 900px) {
   .destStatic :global(.case.split),
   .destStatic :global(.case.split-flip) {
     min-height: 640px;
-    align-items: center;
+    align-items: stretch;
   }
   .destStatic :global(.case) :global(.slot-frame.tall) {
-    height: auto;
+    height: 100%;
     min-height: 0;
-    aspect-ratio: 4 / 5;
-    align-self: center;
+    aspect-ratio: auto;
+    align-self: stretch;
   }
+  .destStatic :global(.case) :global(.slot-frame.tall) img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+}
+
+/* Each feature bullet ("the boxes containing the point forms") gets a
+   shared min-height so short 1-line items and longer 2-line items read
+   as the same visual box. Aligned vertically centred so the dot bullet
+   sits mid-line regardless of how many lines the text wraps to. */
+.destStatic :global(.features) li {
+  min-height: 56px;
+  align-items: center !important;
+  padding-top: 8px;
+  padding-bottom: 14px;
 }
 
 /* Footer uses the global 4-column layout. Only override: drop the
@@ -2050,6 +2065,12 @@
   opacity: 1;
   filter: brightness(0) invert(1);
 }
+/* Per-logo desktop bumps: The Kallang (square wordmark, 3rd in
+   top row) and Karrot Gold (circular emblem, 4th in bottom row)
+   read smaller than the wide horizontal bank lockups at 44px.
+   Push them up so the row feels visually balanced on desktop. */
+.clientsRowTop .clientName:nth-child(3) .clientLogo { height: 64px; }
+.clientsRowBottom .clientName:nth-child(4) .clientLogo { height: 68px; }
 .clientsFootnote {
   font-family: var(--ds-sans, 'Inter', system-ui, sans-serif);
   font-size: 12px;
@@ -2062,16 +2083,40 @@
 @media (max-width: 960px) {
   .clientsGrid { gap: 22px 36px; }
 }
+/* Mobile - swap the wrapping flex row for an explicit 2-column grid so
+   logos pair up cleanly:
+     Top row (3 logos): [1] [2] / [3 centered below]
+     Bottom row (4 logos): [1] [2] / [3] [4]
+   Both rows stay centred horizontally on the page. */
 @media (max-width: 720px) {
-  .clientsGrid { gap: 20px 28px; }
-  .clientName { flex: 0 1 160px; width: 160px; height: 72px; }
-  .clientLogo { height: 40px; }
-}
-@media (max-width: 480px) {
-  .clientsGrid { gap: 18px 22px; padding: 28px 0; }
-  .clientName { flex: 0 1 140px; width: 140px; height: 64px; }
+  .clientsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 18px;
+    justify-items: center;
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 28px 0;
+  }
+  /* When the row has 3 items (CLIENTS_TOP), the 3rd item spans both
+     columns and centres in its row. Uses :nth-child + :last-child to
+     only match the trailing odd item. */
+  .clientsGrid :nth-child(3):last-child {
+    grid-column: 1 / -1;
+  }
+  .clientName {
+    width: 100%;
+    height: 64px;
+    flex: none;
+  }
   .clientLogo { height: 36px; }
   .clientWordmark { white-space: normal; font-size: 18px; }
+  /* Per-logo mobile bumps: The Kallang (square wordmark, 3rd in
+     top row) and Karrot Gold (circular emblem, 4th in bottom row)
+     read smaller than the wide horizontal bank lockups at 36px.
+     Push them up so the mobile row feels visually balanced. */
+  .clientsRowTop .clientName:nth-child(3) .clientLogo { height: 52px; }
+  .clientsRowBottom .clientName:nth-child(4) .clientLogo { height: 56px; }
 }
 
 /* Hero centering - matches the cinematic centred-hero idiom used on the

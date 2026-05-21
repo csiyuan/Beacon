@@ -48,8 +48,11 @@ const labelFor = <T extends readonly (readonly [string, string])[]>(list: T, cod
 // `height` is an optional per-logo height override (in px). Wide
 // horizontal logos (banks) read well at the default 44px height; square
 // or icon-style logos need a bigger height to land at the same visual
-// weight as the wide ones. Tune per-logo as the roster evolves.
-type Client = { name: string; logo?: string; height?: number };
+// weight as the wide ones.
+// `filter` is an optional per-logo CSS filter override - use it when
+// the default brightness(0)+invert silhouette filter flattens internal
+// details (e.g. Barker Road's cross outline on the yellow circle).
+type Client = { name: string; logo?: string; height?: number; filter?: string };
 // Real client roster, split into two rows. The two "heavy hitter"
 // bank clients sit on the top row; the faith / ministry partners share
 // the bottom row. Wordmark fallback shows until a logo file is dropped
@@ -61,11 +64,22 @@ const CLIENTS_TOP: Client[] = [
 ];
 const CLIENTS_BOTTOM: Client[] = [
   { name: 'YWAM Singapore', logo: '/assets/clients/ywamsg.png' },
-  { name: 'Barker Road Methodist Church', logo: '/assets/clients/barker-road-methodist-church.png' },
-  { name: 'N5 Stewardship Movement', logo: '/assets/clients/n5-logo.png' },
-  // Karrot Gold is a square 500x500 PNG vs the banks' wide horizontal
-  // marks - boost the height so it reads at similar visual weight.
-  { name: 'Karrot Gold', logo: '/assets/clients/karrot-gold.png', height: 70 },
+  // Barker Road has black detail (cross + church) inside a yellow
+  // circle. The default brightness(0)+invert silhouette filter
+  // flattens the whole circle into one white blob and loses those
+  // outlines. invert(1)+saturate(0) flips dark-on-light to light-on-
+  // grey while staying monochrome, so the cross + church silhouette
+  // read clearly inside the desaturated circle.
+  {
+    name: 'Barker Road Methodist Church',
+    logo: '/assets/clients/barker-road-methodist-church.png',
+    filter: 'invert(1) saturate(0)',
+  },
+  // The source PNG is already white-on-transparent, so skip the
+  // default brightness(0)+invert silhouette filter - it would invert
+  // the white pixels to near-black and kill the logo.
+  { name: 'N5 Stewardship Movement', logo: '/assets/clients/n5-logo.png', filter: 'none' },
+  { name: 'Karrot Gold', logo: '/assets/clients/karrot-gold.png' },
 ];
 
 // Static-page port of the brand destination overlay from the immersive
@@ -398,16 +412,6 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             </div>
           </div>
 
-          {/* Mid-page CTA - sits centred under the two service blocks
-              so a reader who's absorbed both pathways can jump straight
-              to the form without scrolling further. */}
-          <div className="container anim" style={{ textAlign: 'center', padding: '24px 0 48px' }}>
-            <button type="button" className="cta" onClick={scrollToForm}>
-              Let&rsquo;s talk
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            </button>
-          </div>
-
           {/* Selected clients - editorial wordmark strip sitting between
               the two service blocks and the comparison table. Provides
               social proof at the moment the reader has just absorbed
@@ -436,7 +440,10 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                           alt={c.name}
                           className={s.clientLogo}
                           loading="lazy"
-                          style={c.height ? { height: `${c.height}px` } : undefined}
+                          style={c.height || c.filter ? {
+                            ...(c.height ? { height: `${c.height}px` } : {}),
+                            ...(c.filter ? { filter: c.filter } : {}),
+                          } : undefined}
                         />
                       ) : (
                         <span className={s.clientWordmark}>{c.name}</span>
@@ -453,7 +460,10 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                           alt={c.name}
                           className={s.clientLogo}
                           loading="lazy"
-                          style={c.height ? { height: `${c.height}px` } : undefined}
+                          style={c.height || c.filter ? {
+                            ...(c.height ? { height: `${c.height}px` } : {}),
+                            ...(c.filter ? { filter: c.filter } : {}),
+                          } : undefined}
                         />
                       ) : (
                         <span className={s.clientWordmark}>{c.name}</span>
