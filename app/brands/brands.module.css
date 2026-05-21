@@ -31,7 +31,10 @@
   letter-spacing: 0.005em;
   position: relative;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* overflow-x: clip (not hidden) - clip doesn't create a scroll
+     container, so position: sticky on child elements (the heroNav)
+     keeps working. overflow-x: hidden would break sticky. */
+  overflow-x: clip;
 }
 
 /* Subtle warm radial glow on the body backdrop - calmer than the cinematic
@@ -928,9 +931,12 @@
   padding-bottom: 96px;
 }
 /* The hero's inner .container shouldn't add its own padding on top
-   of the .hero-section's own framing. */
+   of the .hero-section's own framing. transform shifts the centered
+   hero content up by 50px so the headline sits clearly above true
+   centre, matching the design ask. */
 .destStatic :global(.hero-section) > :global(.container) {
   padding: 0;
+  transform: translateY(-50px);
 }
 /* Mobile - the hero copy needs to clear the viewport edges. 20px
    gutter on each side per the design ask. */
@@ -1263,26 +1269,13 @@
   }
 }
 
-/* Footer adjustments scoped to /brands. Two changes:
-   1. Keep Navigate + Pathways side-by-side at every viewport - the
-      global rule stacks them below 760px which leaves a long, lonely
-      Pathways column on mobile.
-   2. Drop the hairline above the social icons - the meta line below
-      already provides the legal-text separator, so two stacked rules
-      that close together read as accidental. */
-.destStatic :global(.dest-footer) :global(.ft-cols) {
-  grid-template-columns: 1fr 1fr !important;
-  gap: 24px;
-}
-@media (min-width: 760px) {
-  .destStatic :global(.dest-footer) :global(.ft-cols) {
-    gap: 56px;
-  }
-}
+/* Footer uses the global 4-column layout. Only override: drop the
+   hairline above the social icons so the meta line below provides
+   the only legal-text separator. */
 .destStatic :global(.dest-footer) :global(.ft-social) {
   border-top: none;
   padding-top: 0;
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 /* Closing block has no section-rule, so it needs its own top padding
@@ -1475,10 +1468,9 @@
    row-label column on the left. Collapses to a stacked 2-col grid on
    mobile so it stays scannable. */
 .compareTable {
-  /* Mirror the journey-page comparison table exactly: no outer border,
-     transparent corner cell, "Pathway A / Pathway B" column header
-     strip, and a gold-ringed active column. The table reads as
-     "header strip + rows" stacked over the dark table background. */
+  /* Mirror the journey-page comparison table exactly: subtle gold
+     borders for internal dividers, bright gold ring on the active
+     service column only via .compareColActive / .compareCellActive. */
   display: grid;
   grid-template-columns: minmax(100px, 160px) minmax(0, 1fr) minmax(0, 1fr);
   background: rgba(20, 17, 12, 0.5);
@@ -1511,8 +1503,15 @@
   color: #fff3d6;
 }
 .compareColActive {
+  /* Bright gold ring on top + left + right (open bottom so it flows
+     into the cells below). Background tint + brighter column name
+     reinforce the highlight. The inactive column keeps subtle gold
+     borders, so only this column reads as "you are here". */
   background: rgba(240, 198, 115, 0.10);
-  box-shadow: inset 0 0 0 1px rgba(240, 198, 115, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(240, 198, 115, 0.55),
+    inset 1px 0 0 rgba(240, 198, 115, 0.55),
+    inset -1px 0 0 rgba(240, 198, 115, 0.55);
 }
 .compareColActive .compareColName { color: var(--gold-bright, #ffd98a); }
 .compareLabel {
@@ -1523,9 +1522,17 @@
   text-transform: uppercase;
   color: rgba(243, 231, 200, 0.72);
   font-weight: 500;
+  /* Subtle gold hairlines on top + sides; the bottom is dropped on
+     all but the last row so adjacent labels don't double up the
+     divider into a 2px stripe. */
   border-top: 1px solid rgba(240, 198, 115, 0.18);
+  border-left: 1px solid rgba(240, 198, 115, 0.18);
+  border-right: 1px solid rgba(240, 198, 115, 0.18);
   align-self: start;
   min-width: 0;
+}
+.compareRow:last-child .compareLabel {
+  border-bottom: 1px solid rgba(240, 198, 115, 0.18);
 }
 .compareRow:first-child .compareLabel,
 .compareRow:first-child .compareColHead {
@@ -1534,10 +1541,10 @@
 .compareRow:first-child .compareLabel {
   /* Corner cell (top-left, no text) - transparent so the table appears
      to start cleanly at the column-header row, matching the journey
-     comparison table. */
+     comparison table. All four borders dropped so the corner reads
+     as empty page space, not a framed cell. */
   background: transparent;
-  border-top: 0;
-  border-bottom: 0;
+  border: 0;
 }
 .compareCell {
   padding: 20px 20px;
@@ -1552,10 +1559,22 @@
   overflow-wrap: break-word;
 }
 .compareCellActive {
+  /* Active-cell ring on top of the subtle base border. Sides only -
+     adjacent rows stack their top/bottom into a continuous bright
+     gold line down the column without doubling at the cell seams. */
   background: rgba(240, 198, 115, 0.06);
   color: var(--gold-bright, #ffd98a);
-  box-shadow: inset 1px 0 0 rgba(240, 198, 115, 0.32),
-              inset -1px 0 0 rgba(240, 198, 115, 0.32);
+  box-shadow:
+    inset 1px 0 0 rgba(240, 198, 115, 0.55),
+    inset -1px 0 0 rgba(240, 198, 115, 0.55);
+}
+/* Bottom edge on the last row's active cell so the active column
+   outline closes off cleanly at the bottom. */
+.compareRow:last-child .compareCellActive {
+  box-shadow:
+    inset 1px 0 0 rgba(240, 198, 115, 0.55),
+    inset -1px 0 0 rgba(240, 198, 115, 0.55),
+    inset 0 -1px 0 rgba(240, 198, 115, 0.55);
 }
 @media (max-width: 720px) {
   .compareTable { grid-template-columns: 1fr 1fr; }
@@ -1565,19 +1584,18 @@
   .compareRow:first-child .compareLabel { display: none; }
   .compareLabel {
     grid-column: 1 / -1;
-    /* Centered label sits between the row-divider above (border-top)
-       and a matching hairline below (border-bottom), so each section's
-       title separates cleanly from its two info cells - same divider
-       treatment as the rest of the table rows. */
+    /* Row label spans full width on mobile - subtle gold rules on
+       top + sides. Bottom dropped except on the last row so adjacent
+       labels don't stack into a doubled stripe. */
     text-align: center;
     justify-content: center;
     border-top: 1px solid rgba(240, 198, 115, 0.18);
-    border-bottom: 1px solid rgba(240, 198, 115, 0.18);
+    border-left: 1px solid rgba(240, 198, 115, 0.18);
+    border-right: 1px solid rgba(240, 198, 115, 0.18);
     padding: 16px 24px;
   }
-  .compareColHead { border-left: 0; }
-  .compareColHead + .compareColHead { border-left: 1px solid rgba(240, 198, 115, 0.18); }
-  .compareCell { border-top: 0; }
+  .compareColHead { border-left: 1px solid rgba(240, 198, 115, 0.18); }
+  .compareCell { border-top: 0; border-left: 1px solid rgba(240, 198, 115, 0.18); }
   .compareCell + .compareCell { border-left: 1px solid rgba(240, 198, 115, 0.18); }
 }
 
@@ -1903,28 +1921,22 @@
 .clientsRowTop {
   border-bottom: 1px solid rgba(240, 198, 115, 0.12);
 }
-/* Top row carries the bank heavy hitters at larger scale - their
-   recognition is the core social proof, so we let them breathe. */
-.clientsRowTop .clientName {
-  flex: 0 1 220px;
-  min-height: 64px;
-}
-.clientsRowTop .clientLogo {
-  max-height: 48px;
-  max-width: 180px;
-}
-.clientsRowTop .clientWordmark {
-  font-size: clamp(22px, 2vw, 30px);
-}
+/* Wordmark-only fallback rows (no logo provided) get a slightly
+   larger min-height so the typography reads at heading scale. */
+.clientsRowTop .clientWordmark { font-size: clamp(22px, 2vw, 30px); }
 .clientName {
-  /* Flex child of the centred clientsGrid - flex-basis controls how
-     many fit per row (~180px = 4-5 per row on desktop, fewer at narrow
-     widths since they wrap automatically). */
+  /* Uniform slot for every logo - 200px wide x 80px tall on desktop
+     so each logo (regardless of its native aspect ratio) renders
+     inside the same visual footprint. The image inside is forced to
+     a pixel height so the eye reads the row as balanced; per-logo
+     heights can be overridden inline (e.g. square logos get bumped
+     so they read at similar visual weight to wide horizontal logos). */
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
-  flex: 0 1 180px;
+  flex: 0 1 200px;
+  width: 200px;
+  height: 80px;
   cursor: default;
   transition: transform 280ms cubic-bezier(.22, .65, .21, 1);
 }
@@ -1945,26 +1957,25 @@
   transition: color 280ms cubic-bezier(.22, .65, .21, 1);
 }
 .clientName:hover .clientWordmark { color: var(--gold-bright, #ffe2a0); }
-/* Logo image - rendered as a cream-tinted monochrome silhouette so any
-   logo (full-colour or already monochrome) lands in the page palette.
-   The `brightness(0) invert(0.92)` chain forces every pixel to a single
-   cream tone (0.92 = slightly off-white). Reduced opacity matches the
-   wordmark's quiet treatment; hover lifts it to full brightness + a
-   subtle gold sepia tint. */
+/* Logo image - every non-transparent pixel is forced to near-white via
+   brightness(0) + invert. This guarantees logos with dark text (DBS,
+   Kallang, Barker Road) read clearly against the dark page; pure
+   grayscale was leaving their dark elements invisible. Fixed height
+   (44px) across every logo so the row reads as visually balanced
+   even though native aspect ratios differ. */
 .clientLogo {
-  max-height: 40px;
-  max-width: 140px;
+  height: 44px;
+  max-width: 100%;
   width: auto;
-  height: auto;
   object-fit: contain;
-  opacity: 0.55;
-  filter: brightness(0) invert(0.92);
+  opacity: 0.78;
+  filter: brightness(0) invert(0.95);
   transition: opacity 280ms cubic-bezier(.22, .65, .21, 1),
               filter 280ms cubic-bezier(.22, .65, .21, 1);
 }
 .clientName:hover .clientLogo {
   opacity: 1;
-  filter: brightness(0) invert(0.92) sepia(0.4) saturate(1.6) hue-rotate(-15deg);
+  filter: brightness(0) invert(1);
 }
 .clientsFootnote {
   font-family: var(--ds-sans, 'Inter', system-ui, sans-serif);
@@ -1980,11 +1991,13 @@
 }
 @media (max-width: 720px) {
   .clientsGrid { gap: 20px 28px; }
-  .clientName { flex-basis: 140px; }
+  .clientName { flex: 0 1 160px; width: 160px; height: 72px; }
+  .clientLogo { height: 40px; }
 }
 @media (max-width: 480px) {
   .clientsGrid { gap: 18px 22px; padding: 28px 0; }
-  .clientName { flex-basis: 100%; min-height: 44px; }
+  .clientName { flex: 0 1 140px; width: 140px; height: 64px; }
+  .clientLogo { height: 36px; }
   .clientWordmark { white-space: normal; font-size: 18px; }
 }
 

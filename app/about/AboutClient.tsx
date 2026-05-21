@@ -27,20 +27,32 @@ export default function AboutClient() {
       <ArrivalWash />
       {navWashOverlay}
 
-      {/* ─── Top nav ─────────────────────────────────────────────── */}
-      <nav className={s.utilityNav}>
-        <Link
-          href="/"
-          className={s.utilityNavLogo}
-          onClick={(e) => {
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-            e.preventDefault();
-            navWash('/');
-          }}
+      {/* ─── Top nav - mirrors the home page header (splash.module.css
+          .heroNav + .heroLogo + .heroNavLinks). About-specific links:
+          Home, For Brands, For Creatives, Contact (About is the current
+          page so it's omitted). Mobile uses the same .sideMenu /
+          .menuBackdrop slide-in sheet that the home page uses. */}
+      <nav className={s.heroNav}>
+        <button
+          type="button"
+          className={s.heroLogo}
+          onClick={() => navWash('/')}
+          aria-label="Back to home"
         >
           <img src="/assets/beacon-logo.png" alt="Beacon Media Solutions" />
-        </Link>
+        </button>
         <div className={`${s.heroNavLinks} ${s.heroNavLinksDesktop}`}>
+          <Link
+            href="/"
+            className={s.heroNavLink}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/');
+            }}
+          >
+            Home
+          </Link>
           <Link
             href="/brands?from=splash"
             className={s.heroNavLink}
@@ -87,7 +99,7 @@ export default function AboutClient() {
         </button>
       </nav>
 
-      {/* Mobile side menu */}
+      {/* Mobile side menu - matches the home page .sideMenu pattern. */}
       <div
         className={`${s.menuBackdrop} ${menuOpen ? s.menuBackdropOpen : ''}`}
         onClick={() => setMenuOpen(false)}
@@ -98,7 +110,12 @@ export default function AboutClient() {
         aria-hidden={!menuOpen}
         aria-label="Mobile navigation"
       >
-        <button type="button" className={s.sideMenuClose} onClick={() => setMenuOpen(false)} aria-label="Close menu">
+        <button
+          type="button"
+          className={s.sideMenuClose}
+          onClick={() => setMenuOpen(false)}
+          aria-label="Close menu"
+        >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
@@ -109,6 +126,10 @@ export default function AboutClient() {
           <Link href="/creatives/embedded" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/creatives/embedded'); }}>For Creatives</Link>
           <Link href="/contact" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/contact'); }}>Contact</Link>
         </nav>
+        <div className={s.sideMenuConnect}>
+          <p className={s.sideMenuLabel}>Connect</p>
+          <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+        </div>
       </aside>
 
       {/* ─── Hero ─────────────────────────────────────────────────── */}
@@ -128,11 +149,35 @@ export default function AboutClient() {
       <section className={s.section}>
         <div className={s.container}>
           <div className={s.aboutGrid}>
-            <div>
-              <p className={s.sectionLabel}>Why we exist</p>
-              <h2 className={s.sectionHeading}>
-                Closing the gap between <em>craft and brief</em>.
-              </h2>
+            <div className={s.aboutGridLeft}>
+              <div>
+                <p className={s.sectionLabel}>Why we exist</p>
+                <h2 className={s.sectionHeading}>
+                  Closing the gap between <em>craft and brief</em>.
+                </h2>
+              </div>
+              {/* Founder card - signs the manifesto column. Sits at the
+                  bottom of the left column on desktop so the heading and
+                  the founder credit anchor the same vertical axis as
+                  the body copy on the right. Stacks below the heading
+                  on mobile. */}
+              <a
+                className={s.founderCard}
+                href="https://www.linkedin.com/in/wayneczx/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  className={s.founderPhoto}
+                  src="/assets/founder-wayne.jpg"
+                  alt="Wayne Chia"
+                  loading="lazy"
+                />
+                <span className={s.founderInfo}>
+                  <span className={s.founderName}>Wayne Chia</span>
+                  <span className={s.founderRole}>Founder</span>
+                </span>
+              </a>
             </div>
             <div className={s.aboutCopy}>
               <p>
@@ -158,36 +203,23 @@ export default function AboutClient() {
               Numbers, plainly put.
             </h2>
           </div>
-          <ol className={s.processSteps}>
-            <li className={s.processStep}>
-              <span className={s.processNum}>01</span>
-              <h4 className={s.processTitle}>50+ creatives</h4>
-              <p className={s.processBody}>
-                Vetted across the roster. Videographers, editors, designers, photographers, content creators, web developers.
-              </p>
-            </li>
-            <li className={s.processStep}>
-              <span className={s.processNum}>02</span>
-              <h4 className={s.processTitle}>6+ brand partners</h4>
-              <p className={s.processBody}>
-                From Series B startups to listed companies, across tech, lifestyle, hospitality and healthcare.
-              </p>
-            </li>
-            <li className={s.processStep}>
-              <span className={s.processNum}>03</span>
-              <h4 className={s.processTitle}>SG &middot; SEA</h4>
-              <p className={s.processBody}>
-                Built in Singapore. We place creatives and deliver projects across Southeast Asia.
-              </p>
-            </li>
-            <li className={s.processStep}>
-              <span className={s.processNum}>04</span>
-              <h4 className={s.processTitle}>2+ years</h4>
-              <p className={s.processBody}>
-                Average tenure for an embedded creative. The relationship isn&rsquo;t a placement, it&rsquo;s a career chapter.
-              </p>
-            </li>
-          </ol>
+          {/* Editorial stat row - big italic serif values + small-caps
+              labels, no card chrome. Same treatment as the journey-page
+              stats band but on the about page. */}
+          <div className={s.numbersGrid}>
+            <div className={s.numberItem}>
+              <span className={s.numberValue}>50+</span>
+              <span className={s.numberLabel}>Creatives engaged</span>
+            </div>
+            <div className={s.numberItem}>
+              <span className={s.numberValue}>6+</span>
+              <span className={s.numberLabel}>Brand partners</span>
+            </div>
+            <div className={s.numberItem}>
+              <span className={s.numberValue}>SG / SEA</span>
+              <span className={s.numberLabel}>Singapore + Southeast Asia</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -222,16 +254,17 @@ export default function AboutClient() {
       {/* ─── Footer ───────────────────────────────────────────────── */}
       <footer className={s.footer}>
         <div className={s.container}>
-          <div className={s.footerMark}>BEACON</div>
-          <div className={s.footerTagline}>EMPOWERING CREATIVES. ELEVATING BRANDS.</div>
-          <div className={s.footerDivider} aria-hidden="true">
-            <span className={s.footerRule}></span>
-            <svg className={s.footerSpark} width="14" height="14" viewBox="0 0 14 14">
-              <path d="M7 0 L8.2 5.8 L14 7 L8.2 8.2 L7 14 L5.8 8.2 L0 7 L5.8 5.8 Z" fill="currentColor" />
-            </svg>
-            <span className={s.footerRule}></span>
-          </div>
           <div className={s.footerCols}>
+            <div className={s.footerBrand}>
+              <img src="/assets/beacon-logo.png" alt="Beacon Media Solutions" className={s.footerLogo} />
+              <p className={s.footerBrandText}>
+                Beacon Media Solutions places vetted creative talent with brands across Singapore and Southeast Asia.
+              </p>
+              <div className={s.footerEst}>
+                <span className={s.footerEstRule} aria-hidden="true" />
+                <span className={s.footerEstText}>EST. SINGAPORE &middot; 2024</span>
+              </div>
+            </div>
             <div className={s.footerCol}>
               <div className={s.footerColLabel}>Navigate</div>
               <Link href="/" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); navWash('/'); }}>Home</Link>
@@ -250,6 +283,14 @@ export default function AboutClient() {
                 141 Cecil Street #08-07<br />
                 Tung Ann Association Building<br />
                 Singapore 069541
+              </div>
+              <div className={s.footerSocial}>
+                <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg>
+                </a>
+                <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
+                </a>
               </div>
             </div>
           </div>

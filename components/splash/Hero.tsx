@@ -232,7 +232,7 @@ export default function Hero() {
             The right creatives.<br /><em>Paired with the right brands</em>.
           </h1>
           <p className={s.heroSub}>
-            Beacon connects creative talent with brands that take craft seriously. Full-time embeds or per-project briefs, fully managed.
+            50+ creatives placed across Southeast Asia. Embedded or per-project, fully managed.
           </p>
           <div className={s.heroActions}>
             <a
@@ -261,6 +261,17 @@ export default function Hero() {
               How it works
             </a>
           </div>
+        </div>
+
+        {/* Mobile-only scroll hint - sits at the bottom of the hero
+            and gives the visitor a clear next-move cue. Hidden on
+            desktop where the section composition already implies
+            scrolling. */}
+        <div className={s.heroScrollHint} aria-hidden="true">
+          <span className={s.heroScrollHintLabel}>Scroll</span>
+          <svg width="12" height="20" viewBox="0 0 12 20" fill="none">
+            <path d="M6 2 L6 16 M2 12 L6 16 L10 12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </div>
       </div>
 
@@ -306,16 +317,28 @@ export default function Hero() {
               navWash('/brands?from=splash');
             }}
           >
-            <p className={s.pathCardLabel}>For brands</p>
-            <h3 className={s.pathCardTitle}>
-              Embed a creative or scope a project.
-            </h3>
-            <p className={s.pathCardBody}>
-              Beacon places vetted creatives inside your team or delivers a tightly-scoped media project, end-to-end. Without the agency layer or freelancer churn.
-            </p>
-            <span className={s.pathCardCta}>
-              Explore for brands <span aria-hidden="true">&rarr;</span>
-            </span>
+            {/* Representative image - team / strategy meeting. Reads as
+                the brand-side of the work: people deciding what gets
+                made and by whom. */}
+            <div className={s.pathCardImage}>
+              <img
+                src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=80&auto=format&fit=crop"
+                alt=""
+                loading="lazy"
+              />
+            </div>
+            <div className={s.pathCardContent}>
+              <p className={s.pathCardLabel}>For brands</p>
+              <h3 className={s.pathCardTitle}>
+                Embed a creative or scope a project.
+              </h3>
+              <p className={s.pathCardBody}>
+                Beacon places vetted creatives inside your team or delivers a tightly-scoped media project, end-to-end. Without the agency layer or freelancer churn.
+              </p>
+              <span className={s.pathCardCta}>
+                Explore for brands <span aria-hidden="true">&rarr;</span>
+              </span>
+            </div>
           </Link>
           <Link
             href="/creatives/embedded"
@@ -326,16 +349,28 @@ export default function Hero() {
               navWash('/creatives/embedded');
             }}
           >
-            <p className={s.pathCardLabel}>For creatives</p>
-            <h3 className={s.pathCardTitle}>
-              Build a career inside brands that get you.
-            </h3>
-            <p className={s.pathCardBody}>
-              Two pathways - embed full-time inside a brand that takes its craft seriously, or take project briefs as they come. Either way, you get a team that has your back.
-            </p>
-            <span className={s.pathCardCta}>
-              Explore for creatives <span aria-hidden="true">&rarr;</span>
-            </span>
+            {/* Representative image - creative at work. Reads as the
+                creative-side of the work: someone actually making
+                the thing. */}
+            <div className={s.pathCardImage}>
+              <img
+                src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=1200&q=80&auto=format&fit=crop"
+                alt=""
+                loading="lazy"
+              />
+            </div>
+            <div className={s.pathCardContent}>
+              <p className={s.pathCardLabel}>For creatives</p>
+              <h3 className={s.pathCardTitle}>
+                Build a career inside brands that get you.
+              </h3>
+              <p className={s.pathCardBody}>
+                Two pathways - embed full-time inside a brand that takes its craft seriously, or take project briefs as they come. Either way, you get a team that has your back.
+              </p>
+              <span className={s.pathCardCta}>
+                Explore for creatives <span aria-hidden="true">&rarr;</span>
+              </span>
+            </div>
           </Link>
         </div>
       </div>
@@ -346,10 +381,20 @@ export default function Hero() {
         process detail below. */}
     <section className={`${s.section} ${s.missionSection}`}>
       <div className={s.container}>
-        <p className={s.sectionLabel}>What we believe</p>
-        <p className={s.missionLine}>
-          The best work happens when the right creative lands inside the right brand, and stays long enough to <em>matter</em>.
-        </p>
+        {/* Editorial two-column layout - eyebrow + meta on the left,
+            the mission statement on the right. Breaks the page out of
+            its repeated "centered text block" rhythm and lets the
+            mission read as a typeset essay opening, not another
+            tagline. */}
+        <div className={s.missionGrid}>
+          <div className={s.missionMeta}>
+            <p className={s.sectionLabel}>What we believe</p>
+            <p className={s.missionMetaSub}>Mission &middot; Beacon</p>
+          </div>
+          <h2 className={s.missionLine}>
+            The best work happens when the right creative lands inside the right brand, and stays long enough to <em>matter</em>.
+          </h2>
+        </div>
       </div>
     </section>
 
@@ -367,28 +412,28 @@ export default function Hero() {
         <ol className={s.processSteps}>
           <li className={s.processStep}>
             <span className={s.processNum}>01</span>
-            <h4 className={s.processTitle}>Listen</h4>
+            <h3 className={s.processTitle}>Listen</h3>
             <p className={s.processBody}>
-              A short call to understand the brand, the team, and what success actually looks like. No deck required.
+              A short call to understand the work, the people, and what success actually looks like. No deck required.
             </p>
           </li>
           <li className={s.processStep}>
             <span className={s.processNum}>02</span>
-            <h4 className={s.processTitle}>Match</h4>
+            <h3 className={s.processTitle}>Match</h3>
             <p className={s.processBody}>
-              We pair you with creatives matched on craft and culture, not just availability. Both sides interview before anyone commits.
+              Both sides matched on craft and culture, not just availability. Two-way interviews before anyone commits.
             </p>
           </li>
           <li className={s.processStep}>
             <span className={s.processNum}>03</span>
-            <h4 className={s.processTitle}>Deliver</h4>
+            <h3 className={s.processTitle}>Deliver</h3>
             <p className={s.processBody}>
-              Embedded full-time, or per-project. We handle payroll, contracts, and the admin; the creative ships the work.
+              Embedded full-time, or per-project. Beacon handles payroll, contracts, and admin while the work gets shipped.
             </p>
           </li>
           <li className={s.processStep}>
             <span className={s.processNum}>04</span>
-            <h4 className={s.processTitle}>Stay</h4>
+            <h3 className={s.processTitle}>Stay</h3>
             <p className={s.processBody}>
               Quarterly check-ins for everyone in the network. The relationship doesn&rsquo;t end at delivery. That&rsquo;s where it starts.
             </p>
@@ -397,20 +442,11 @@ export default function Hero() {
       </div>
     </section>
 
-    {/* ─── Section: Testimonial ─────────────────────────────────────
-        Single quote to anchor the page emotionally before the closing
-        CTA. The full About content lives at /about (standalone page);
-        the home page just teases the brand position above. */}
-    <section className={`${s.section} ${s.testimonialSection}`}>
-      <div className={s.container}>
-        <blockquote className={s.testimonialQuote}>
-          <p>
-            &ldquo;Working with Beacon gave me more than just a job. It gave me space to grow, and I finally feel like the work I make actually belongs somewhere.&rdquo;
-          </p>
-          <cite>A Beacon creative &middot; placed in 2024</cite>
-        </blockquote>
-      </div>
-    </section>
+    {/* Testimonial section removed - the previous quote was anonymous
+        ("A Beacon creative · placed in 2024") which reads as a placeholder
+        and undermines trust more than it builds it. Better to leave it
+        out until a real named quote with a brand attribution is
+        available. */}
 
     {/* ─── Section: Closing CTA ───────────────────────────────────
         Final beat before footer - pushes to /contact instead of an
@@ -443,22 +479,38 @@ export default function Hero() {
       </div>
     </section>
 
-    {/* ─── Footer ───────────────────────────────────────────────── */}
+    {/* ─── Footer ─────────────────────────────────────────────────
+        Four-column grid: brand block (logo + tagline + est.) on the
+        left, then Navigate / Pathways / Connect across. Centered
+        stacked column on mobile, left-aligned columns on desktop. */}
     <footer className={s.footer}>
       <div className={s.container}>
-        <div className={s.footerMark}>BEACON</div>
-        <div className={s.footerTagline}>EMPOWERING CREATIVES. ELEVATING BRANDS.</div>
-        <div className={s.footerDivider} aria-hidden="true">
-          <span className={s.footerRule}></span>
-          <svg className={s.footerSpark} width="14" height="14" viewBox="0 0 14 14">
-            <path d="M7 0 L8.2 5.8 L14 7 L8.2 8.2 L7 14 L5.8 8.2 L0 7 L5.8 5.8 Z" fill="currentColor" />
-          </svg>
-          <span className={s.footerRule}></span>
-        </div>
         <div className={s.footerCols}>
+          {/* Column 1 - Brand block */}
+          <div className={s.footerBrand}>
+            <img src="/assets/beacon-logo.png" alt="Beacon Media Solutions" className={s.footerLogo} />
+            <p className={s.footerBrandText}>
+              Beacon Media Solutions places vetted creative talent with brands across Singapore and Southeast Asia.
+            </p>
+            <div className={s.footerEst}>
+              <span className={s.footerEstRule} aria-hidden="true" />
+              <span className={s.footerEstText}>EST. SINGAPORE &middot; 2024</span>
+            </div>
+          </div>
+
+          {/* Column 2 - Navigate */}
           <div className={s.footerCol}>
             <div className={s.footerColLabel}>Navigate</div>
-            <a href="#paths" onClick={(e) => { e.preventDefault(); document.getElementById('paths')?.scrollIntoView({ behavior: 'smooth' }); }}>Two ways in</a>
+            <Link
+              href="/"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                navWash('/');
+              }}
+            >
+              Home
+            </Link>
             <Link
               href="/about"
               onClick={(e) => {
@@ -480,6 +532,8 @@ export default function Hero() {
               Contact
             </Link>
           </div>
+
+          {/* Column 3 - Pathways */}
           <div className={s.footerCol}>
             <div className={s.footerColLabel}>Pathways</div>
             <Link
@@ -503,6 +557,8 @@ export default function Hero() {
               For Creatives
             </Link>
           </div>
+
+          {/* Column 4 - Connect */}
           <div className={s.footerCol}>
             <div className={s.footerColLabel}>Connect</div>
             <a className={s.footerEmail} href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
@@ -511,8 +567,17 @@ export default function Hero() {
               Tung Ann Association Building<br />
               Singapore 069541
             </div>
+            <div className={s.footerSocial}>
+              <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg>
+              </a>
+              <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
+              </a>
+            </div>
           </div>
         </div>
+
         <div className={s.footerMeta}>
           <span>&copy; {new Date().getFullYear()} Beacon Media Solutions. All rights reserved.</span>
           <span aria-hidden="true"> &middot; </span>

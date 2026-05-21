@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRef, useState, useEffect, type FormEvent } from 'react';
 import s from './brands.module.css';
+import nav from '@/app/splash.module.css';
 import BrandsArrivalWash from './BrandsArrivalWash';
 import { FORM_ENDPOINT, submitForm } from '@/lib/forms';
 import ThanksPopup from '@/components/ThanksPopup';
@@ -44,20 +45,24 @@ const labelFor = <T extends readonly (readonly [string, string])[]>(list: T, cod
      3. SVGs scale crisply at any size; PNGs need to be 2x for retina
         (e.g. 200x100 displayed at 100x50).
    ───────────────────────────────────────────────────────────────────────── */
-type Client = { name: string; logo?: string };
+// `height` is an optional per-logo height override (in px). Wide
+// horizontal logos (banks) read well at the default 44px height; square
+// or icon-style logos need a bigger height to land at the same visual
+// weight as the wide ones. Tune per-logo as the roster evolves.
+type Client = { name: string; logo?: string; height?: number };
 // Real client roster, split into two rows. The two "heavy hitter"
-// bank clients sit on the top row at larger scale; the three faith /
-// ministry partners share the bottom row. Wordmark fallback shows
-// until a logo file is dropped into /public/assets/clients/ -
-// uncomment the `logo:` line for each one as you collect them.
+// bank clients sit on the top row; the faith / ministry partners share
+// the bottom row. Wordmark fallback shows until a logo file is dropped
+// into /public/assets/clients/.
 const CLIENTS_TOP: Client[] = [
-  { name: 'DBS Bank' /* , logo: '/assets/clients/dbs.svg' */ },
-  { name: 'Standard Chartered Bank' /* , logo: '/assets/clients/standard-chartered.svg' */ },
+  { name: 'DBS Bank', logo: '/assets/clients/DBS-removebg-preview.png' },
+  { name: 'Standard Chartered Bank', logo: '/assets/clients/standard-chartered-removebg-preview.png' },
+  { name: 'The Kallang Group', logo: '/assets/clients/the_kallang_group.png' },
 ];
 const CLIENTS_BOTTOM: Client[] = [
-  { name: 'YWAM Singapore' /* , logo: '/assets/clients/ywam-singapore.svg' */ },
-  { name: 'Barker Road Methodist Church' /* , logo: '/assets/clients/barker-road.svg' */ },
-  { name: 'N5 Stewardship Movement' /* , logo: '/assets/clients/n5-stewardship.svg' */ },
+  { name: 'YWAM Singapore', logo: '/assets/clients/ywamsg.png' },
+  { name: 'Barker Road Methodist Church', logo: '/assets/clients/barker-road-methodist-church.png' },
+  { name: 'N5 Stewardship Movement', logo: '/assets/clients/n5-logo.png' },
 ];
 
 // Static-page port of the brand destination overlay from the immersive
@@ -184,27 +189,35 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
       {navWashOverlay}
       {fromSplash && <BrandsArrivalWash />}
 
-      {/* Top bar - unified with the creative pathway pages (.bar / .wordmark /
-          .top-nav globals). Desktop shows the inline three-link nav. Mobile
-          (< 760px) hides the inline nav and shows a hamburger button instead;
-          tapping it opens a slide-in side sheet with the same links. */}
-      <div className="bar">
+      {/* Top nav - mirrors the home page header (splash.module.css
+          .heroNav + .heroLogo + .heroNavLinks). Brands-specific links:
+          Home, For Creatives, About, Contact (For Brands is the current
+          page so it's omitted). Mobile uses the same .sideMenu /
+          .menuBackdrop slide-in sheet that the home page uses. */}
+      <nav className={nav.heroNav}>
         <button
           type="button"
-          className="wordmark wordmark-btn"
-          aria-label="Back to home"
+          className={nav.heroLogo}
           onClick={() => navWash('/')}
+          aria-label="Back to home"
         >
-          <span className="wm-arrow" aria-hidden="true">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 6l-6 6 6 6" />
-            </svg>
-          </span>
-          <img className="wm-logo" src="/assets/beacon-logo.png" alt="Beacon Media Solutions" />
+          <img src="/assets/beacon-logo.png" alt="Beacon Media Solutions" />
         </button>
-        <nav className={`top-nav ${s.topNavDesktop}`} aria-label="Primary">
+        <div className={`${nav.heroNavLinks} ${nav.heroNavLinksDesktop}`}>
+          <Link
+            href="/"
+            className={nav.heroNavLink}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/');
+            }}
+          >
+            Home
+          </Link>
           <Link
             href="/creatives/embedded"
+            className={nav.heroNavLink}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
               e.preventDefault();
@@ -215,6 +228,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
           </Link>
           <Link
             href="/about?from=brands"
+            className={nav.heroNavLink}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
               e.preventDefault();
@@ -225,6 +239,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
           </Link>
           <Link
             href="/contact?from=brands"
+            className={nav.heroNavLink}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
               e.preventDefault();
@@ -233,10 +248,10 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
           >
             Contact
           </Link>
-        </nav>
+        </div>
         <button
           type="button"
-          className={s.hamburger}
+          className={nav.hamburger}
           onClick={() => setMenuOpen(true)}
           aria-label="Open menu"
           aria-expanded={menuOpen}
@@ -244,24 +259,22 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
           <span aria-hidden="true" />
           <span aria-hidden="true" />
         </button>
-      </div>
+      </nav>
 
-      {/* Mobile side menu - slide-in sheet from the right with the same nav
-          links plus the connect block. Backdrop dims the page and closes the
-          menu on tap. Body scroll is locked while open. */}
+      {/* Mobile side menu - matches the home page .sideMenu pattern. */}
       <div
-        className={`${s.menuBackdrop} ${menuOpen ? s.menuBackdropOpen : ''}`}
+        className={`${nav.menuBackdrop} ${menuOpen ? nav.menuBackdropOpen : ''}`}
         onClick={() => setMenuOpen(false)}
         aria-hidden={!menuOpen}
       />
       <aside
-        className={`${s.sideMenu} ${menuOpen ? s.sideMenuOpen : ''}`}
+        className={`${nav.sideMenu} ${menuOpen ? nav.sideMenuOpen : ''}`}
         aria-hidden={!menuOpen}
         aria-label="Mobile navigation"
       >
         <button
           type="button"
-          className={s.sideMenuClose}
+          className={nav.sideMenuClose}
           onClick={() => setMenuOpen(false)}
           aria-label="Close menu"
         >
@@ -269,43 +282,14 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
-        <nav className={s.sideMenuNav} aria-label="Primary mobile">
-          <Link
-            href="/creatives/embedded"
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-              e.preventDefault();
-              setMenuOpen(false);
-              navWash('/creatives/embedded');
-            }}
-          >
-            For Creatives
-          </Link>
-          <Link
-            href="/about?from=brands"
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-              e.preventDefault();
-              setMenuOpen(false);
-              navWash('/about?from=brands');
-            }}
-          >
-            About
-          </Link>
-          <Link
-            href="/contact?from=brands"
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-              e.preventDefault();
-              setMenuOpen(false);
-              navWash('/contact?from=brands');
-            }}
-          >
-            Contact
-          </Link>
+        <nav className={nav.sideMenuNav} aria-label="Primary mobile">
+          <Link href="/" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/'); }}>Home</Link>
+          <Link href="/creatives/embedded" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/creatives/embedded'); }}>For Creatives</Link>
+          <Link href="/about?from=brands" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/about?from=brands'); }}>About</Link>
+          <Link href="/contact?from=brands" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/contact?from=brands'); }}>Contact</Link>
         </nav>
-        <div className={s.sideMenuConnect}>
-          <p className={s.sideMenuLabel}>Connect</p>
+        <div className={nav.sideMenuConnect}>
+          <p className={nav.sideMenuLabel}>Connect</p>
           <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
         </div>
       </aside>
@@ -458,6 +442,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                           alt={c.name}
                           className={s.clientLogo}
                           loading="lazy"
+                          style={c.height ? { height: `${c.height}px` } : undefined}
                         />
                       ) : (
                         <span className={s.clientWordmark}>{c.name}</span>
@@ -474,6 +459,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                           alt={c.name}
                           className={s.clientLogo}
                           loading="lazy"
+                          style={c.height ? { height: `${c.height}px` } : undefined}
                         />
                       ) : (
                         <span className={s.clientWordmark}>{c.name}</span>
@@ -911,25 +897,24 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
             <h2 className="anim">One creative or a regional team - we make it seamless, strategic, and scalable.</h2>
           </div>
 
-          {/* Cinematic footer - unified with the creative pathway pages. Lives
-              inside the .dest wrapper so the global .dest .dest-footer styles
-              apply (large centered BEACON wordmark, sans-caps tagline, gold
-              hairline divider with a four-point spark at its centre, then
-              two-column nav + connect block + meta line). */}
+          {/* Unified 4-column footer - matches the home/journey/about/contact
+              pages. Brand block (logo + tagline + EST.) left, then
+              Navigate / Pathways / Connect across. Centered stacked
+              column on mobile, left-aligned columns on desktop. */}
           <footer className="dest-footer">
             <div className="container">
-              <div className="ft-mark">BEACON</div>
-              <div className="ft-tagline">EMPOWERING CREATIVES. ELEVATING BRANDS.</div>
-
-              <div className="ft-divider" aria-hidden="true">
-                <span className="ft-rule-left"></span>
-                <svg className="ft-spark" width="14" height="14" viewBox="0 0 14 14">
-                  <path d="M7 0 L8.2 5.8 L14 7 L8.2 8.2 L7 14 L5.8 8.2 L0 7 L5.8 5.8 Z" fill="currentColor" />
-                </svg>
-                <span className="ft-rule-right"></span>
-              </div>
-
               <div className="ft-cols">
+                <div className="ft-brand">
+                  <img src="/assets/beacon-logo.png" alt="Beacon Media Solutions" className="ft-logo" />
+                  <p className="ft-brand-text">
+                    Beacon Media Solutions places vetted creative talent with brands across Singapore and Southeast Asia.
+                  </p>
+                  <div className="ft-est">
+                    <span className="ft-est-rule" aria-hidden="true"></span>
+                    <span className="ft-est-text">EST. SINGAPORE · 2024</span>
+                  </div>
+                </div>
+
                 <div className="ft-col">
                   <div className="ft-label">Navigate</div>
                   <Link
@@ -963,6 +948,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                     Contact
                   </Link>
                 </div>
+
                 <div className="ft-col">
                   <div className="ft-label">Pathways</div>
                   <Link
@@ -986,23 +972,23 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
                     For Creatives
                   </Link>
                 </div>
-              </div>
 
-              <div className="ft-connect">
-                <div className="ft-label">Connect</div>
-                <a className="ft-email" href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
-                <div className="ft-location">
-                  141 Cecil Street #08-07<br />
-                  Tung Ann Association Building<br />
-                  Singapore 069541
-                </div>
-                <div className="ft-social">
-                  <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg>
-                  </a>
-                  <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
-                  </a>
+                <div className="ft-col">
+                  <div className="ft-label">Connect</div>
+                  <a className="ft-email" href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+                  <div className="ft-location">
+                    141 Cecil Street #08-07<br />
+                    Tung Ann Association Building<br />
+                    Singapore 069541
+                  </div>
+                  <div className="ft-social">
+                    <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg>
+                    </a>
+                    <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
+                    </a>
+                  </div>
                 </div>
               </div>
 

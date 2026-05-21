@@ -39,7 +39,10 @@
   letter-spacing: 0.005em;
   min-height: 100vh;
   position: relative;
-  overflow-x: hidden;
+  /* overflow-x: clip (not hidden) - clip doesn't create a scroll
+     container, so position: sticky on child elements (the heroNav)
+     keeps working. overflow-x: hidden would break sticky. */
+  overflow-x: clip;
 }
 
 
@@ -656,6 +659,161 @@
 .switcherLink.active {
   background: var(--gold-deep);
   color: var(--ink);
+}
+
+
+/* ─── Pathway cards (replaces the pill switcher) ───────────────────────
+   Two image-led cards letting visitors switch pathways or confirm they
+   landed on the right one. Mirrors the home page .pathsGrid pattern in
+   the gold-warm journey palette. Current pathway shows a "Currently
+   viewing" badge over its image; the other gets a clear CTA arrow. */
+.pathwayCards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: clamp(48px, 6vh, 80px);
+  width: 100%;
+}
+@media (min-width: 760px) {
+  .pathwayCards { grid-template-columns: 1fr 1fr; gap: 24px; }
+}
+.pathwayCard {
+  display: flex;
+  flex-direction: column;
+  background: rgba(20, 17, 12, 0.55);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--cream);
+  transition: border-color 320ms, transform 320ms, box-shadow 320ms;
+  overflow: hidden;
+  text-align: left;
+}
+.pathwayCard:hover {
+  border-color: rgba(240, 198, 115, 0.6);
+  transform: translateY(-4px);
+  box-shadow: 0 24px 60px -28px rgba(255, 170, 60, 0.45);
+}
+.pathwayCardActive {
+  /* The active pathway card sits in a calmer state - subtle gold
+     border to mark it as "you are here" but no hover lift since
+     clicking it doesn't take you anywhere new. */
+  border-color: rgba(240, 198, 115, 0.55);
+  background: rgba(28, 22, 12, 0.7);
+}
+.pathwayCardActive:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(240, 198, 115, 0.55);
+}
+.pathwayCardImage {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: rgba(10, 8, 5, 0.5);
+}
+.pathwayCardImage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 2, 15, 0.1) 0%,
+    rgba(0, 2, 15, 0.3) 60%,
+    rgba(20, 17, 12, 0.85) 100%
+  );
+  pointer-events: none;
+}
+.pathwayCardImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(0.7) brightness(0.85);
+  transition: transform 600ms ease, filter 400ms ease;
+}
+.pathwayCard:hover .pathwayCardImage img {
+  transform: scale(1.04);
+  filter: saturate(0.85) brightness(0.95);
+}
+.pathwayCardActive:hover .pathwayCardImage img {
+  transform: none;
+  filter: saturate(0.7) brightness(0.85);
+}
+.pathwayCardBadge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--gold);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px -2px rgba(255, 170, 60, 0.4);
+}
+.pathwayCardContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: clamp(24px, 3.5vw, 36px);
+}
+.pathwayCardLabel {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+  margin: 0 0 14px;
+}
+.pathwayCardTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.4rem, 2.4vw, 1.875rem);
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+  color: #fff3d6;
+  margin: 0 0 12px;
+}
+.pathwayCardBody {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--cream-mute);
+  margin: 0 0 22px;
+  flex: 1;
+}
+.pathwayCardCta {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  transition: transform 240ms, color 240ms;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+.pathwayCard:hover .pathwayCardCta {
+  color: var(--gold-bright);
+  transform: translateX(4px);
+}
+.pathwayCardActive .pathwayCardCta {
+  color: rgba(240, 198, 115, 0.6);
+}
+.pathwayCardActive:hover .pathwayCardCta {
+  transform: none;
+  color: rgba(240, 198, 115, 0.6);
 }
 
 /* ─── Journey ───────────────────────────────────────────────────────────── */
@@ -1471,10 +1629,10 @@
 .compareTable {
   /* Stacked rows; each row owns its own equal-column grid. The row
      label column is locked to a tight max so the two value columns
-     get the lion's share of the width and stay equal. No outer border
-     - the corner cell is invisible, so the table reads as "header
-     strip + rows" rather than a fully-boxed table. The internal cells
-     carry the borders to define the structure. */
+     get the lion's share of the width and stay equal. Internal
+     dividers are subtle gold rules on the cells (--rule); the active
+     pathway column adds a bright gold ring on top via the
+     .compareColActive / .compareCellActive classes. */
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -1522,8 +1680,15 @@
   color: #fff3d6;
 }
 .compareColActive {
+  /* Bright gold ring on top + left + right (open bottom so it flows
+     into the cells below). Background tint + brighter column name
+     reinforce the highlight. The inactive column keeps subtle --rule
+     borders, so only this column reads as "you are here". */
   background: rgba(240, 198, 115, 0.10);
-  box-shadow: inset 0 0 0 1px rgba(240, 198, 115, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(240, 198, 115, 0.55),
+    inset 1px 0 0 rgba(240, 198, 115, 0.55),
+    inset -1px 0 0 rgba(240, 198, 115, 0.55);
 }
 .compareColActive .compareColName { color: var(--gold-bright); }
 
@@ -1536,7 +1701,9 @@
      values share the same column rhythm. Top-aligned (not center) so
      the small-caps label sits on the same baseline as the first line
      of cell content - the previous center alignment made labels drift
-     mid-paragraph next to multi-line cells. */
+     mid-paragraph next to multi-line cells. Subtle gold hairlines on
+     top + sides; the bottom border is dropped on all but the last row
+     so adjacent labels don't double up the divider into a 2px stripe. */
   padding: 22px 20px;
   font-family: var(--sans);
   font-size: 11px;
@@ -1545,8 +1712,13 @@
   color: var(--cream-mute);
   font-weight: 500;
   border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
   align-self: start;
   min-width: 0;
+}
+.compareRow:last-child .compareRowLabel {
+  border-bottom: 1px solid var(--rule);
 }
 .compareCell {
   padding: 20px 20px;
@@ -1561,10 +1733,22 @@
   overflow-wrap: break-word;
 }
 .compareCellActive {
+  /* Active-cell ring on top of the subtle base border. Sides only -
+     adjacent rows stack their top/bottom into a continuous bright
+     gold line down the column without doubling at the cell seams. */
   background: rgba(240, 198, 115, 0.06);
   color: var(--gold-bright);
-  box-shadow: inset 1px 0 0 rgba(240, 198, 115, 0.32),
-              inset -1px 0 0 rgba(240, 198, 115, 0.32);
+  box-shadow:
+    inset 1px 0 0 rgba(240, 198, 115, 0.55),
+    inset -1px 0 0 rgba(240, 198, 115, 0.55);
+}
+/* Bottom edge on the last row's active cell so the active column
+   outline closes off cleanly at the bottom. */
+.compareRow:last-child .compareCellActive {
+  box-shadow:
+    inset 1px 0 0 rgba(240, 198, 115, 0.55),
+    inset -1px 0 0 rgba(240, 198, 115, 0.55),
+    inset 0 -1px 0 rgba(240, 198, 115, 0.55);
 }
 
 .compareSwitch {
@@ -1578,81 +1762,43 @@
     grid-template-columns: 1fr 1fr;
   }
   .compareCorner { display: none; }
-  .compareColHead { border-left: 0; padding: 18px 16px; }
-  .compareColHead + .compareColHead { border-left: 1px solid var(--rule); }
+  .compareColHead { padding: 18px 16px; }
   .compareColName { font-size: 1.25rem; }
   .compareRow {
     grid-template-columns: 1fr 1fr;
-    border-top: 1px solid var(--rule);
   }
   .compareRowLabel {
     grid-column: 1 / -1;
-    /* Center the title with a divider above + below so it separates
-       cleanly from the two info cells - same treatment as the brands
-       comparison table on mobile. */
+    /* Row label spans full width on mobile - subtle gold rules on
+       top + sides. Bottom border dropped except on the last row so
+       adjacent labels don't stack into a doubled stripe; cells
+       below provide the divider via their borders. */
     text-align: center;
     justify-content: center;
-    padding: 14px 20px;
-    border-top: 0;
-    border-bottom: 1px solid var(--rule);
-    background: rgba(14, 12, 9, 0.4);
+    padding: 16px 24px;
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    background: transparent;
   }
   .compareCell {
     border-top: 0;
     padding: 16px 16px;
     font-size: 0.95rem;
   }
-  .compareCell + .compareCell { border-left: 1px solid var(--rule); }
 }
-/* Below 600px the side-by-side cells get cramped - collapse each row
-   into a stacked card: pathway header on top, "Embedded value" then
-   "Project-based value" below. Cleanest possible mobile layout, no
-   horizontal grid math at all. */
-@media (max-width: 600px) {
-  .compareHead { grid-template-columns: 1fr; }
-  .compareColHead {
-    border-left: 0 !important;
-    text-align: center;
-    align-items: center;
-    padding: 16px 18px;
-  }
-  .compareColHead + .compareColHead { border-top: 1px solid var(--rule); }
-  .compareRow {
-    grid-template-columns: 1fr;
-    border-top: 1px solid var(--rule);
-  }
-  .compareRowLabel {
-    grid-column: auto;
-    text-align: center;
-    padding: 14px 18px;
-    border-top: 0;
-    border-bottom: 1px solid var(--rule);
-    background: rgba(14, 12, 9, 0.55);
-  }
-  .compareCell {
-    border-left: 0 !important;
-    border-top: 0;
-    padding: 16px 18px;
-    text-align: center;
-    font-size: 0.95rem;
-    line-height: 1.55;
-  }
-  .compareCell + .compareCell { border-top: 1px solid var(--rule); }
-  /* Show which pathway each value belongs to via a small label above
-     the value text. Pseudo-content uses the data-pathway attribute set
-     in the JSX so each cell labels itself. */
-  .compareCell::before {
-    content: attr(data-pathway);
-    display: block;
-    font-family: var(--sans);
-    font-size: 9px;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    color: rgba(240, 198, 115, 0.65);
-    margin-bottom: 6px;
-  }
+/* Very-narrow mobile (under 400px): the 2-col layout starts to feel
+   cramped, so tighten the cell padding + font to keep it readable.
+   We deliberately do NOT collapse to a single column - the brands
+   page keeps its two services side-by-side at every viewport, and
+   this comparison should mirror that exactly so the active-pathway
+   highlighting stays obvious. */
+@media (max-width: 400px) {
+  .compareColHead { padding: 14px 12px; }
   .compareColLabel { font-size: 9px; letter-spacing: 0.24em; }
   .compareColName { font-size: 1.1rem; }
+  .compareRowLabel { font-size: 10px; letter-spacing: 0.18em; padding: 12px 14px; }
+  .compareCell { padding: 14px 12px; font-size: 0.88rem; line-height: 1.45; }
 }
 
 /* ─── FAQ list ─────────────────────────────────────────────────────────
@@ -2102,144 +2248,144 @@
   letter-spacing: 0.04em;
 }
 
-/* ─── Cinematic DestFooter (ported from /creatives destination overlay) ─
-   Centered BEACON wordmark with gold spark divider. Same visual idiom
-   the user designed in the original destination view - large serif
-   wordmark at the top, sans-caps tagline, gold hairline + four-point
-   spark divider, then nav columns, connect block, meta line. */
+/* ─── DestFooter - unified 4-column layout matching the home page.
+   Brand block (logo + tagline + EST.) on the left, then Navigate /
+   Pathways / Connect across. Centered stacked column on mobile,
+   left-aligned columns on desktop. */
 .destFooter {
-  padding: 10vh 0 6vh;
-  background: linear-gradient(180deg, rgba(8, 5, 2, 0) 0%, rgba(20, 12, 4, 0.45) 100%);
+  padding: clamp(64px, 9vh, 120px) 0 clamp(36px, 5vh, 60px);
+  background: transparent;
   margin-top: 6vh;
   border-top: 1px solid var(--rule);
   text-align: center;
 }
 
-.ftMark {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(36px, 4.5vw, 56px);
-  letter-spacing: 0.32em;
-  padding-left: 0.32em;
-  text-align: center;
-  color: #ffeab8;
-  text-shadow: 0 0 24px rgba(255, 200, 120, 0.18);
-}
-.ftTagline {
-  margin-top: 14px;
-  text-align: center;
-  font-family: var(--sans);
-  font-size: clamp(11px, 1vw, 13px);
-  letter-spacing: 0.42em;
-  text-transform: uppercase;
-  color: rgba(243, 231, 200, 0.55);
-}
-
-.ftDivider {
-  margin: 56px auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  color: rgba(240, 198, 115, 0.7);
-}
-.ftRuleLeft,
-.ftRuleRight {
-  flex: 1;
-  height: 1px;
-  max-width: 380px;
-  background: linear-gradient(90deg, rgba(240, 198, 115, 0), rgba(240, 198, 115, 0.42));
-}
-.ftRuleRight {
-  background: linear-gradient(90deg, rgba(240, 198, 115, 0.42), rgba(240, 198, 115, 0));
-}
-.ftSpark {
-  flex-shrink: 0;
-  opacity: 0.85;
-  filter: drop-shadow(0 0 10px rgba(255, 200, 120, 0.5));
-}
-
 .ftCols {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  grid-template-columns: 1fr;
+  gap: 36px;
   margin: 0 auto 56px;
+  max-width: 1100px;
 }
 @media (min-width: 760px) {
-  .ftCols { gap: 56px; }
+  .ftCols {
+    grid-template-columns: 1.6fr 1fr 1fr 1.3fr;
+    gap: clamp(40px, 5vw, 72px);
+    text-align: left;
+    align-items: start;
+  }
 }
+
+.ftBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  align-items: center;
+}
+@media (min-width: 760px) {
+  .ftBrand { align-items: flex-start; }
+}
+.ftLogo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+.ftBrandText {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  margin: 0;
+  max-width: 36ch;
+}
+.ftEst {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.ftEstRule {
+  width: 28px;
+  height: 1px;
+  background: var(--gold);
+}
+.ftEstText {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+
 .ftCol {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
   align-items: center;
-  text-align: center;
+}
+@media (min-width: 760px) {
+  .ftCol { align-items: flex-start; }
 }
 .ftLabel {
   font-family: var(--sans);
-  font-size: 11px;
-  letter-spacing: 0.42em;
+  font-size: 10px;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
   color: rgba(240, 198, 115, 0.72);
-  margin-bottom: 6px;
+  font-weight: 500;
+  margin-bottom: 8px;
 }
 .ftCol a,
 .ftEmail {
   font-family: var(--serif);
   font-weight: 400;
   font-style: normal;
-  font-size: clamp(20px, 1.8vw, 24px);
-  color: #fff3d6;
+  font-size: 1rem;
+  color: var(--cream);
   text-decoration: none;
-  transition: color 240ms, transform 240ms;
+  transition: color 200ms;
   display: inline-block;
 }
 .ftCol a:hover,
 .ftEmail:hover {
   color: var(--gold-bright);
 }
+.ftEmail { font-size: 1rem; }
 
-.ftConnect {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-bottom: 56px;
-  align-items: center;
-  text-align: center;
-}
 .ftLocation {
-  font-family: var(--serif);
-  font-weight: 300;
-  font-size: clamp(15px, 1.3vw, 17px);
-  line-height: 1.7;
-  color: rgba(243, 231, 200, 0.62);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--cream-mute);
+  margin-top: 4px;
 }
 .ftSocial {
-  display: flex;
-  gap: 12px;
+  display: inline-flex;
+  gap: 14px;
+  margin-top: 12px;
   align-items: center;
   justify-content: center;
-  margin-top: 20px;
-  padding-top: 22px;
-  border-top: 1px solid rgba(240, 198, 115, 0.14);
+}
+@media (min-width: 760px) {
+  .ftSocial { justify-content: flex-start; }
 }
 .ftSocial a {
-  /* 44x44 minimum tap target plus a subtle gold-outline pill so the
-     icons read as deliberate buttons - matches the brands footer. */
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
   border: 1px solid rgba(240, 198, 115, 0.22);
-  color: rgba(240, 198, 115, 0.7);
+  color: rgba(240, 198, 115, 0.65);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 240ms, transform 240ms, background 240ms, border-color 240ms;
+  transition: color 240ms, background 240ms, border-color 240ms, transform 240ms;
 }
 .ftSocial a:hover {
   color: var(--gold-bright);
-  border-color: rgba(240, 198, 115, 0.55);
   background: rgba(240, 198, 115, 0.08);
+  border-color: rgba(240, 198, 115, 0.55);
   transform: translateY(-2px);
 }
 .ftSocial a svg {
@@ -2248,17 +2394,15 @@
 }
 
 .ftMeta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: center;
-  text-align: center;
-  padding-top: 32px;
-  border-top: 1px solid rgba(240, 198, 115, 0.18);
   font-family: var(--sans);
   font-size: 11px;
-  letter-spacing: 0.04em;
-  color: rgba(243, 231, 200, 0.42);
+  letter-spacing: 0.14em;
+  color: var(--cream-faint);
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 /* ─── dest static override (mirrors /brands BrandsClient) ──────────────
@@ -3816,18 +3960,22 @@
   font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--cream);
-  padding-left: 22px;
+  padding-left: 20px;
   position: relative;
 }
+/* Orb bullet marker - small radial-gradient gold dot with soft warm
+   glow. Same idiom as .flowChapterDividerDot so the bullets feel
+   like part of the same family as the chapter dividers. */
 .flowChapterFeatures li::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.7em;
-  width: 12px;
-  height: 1px;
-  background: var(--gold);
-  box-shadow: 0 0 6px rgba(255, 200, 120, 0.4);
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffd98a 0%, rgba(201, 138, 58, 0.85) 100%);
+  box-shadow: 0 0 8px rgba(255, 200, 120, 0.5);
 }
 
 /* ─── Inline image (small frame next to text) ────────────────────────── */

@@ -944,21 +944,26 @@
   .bar-side-menu {
     position: fixed;
     top: 0;
-    right: 0;
     bottom: 0;
+    /* Closed state: docked just off-screen to the right. Using `right`
+       rather than `transform: translateX(100%)` avoids the case where an
+       ancestor transform/filter/contain breaks fixed positioning and
+       leaks the menu past the visible viewport edge. */
+    right: -360px;
     width: min(85vw, 340px);
+    max-width: 100vw;
     background: rgba(10, 8, 5, 0.98);
     border-left: 1px solid rgba(240, 198, 115, 0.18);
     padding: 80px 32px 32px;
     z-index: 100;
-    transform: translateX(100%);
-    transition: transform 320ms cubic-bezier(.22, .65, .21, 1);
+    transition: right 320ms cubic-bezier(.22, .65, .21, 1);
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 24px;
   }
-  .bar-side-menu.is-open { transform: translateX(0); }
+  .bar-side-menu.is-open { right: 0; }
   .bar-side-menu-close {
     position: absolute;
     top: 22px;
@@ -1010,6 +1015,15 @@
   @media (max-width: 759px) {
     .top-nav-desktop { display: none !important; }
     .bar-hamburger { display: inline-flex; }
+  }
+  /* Hide the mobile menu sheet + backdrop entirely on desktop. They
+     rely on transform: translateX(100%) to sit off-screen by default,
+     but if that transform is ever reset by another stylesheet, the
+     sheet peeks in from the right edge of the desktop viewport.
+     display: none guarantees they never render above 760px. */
+  @media (min-width: 760px) {
+    .bar-side-menu,
+    .bar-menu-backdrop { display: none !important; }
   }
 
   /* Mobile fork labels - the JS-projected (left, top) positions are
@@ -1856,103 +1870,108 @@
     background: rgba(240,198,115,0.32);
   }
 
-  /* Footer - cinematic, centered wordmark + spark divider + two-column nav. */
+  /* Footer - unified 4-column layout matching the home page. Brand
+     block (logo + tagline + EST.) on the left, then Navigate /
+     Pathways / Connect across. Centered stacked column on mobile,
+     left-aligned columns on desktop. */
   .dest .dest-footer {
-    margin-top: 10vh;
-    padding: 8vh 0 6vh;
+    margin-top: 6vh;
+    padding: clamp(64px, 9vh, 120px) 0 clamp(36px, 5vh, 60px);
     text-align: center;
-    background: linear-gradient(180deg, rgba(8,5,2,0.0) 0%, rgba(20,12,4,0.45) 100%);
+    background: transparent;
+    border-top: 1px solid var(--rule);
   }
-  .dest .dest-footer .ft-mark {
-    font-family: var(--serif); font-weight: 400;
-    font-size: clamp(36px, 4.5vw, 56px);
-    letter-spacing: 0.32em; padding-left: 0.32em;
-    text-align: center; color: #ffeab8;
-    text-shadow: 0 0 24px rgba(255,200,120,0.18);
-  }
-  .dest .dest-footer .ft-tagline {
-    margin-top: 14px; text-align: center;
-    font-family: var(--sans); font-size: clamp(11px, 1vw, 13px);
-    letter-spacing: 0.42em; text-transform: uppercase;
-    color: rgba(243,231,200,0.55);
-  }
-  .dest .dest-footer .ft-divider {
-    margin: 56px auto 56px;
-    display: flex; align-items: center; justify-content: center;
-    gap: 14px;
-    color: rgba(240,198,115,0.7);
-  }
-  .dest .dest-footer .ft-rule-left,
-  .dest .dest-footer .ft-rule-right {
-    flex: 1; height: 1px; max-width: 380px;
-    background: linear-gradient(90deg, rgba(240,198,115,0.0), rgba(240,198,115,0.42));
-  }
-  .dest .dest-footer .ft-rule-right {
-    background: linear-gradient(90deg, rgba(240,198,115,0.42), rgba(240,198,115,0.0));
-  }
-  .dest .dest-footer .ft-spark { flex-shrink: 0; opacity: 0.85; }
-
   .dest .dest-footer .ft-cols {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    grid-template-columns: 1fr;
+    gap: 36px;
     margin: 0 auto 56px;
+    max-width: 1100px;
   }
   @media (min-width: 760px) {
-    .dest .dest-footer .ft-cols { gap: 56px; }
+    .dest .dest-footer .ft-cols {
+      grid-template-columns: 1.6fr 1fr 1fr 1.3fr;
+      gap: clamp(40px, 5vw, 72px);
+      text-align: left;
+      align-items: start;
+    }
+  }
+  .dest .dest-footer .ft-brand {
+    display: flex; flex-direction: column; gap: 22px;
+    align-items: center;
+  }
+  @media (min-width: 760px) {
+    .dest .dest-footer .ft-brand { align-items: flex-start; }
+  }
+  .dest .dest-footer .ft-logo {
+    height: 40px; width: auto; display: block;
+  }
+  .dest .dest-footer .ft-brand-text {
+    font-family: var(--sans); font-weight: 300;
+    font-size: 14px; line-height: 1.6;
+    color: var(--cream-mute);
+    margin: 0; max-width: 36ch;
+  }
+  .dest .dest-footer .ft-est {
+    display: inline-flex; align-items: center; gap: 12px;
+    margin-top: 8px;
+  }
+  .dest .dest-footer .ft-est-rule {
+    width: 28px; height: 1px; background: var(--gold);
+  }
+  .dest .dest-footer .ft-est-text {
+    font-family: var(--sans); font-size: 11px;
+    letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--gold); font-weight: 500;
   }
   .dest .dest-footer .ft-col {
-    display: flex; flex-direction: column; gap: 18px;
-    align-items: center; text-align: center;
+    display: flex; flex-direction: column; gap: 12px;
+    align-items: center;
+  }
+  @media (min-width: 760px) {
+    .dest .dest-footer .ft-col { align-items: flex-start; }
   }
   .dest .dest-footer .ft-label {
-    font-family: var(--sans); font-size: 11px;
-    letter-spacing: 0.42em; text-transform: uppercase;
+    font-family: var(--sans); font-size: 10px;
+    letter-spacing: 0.32em; text-transform: uppercase;
     color: rgba(240,198,115,0.72);
-    margin-bottom: 6px;
+    font-weight: 500; margin-bottom: 8px;
   }
   .dest .dest-footer .ft-col a,
-  .dest .dest-footer .ft-connect .ft-email {
+  .dest .dest-footer .ft-email {
     font-family: var(--serif); font-weight: 400; font-style: normal;
-    font-size: clamp(20px, 1.8vw, 24px);
-    color: #fff3d6; text-decoration: none;
-    transition: color 240ms, transform 240ms;
+    font-size: 1rem;
+    color: var(--cream); text-decoration: none;
+    transition: color 200ms;
     display: inline-block;
   }
   .dest .dest-footer .ft-col a:hover,
-  .dest .dest-footer .ft-connect .ft-email:hover {
-    color: #ffe2a0;
+  .dest .dest-footer .ft-email:hover {
+    color: var(--gold-bright);
   }
-  .dest .dest-footer .ft-connect {
-    display: flex; flex-direction: column; gap: 18px;
-    margin-bottom: 56px;
-    align-items: center; text-align: center;
-  }
-  .dest .dest-footer .ft-location { text-align: center; }
-  .dest .dest-footer .ft-social { justify-content: center; }
+  .dest .dest-footer .ft-email { font-size: 1rem; }
   .dest .dest-footer .ft-location {
-    font-family: var(--serif); font-weight: 300;
-    font-size: clamp(15px, 1.3vw, 17px); line-height: 1.7;
-    color: rgba(243,231,200,0.62);
+    font-family: var(--sans); font-size: 13px; line-height: 1.6;
+    color: var(--cream-mute); margin-top: 4px;
   }
   .dest .dest-footer .ft-social {
-    display: flex; gap: 12px; align-items: center;
-    margin-top: 20px; padding-top: 22px;
-    border-top: 1px solid rgba(240,198,115,0.14);
+    display: inline-flex; gap: 14px; align-items: center;
+    margin-top: 12px; justify-content: center;
+  }
+  @media (min-width: 760px) {
+    .dest .dest-footer .ft-social { justify-content: flex-start; }
   }
   .dest .dest-footer .ft-social a {
-    /* 44x44 minimum tap target plus a subtle gold-outline pill so the
-       icons read as deliberate buttons rather than floating glyphs. */
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     border-radius: 999px;
     border: 1px solid rgba(240,198,115,0.22);
-    color: rgba(240,198,115,0.7);
+    color: rgba(240,198,115,0.65);
     display: inline-flex; align-items: center; justify-content: center;
     transition: color 240ms, transform 240ms, background 240ms, border-color 240ms;
   }
   .dest .dest-footer .ft-social a:hover {
-    color: #ffd98a;
+    color: var(--gold-bright);
     border-color: rgba(240,198,115,0.55);
     background: rgba(240,198,115,0.08);
     transform: translateY(-2px);
@@ -1961,12 +1980,14 @@
     width: 18px; height: 18px;
   }
   .dest .dest-footer .ft-meta {
-    display: flex; gap: 12px; flex-wrap: wrap;
-    justify-content: center; text-align: center;
-    padding-top: 32px;
-    border-top: 1px solid rgba(240,198,115,0.18);
-    font-family: var(--sans); font-size: 11px; letter-spacing: 0.04em;
-    color: rgba(243,231,200,0.42);
+    font-family: var(--sans); font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--cream-faint);
+    padding-top: 28px;
+    border-top: 1px solid var(--rule);
+    max-width: 1100px;
+    margin: 0 auto;
+    text-align: center;
   }
 
   /* Image slot frame around <image-slot> so the placeholder reads cinematic. */
@@ -2186,18 +2207,8 @@
     .dest .cf-toggle-btn { padding: 14px 20px; min-height: 44px; }
 
     /* Footer */
-    .dest .dest-footer { padding: 5vh 0 4vh; margin-top: 4vh; text-align: center; }
-    .dest .dest-footer .ft-mark { font-size: clamp(28px, 7vw, 42px); }
-    .dest .dest-footer .ft-cols { gap: 24px; }
-    .dest .dest-footer .ft-col { align-items: center; text-align: center; }
-    .dest .dest-footer .ft-col a,
-    .dest .dest-footer .ft-connect .ft-email { font-size: clamp(17px, 4vw, 21px); }
-    .dest .dest-footer .ft-col a:hover,
-    .dest .dest-footer .ft-connect .ft-email:hover { transform: none; }
-    .dest .dest-footer .ft-divider { margin: 36px auto; }
-    .dest .dest-footer .ft-connect { margin-bottom: 36px; align-items: center; text-align: center; }
-    .dest .dest-footer .ft-location { text-align: center; }
-    .dest .dest-footer .ft-social { justify-content: center; }
+    .dest .dest-footer { padding: 6vh 0 5vh; margin-top: 4vh; text-align: center; }
+    .dest .dest-footer .ft-cols { gap: 32px; }
     .dest .dest-footer .ft-meta { justify-content: center; text-align: center; }
   }
 
@@ -2213,9 +2224,13 @@
   /* ─── Glassmorphism contact form ─────────────────────────────────────── */
   .dest .cf-wrap { padding: 4vh 0 6vh; }
   .dest .contact-form {
-    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    /* Warm cream-gold tint instead of white. A neutral white tint over
+       the dark navy ink picks up a cold cast (saturate filter amplifies
+       it into noticeable blue). A warm tint here keeps the panel in the
+       Beacon palette regardless of what's behind the glass. */
+    background: linear-gradient(135deg, rgba(255,230,170,0.06) 0%, rgba(255,200,120,0.03) 100%);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
     border: 1px solid rgba(240,198,115,0.2);
     border-radius: 20px;
     padding: 0; overflow: hidden;
@@ -2289,6 +2304,16 @@
   .dest .cf-row { display: grid; gap: 18px; }
   @media (min-width: 600px) { .dest .cf-row.two { grid-template-columns: 1fr 1fr; } }
   .dest .cf-field { display: flex; flex-direction: column; gap: 9px; }
+  /* Grow modifier - applied to the Message textarea cf-field on the
+     contact page so the right form column fills the info column's
+     height. Without this the form column ends early, leaving empty
+     space below the submit button. */
+  .dest .cf-field-grow { flex: 1; min-height: 0; }
+  .dest .cf-field-grow textarea {
+    flex: 1;
+    min-height: 140px;
+    resize: none;
+  }
   .dest .cf-label {
     font-family: var(--sans); font-size: 10.5px; letter-spacing: 0.42em;
     text-transform: uppercase; color: rgba(240,198,115,0.72);

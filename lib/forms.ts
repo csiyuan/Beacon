@@ -40,7 +40,7 @@ export const CONTACT_INBOX = 'info@beaconmediasolutions.com';
    ───────────────────────────────────────────────────────────────────────── */
 export async function submitForm(
   formEl: HTMLFormElement,
-  kind: 'brand' | 'embedded' | 'projects' | 'creatives',
+  kind: 'brand' | 'embedded' | 'projects' | 'creatives' | 'general',
 ): Promise<boolean> {
   const fd = new FormData(formEl);
   try {
@@ -63,6 +63,7 @@ export async function submitForm(
     embedded: 'New embedded pathway application · Beacon',
     projects: 'New project-based roster application · Beacon',
     creatives: 'New enquiry · Beacon',
+    general: 'New contact form message · Beacon',
   };
   const url =
     `mailto:${CONTACT_INBOX}` +

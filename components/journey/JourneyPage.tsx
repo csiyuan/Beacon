@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import s from './journey.module.css';
+import nav from '@/app/splash.module.css';
 import { useNavWash } from '@/components/transitions/NavWash';
 import ArrivalWash from '@/components/transitions/ArrivalWash';
 import { useLenisScroll } from '@/lib/useLenisScroll';
@@ -255,14 +256,6 @@ export default function JourneyPage({
   // flows naturally through the page without being hijacked. Smoothness
   // comes from CSS scroll-behavior + the IntersectionObserver reveal
   // animations, not from JS scroll interception.
-  const scrollToChapter = (index: number) => {
-    const clamped = Math.max(0, Math.min(index, milestones.length - 1));
-    const el = milestoneRefs.current[clamped];
-    if (!el) return;
-    setActiveStep(clamped);
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-
   // IntersectionObserver tracks which text block is currently crossing
   // the viewport's centre band. When a block enters that band, it
   // becomes the active step and its image crossfades in on the sticky
@@ -339,23 +332,30 @@ export default function JourneyPage({
       {/* Top bar - matches the creatives page chrome (global .bar / .wordmark /
           .top-nav classes). Wordmark is logo-only (no "BEACON" text), arrow
           slides in on hover. Nav has just For Brands / About / Contact. */}
-      <div className="bar">
+      <nav className={nav.heroNav}>
         <button
           type="button"
-          className="wordmark wordmark-btn"
-          aria-label="Back to home"
+          className={nav.heroLogo}
           onClick={() => navWash('/')}
+          aria-label="Back to home"
         >
-          <span className="wm-arrow" aria-hidden="true">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 6l-6 6 6 6" />
-            </svg>
-          </span>
-          <img className="wm-logo" src="/assets/beacon-logo.png" alt="Beacon Media Solutions" />
+          <img src="/assets/beacon-logo.png" alt="Beacon Media Solutions" />
         </button>
-        <nav className={`top-nav ${s.topNavDesktop}`} aria-label="Primary">
+        <div className={`${nav.heroNavLinks} ${nav.heroNavLinksDesktop}`}>
+          <Link
+            href="/"
+            className={nav.heroNavLink}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navWash('/');
+            }}
+          >
+            Home
+          </Link>
           <Link
             href="/brands"
+            className={nav.heroNavLink}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
               e.preventDefault();
@@ -366,6 +366,7 @@ export default function JourneyPage({
           </Link>
           <Link
             href="/about?from=creatives"
+            className={nav.heroNavLink}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
               e.preventDefault();
@@ -376,6 +377,7 @@ export default function JourneyPage({
           </Link>
           <Link
             href="/contact?from=creatives"
+            className={nav.heroNavLink}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
               e.preventDefault();
@@ -384,10 +386,10 @@ export default function JourneyPage({
           >
             Contact
           </Link>
-        </nav>
+        </div>
         <button
           type="button"
-          className={s.hamburger}
+          className={nav.hamburger}
           onClick={() => setMenuOpen(true)}
           aria-label="Open menu"
           aria-expanded={menuOpen}
@@ -395,24 +397,22 @@ export default function JourneyPage({
           <span aria-hidden="true" />
           <span aria-hidden="true" />
         </button>
-      </div>
+      </nav>
 
-      {/* Mobile side menu - slide-in sheet from the right with the same nav
-          links plus a connect block. Backdrop dims the page and closes
-          the menu on tap. Body scroll is locked while open. */}
+      {/* Mobile side menu - matches the home page .sideMenu pattern. */}
       <div
-        className={`${s.menuBackdrop} ${menuOpen ? s.menuBackdropOpen : ''}`}
+        className={`${nav.menuBackdrop} ${menuOpen ? nav.menuBackdropOpen : ''}`}
         onClick={() => setMenuOpen(false)}
         aria-hidden={!menuOpen}
       />
       <aside
-        className={`${s.sideMenu} ${menuOpen ? s.sideMenuOpen : ''}`}
+        className={`${nav.sideMenu} ${menuOpen ? nav.sideMenuOpen : ''}`}
         aria-hidden={!menuOpen}
         aria-label="Mobile navigation"
       >
         <button
           type="button"
-          className={s.sideMenuClose}
+          className={nav.sideMenuClose}
           onClick={() => setMenuOpen(false)}
           aria-label="Close menu"
         >
@@ -420,47 +420,17 @@ export default function JourneyPage({
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
-        <nav className={s.sideMenuNav} aria-label="Primary mobile">
-          <Link
-            href="/brands"
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-              e.preventDefault();
-              setMenuOpen(false);
-              navWash('/brands');
-            }}
-          >
-            For Brands
-          </Link>
-          <Link
-            href="/about?from=creatives"
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-              e.preventDefault();
-              setMenuOpen(false);
-              navWash('/about?from=creatives');
-            }}
-          >
-            About
-          </Link>
-          <Link
-            href="/contact?from=creatives"
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-              e.preventDefault();
-              setMenuOpen(false);
-              navWash('/contact?from=creatives');
-            }}
-          >
-            Contact
-          </Link>
+        <nav className={nav.sideMenuNav} aria-label="Primary mobile">
+          <Link href="/" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/'); }}>Home</Link>
+          <Link href="/brands" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/brands'); }}>For Brands</Link>
+          <Link href="/about?from=creatives" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/about?from=creatives'); }}>About</Link>
+          <Link href="/contact?from=creatives" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); setMenuOpen(false); navWash('/contact?from=creatives'); }}>Contact</Link>
         </nav>
-        <div className={s.sideMenuConnect}>
-          <p className={s.sideMenuLabel}>Connect</p>
+        <div className={nav.sideMenuConnect}>
+          <p className={nav.sideMenuLabel}>Connect</p>
           <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
         </div>
       </aside>
-
       <section className={`${s.container} ${s.hero}`}>
         {/* Pathway switcher - sits right under the eyebrow so a creative
             who landed on the wrong pathway can swap immediately. */}
@@ -510,48 +480,6 @@ export default function JourneyPage({
             overlays. */}
         <div className={`${s.journeyFadeTop} ${activeStep > 0 ? s.journeyFadeOn : ''}`} aria-hidden="true" />
         <div className={`${s.journeyFadeBottom} ${activeStep < milestones.length - 1 ? s.journeyFadeOn : ''}`} aria-hidden="true" />
-        {/* Floating prev / next buttons - pinned to the right edge of
-            the viewport while the user is reading the journey. Tapping
-            either smooth-scrolls the previous/next chapter to centre,
-            matching the Scroller's button-driven nav idiom. */}
-        <div
-          className={`${s.journeyNav} ${isInJourney ? s.journeyNavVisible : ''}`}
-          aria-hidden={!isInJourney}
-        >
-          <button
-            type="button"
-            className={s.journeyNavBtn}
-            onClick={() => scrollToChapter(activeStep - 1)}
-            disabled={activeStep <= 0}
-            aria-label="Previous chapter"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 10l5-5 5 5" />
-            </svg>
-          </button>
-          <div className={s.journeyNavDots} aria-hidden="true">
-            {milestones.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                className={`${s.journeyNavDot} ${i === activeStep ? s.journeyNavDotActive : ''}`}
-                onClick={() => scrollToChapter(i)}
-                aria-label={`Jump to chapter ${i + 1}`}
-              />
-            ))}
-          </div>
-          <button
-            type="button"
-            className={s.journeyNavBtn}
-            onClick={() => scrollToChapter(activeStep + 1)}
-            disabled={activeStep >= milestones.length - 1}
-            aria-label="Next chapter"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 6l5 5 5-5" />
-            </svg>
-          </button>
-        </div>
         <div className={`${s.container} ${s.flowJourneyInner}`}>
           {milestones.map((m, i) => {
             // Alternating image side on desktop - even chapters have the
@@ -856,24 +784,24 @@ export default function JourneyPage({
         </div>
       </section>
 
-      {/* Cinematic footer - centered wordmark / spark divider / nav + connect
-          block. Centered on every viewport so the creative side matches the
-          brand side exactly. Module classes (no .dest wrapper) so we stay
-          out of the destination-overlay positioning rules. */}
+      {/* Four-column unified footer matching the home/about/contact
+          layout. Brand block (logo + tagline + EST.) left, then
+          Navigate / Pathways / Connect across. Centered stacked
+          column on mobile. */}
       <footer className={s.destFooter}>
         <div className={s.container}>
-          <div className={s.ftMark}>BEACON</div>
-          <div className={s.ftTagline}>EMPOWERING CREATIVES. ELEVATING BRANDS.</div>
-
-          <div className={s.ftDivider} aria-hidden="true">
-            <span className={s.ftRuleLeft}></span>
-            <svg className={s.ftSpark} width="14" height="14" viewBox="0 0 14 14">
-              <path d="M7 0 L8.2 5.8 L14 7 L8.2 8.2 L7 14 L5.8 8.2 L0 7 L5.8 5.8 Z" fill="currentColor" />
-            </svg>
-            <span className={s.ftRuleRight}></span>
-          </div>
-
           <div className={s.ftCols}>
+            <div className={s.ftBrand}>
+              <img src="/assets/beacon-logo.png" alt="Beacon Media Solutions" className={s.ftLogo} />
+              <p className={s.ftBrandText}>
+                Beacon Media Solutions places vetted creative talent with brands across Singapore and Southeast Asia.
+              </p>
+              <div className={s.ftEst}>
+                <span className={s.ftEstRule} aria-hidden="true" />
+                <span className={s.ftEstText}>EST. SINGAPORE &middot; 2024</span>
+              </div>
+            </div>
+
             <div className={s.ftCol}>
               <div className={s.ftLabel}>Navigate</div>
               <Link
@@ -907,6 +835,7 @@ export default function JourneyPage({
                 Contact
               </Link>
             </div>
+
             <div className={s.ftCol}>
               <div className={s.ftLabel}>Pathways</div>
               <Link
@@ -930,23 +859,23 @@ export default function JourneyPage({
                 For Creatives
               </Link>
             </div>
-          </div>
 
-          <div className={s.ftConnect}>
-            <div className={s.ftLabel}>Connect</div>
-            <a className={s.ftEmail} href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
-            <div className={s.ftLocation}>
-              141 Cecil Street #08-07<br />
-              Tung Ann Association Building<br />
-              Singapore 069541
-            </div>
-            <div className={s.ftSocial}>
-              <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg>
-              </a>
-              <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
-              </a>
+            <div className={s.ftCol}>
+              <div className={s.ftLabel}>Connect</div>
+              <a className={s.ftEmail} href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+              <div className={s.ftLocation}>
+                141 Cecil Street #08-07<br />
+                Tung Ann Association Building<br />
+                Singapore 069541
+              </div>
+              <div className={s.ftSocial}>
+                <a href="https://www.instagram.com/beaconmediasg/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" /></svg>
+                </a>
+                <a href="https://www.linkedin.com/company/beacon-media-solutions/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
+                </a>
+              </div>
             </div>
           </div>
 
