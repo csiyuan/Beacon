@@ -24,7 +24,7 @@ import { buildEmailHtml, buildEmailText, type Field } from '@/lib/email-template
 
 export const runtime = 'nodejs';
 
-type FormKind = 'brand' | 'embedded' | 'projects' | 'creatives';
+type FormKind = 'brand' | 'embedded' | 'projects' | 'creatives' | 'general';
 
 const PRESETS: Record<
   FormKind,
@@ -49,6 +49,11 @@ const PRESETS: Record<
     subject: 'New enquiry from the creatives page · Beacon',
     headline: 'A new signal from the creatives page.',
     intro: 'Submitted through the creatives destination contact form.',
+  },
+  general: {
+    subject: 'New contact form message · Beacon',
+    headline: 'A new message from the contact page.',
+    intro: 'Submitted through the general contact form.',
   },
 };
 
@@ -77,7 +82,8 @@ const OMIT = new Set(['_subject', '_captcha', '_template', '_next', 'form', 'cv'
 // Whitelist of allowed form kinds - anything else falls back to "brand".
 function pickForm(raw: FormDataEntryValue | null): FormKind {
   const v = typeof raw === 'string' ? raw : '';
-  return v === 'embedded' || v === 'projects' || v === 'creatives' ? v : 'brand';
+  if (v === 'embedded' || v === 'projects' || v === 'creatives' || v === 'general') return v;
+  return 'brand';
 }
 
 function fieldOrder(form: FormKind): string[] {
@@ -90,6 +96,9 @@ function fieldOrder(form: FormKind): string[] {
   if (form === 'projects') {
     return ['name', 'email', 'portfolio', 'day_rate', 'disciplines', 'capacity', 'project_types', 'about'];
   }
+  // creatives + general both surface the same shape (name, email, "I am a",
+  // message), so they share a field order. Their distinct subjects keep
+  // them in separate Gmail threads.
   return ['name', 'email', 'i_am_a', 'message'];
 }
 
