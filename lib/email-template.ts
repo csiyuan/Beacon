@@ -35,6 +35,7 @@ export type EmailPayload = {
   };
   replyTo?: string;          // builds the "Reply to <name>" mailto CTA
   replyToName?: string;
+  viewAllUrl?: string;       // deep-link to this form's tab in the master Sheet
 };
 
 const GOLD = '#f0c673';
@@ -176,6 +177,24 @@ export function buildEmailHtml(p: EmailPayload): string {
     </tr>`
       : '';
 
+  // "View all submissions" - secondary CTA below the reply pill. Opens
+  // the Google Sheet at the right tab so the recipient can drop straight
+  // into the cumulative log of submissions for this form kind. Skipped
+  // entirely if the Sheets lookup didn't return a URL.
+  const viewAllBlock = p.viewAllUrl
+    ? `
+    <tr>
+      <td style="padding:18px 36px 0 36px;text-align:center;">
+        <a href="${esc(p.viewAllUrl)}"
+           style="display:inline-block;font-family:${SANS};font-size:11px;font-weight:600;
+                  letter-spacing:0.36em;text-transform:uppercase;color:${GOLD};
+                  text-decoration:none;border-bottom:1px solid ${HAIRLINE};padding-bottom:2px;">
+          View all submissions &nbsp;&rarr;
+        </a>
+      </td>
+    </tr>`
+    : '';
+
   const dateLine = new Date().toLocaleDateString('en-SG', {
     day: '2-digit',
     month: 'short',
@@ -287,6 +306,9 @@ export function buildEmailHtml(p: EmailPayload): string {
 
           <!-- ─── Reply CTA section ─────────────────────────────── -->
           ${replyButton}
+
+          <!-- ─── View-all-submissions deep link to Google Sheet ── -->
+          ${viewAllBlock}
 
           <!-- ─── Footer ────────────────────────────────────────── -->
           <tr>

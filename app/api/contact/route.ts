@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { buildEmailHtml, buildEmailText, type Field } from '@/lib/email-template';
+import { appendSubmissionToSheet, getTabUrl } from '@/lib/sheets';
 
 // ─────────────────────────────────────────────────────────────────────────
 // /api/contact - single endpoint for all four intake forms.
@@ -79,6 +80,53 @@ const FIELD_LABELS: Record<string, string> = {
 // Fields we never want to leak into the email (Formsubmit holdovers, form-kind tag, file).
 const OMIT = new Set(['_subject', '_captcha', '_template', '_next', 'form', 'cv']);
 
+/* Subject threading suffix - appended to each preset's base subject so
+   Gmail's conversation view groups submissions on a sensible cadence:
+   - brand / embedded / projects / creatives → per-day (today's submissions
+     of the same form thread together; tomorrow's start a new thread)
+   - general → per-week (the lower-volume general contact form is calmer
+     if a whole week of messages threads into one conversation)
+   All dates are formatted in Singapore time since that's where Beacon is
+   based - submitting at 1 AM SGT shouldn't roll into "yesterday". */
+const SG_TZ = 'Asia/Singapore';
+
+function formatSGDate(d: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: SG_TZ,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(d);
+}
+
+function startOfWeekSG(now: Date): Date {
+  // Pull Singapore-local Y/M/D + weekday so DST / offsets don't drift.
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: SG_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  }).formatToParts(now);
+  const year = parts.find((p) => p.type === 'year')!.value;
+  const month = parts.find((p) => p.type === 'month')!.value;
+  const day = parts.find((p) => p.type === 'day')!.value;
+  const weekday = parts.find((p) => p.type === 'weekday')!.value;
+  // ISO week starts Monday. Map weekday short name → offset from Monday.
+  const offset: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  const monday = new Date(`${year}-${month}-${day}T00:00:00+08:00`);
+  monday.setUTCDate(monday.getUTCDate() - (offset[weekday] ?? 0));
+  return monday;
+}
+
+function threadSuffix(form: FormKind): string {
+  const now = new Date();
+  if (form === 'general') {
+    return ` · Week of ${formatSGDate(startOfWeekSG(now))}`;
+  }
+  return ` · ${formatSGDate(now)}`;
+}
+
 // Whitelist of allowed form kinds - anything else falls back to "brand".
 function pickForm(raw: FormDataEntryValue | null): FormKind {
   const v = typeof raw === 'string' ? raw : '';
@@ -154,17 +202,33 @@ export async function POST(req: NextRequest) {
   const replyTo = (data.get('email') as string | null) || undefined;
   const replyToName = (data.get('name') as string | null) || undefined;
 
+  // Subject = preset + threading suffix (per-day for most, per-week for
+  // the general contact form). See threadSuffix() above for rationale.
+  const subject = preset.subject + threadSuffix(form);
+
+  // "View all submissions" CTA URL - deep-links to the right tab of the
+  // Google Sheet so a single click jumps from the email to the live log.
+  // Resolved best-effort; if the Sheets API is unreachable we just omit
+  // the button and the email still ships.
+  let viewAllUrl: string | null = null;
+  try {
+    viewAllUrl = await getTabUrl(form);
+  } catch (err) {
+    console.error('[contact] tab url lookup failed', err);
+  }
+
   const html = buildEmailHtml({
-    subject: preset.subject,
+    subject,
     headline: preset.headline,
     intro: preset.intro,
     fields,
     message,
     replyTo,
     replyToName,
+    viewAllUrl: viewAllUrl ?? undefined,
   });
   const text = buildEmailText({
-    subject: preset.subject,
+    subject,
     headline: preset.headline,
     intro: preset.intro,
     fields,
@@ -187,25 +251,44 @@ export async function POST(req: NextRequest) {
   const to = process.env.CONTACT_TO || 'biz.siiyuan@gmail.com';
   const from = process.env.CONTACT_FROM || 'Beacon <onboarding@resend.dev>';
 
-  try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from,
-      to: [to],
-      subject: preset.subject,
-      html,
-      text,
-      replyTo,
-      attachments: attachments.length ? attachments : undefined,
-    });
+  // Flatten the FormData into a plain string map for the sheets helper -
+  // computed up front so we can kick off the Sheets append in parallel
+  // with the email send below.
+  const fieldData: Record<string, string> = {};
+  for (const [key, value] of data.entries()) {
+    if (typeof value === 'string') fieldData[key] = value;
+  }
 
-    if (error) {
-      console.error('[contact] resend error', error);
-      return NextResponse.json({ error: error.message }, { status: 502 });
-    }
-  } catch (err) {
-    console.error('[contact] send failed', err);
+  // Run the two slow operations concurrently. The email is the critical
+  // path (we surface its result to the caller); the Sheets append is
+  // best-effort logging. Total wall time = max(email, sheets) instead
+  // of sum, which cuts ~half the perceived latency on every submission.
+  const resend = new Resend(apiKey);
+  const emailTask = resend.emails.send({
+    from,
+    to: [to],
+    subject,
+    html,
+    text,
+    replyTo,
+    attachments: attachments.length ? attachments : undefined,
+  });
+  const sheetsTask = appendSubmissionToSheet(form, fieldData, message?.body);
+
+  const [emailResult, sheetsResult] = await Promise.allSettled([emailTask, sheetsTask]);
+
+  if (emailResult.status === 'rejected') {
+    console.error('[contact] send failed', emailResult.reason);
     return NextResponse.json({ error: 'Failed to send.' }, { status: 502 });
+  }
+  if (emailResult.value.error) {
+    console.error('[contact] resend error', emailResult.value.error);
+    return NextResponse.json({ error: emailResult.value.error.message }, { status: 502 });
+  }
+  if (sheetsResult.status === 'rejected') {
+    // Sheets is best-effort - the email already shipped, so we still
+    // return success to the caller. The error surfaces in the server log.
+    console.error('[contact] sheets append failed', sheetsResult.reason);
   }
 
   // Forms post via fetch() and show an in-page popup on success - they

@@ -18,7 +18,6 @@ import { useCountUp } from '@/lib/useCountUp';
 const BRAND_SERVICE = [
   ['embedded', 'Embedded talent'],
   ['production', 'Project delivery'],
-  ['both', 'Both'],
 ] as const;
 const BRAND_TIMELINE = [
   ['asap', 'ASAP'],
@@ -92,7 +91,7 @@ export default function BrandsClient({ fromSplash }: { fromSplash: boolean }) {
   const year = new Date().getFullYear();
 
   // Brand intake form state - ported from CreativesApp.jsx Destination()
-  const [brandService, setBrandService] = useState<'embedded' | 'production' | 'both'>('embedded');
+  const [brandService, setBrandService] = useState<'embedded' | 'production'>('embedded');
   const [brandRoles, setBrandRoles] = useState<string[]>([]);
   const [brandTimeline, setBrandTimeline] = useState<'asap' | '1-3m' | '3-6m' | 'flexible'>('flexible');
   const [submitting, setSubmitting] = useState(false);
