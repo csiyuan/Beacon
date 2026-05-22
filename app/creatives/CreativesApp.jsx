@@ -1963,7 +1963,7 @@ function App({ introDismissed = true, initialPhase = 'descent', homeRoute = null
         </nav>
         <div className="bar-side-menu-connect">
           <p className="bar-side-menu-label">Connect</p>
-          <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+          <a href="mailto:hello@beaconmediasolutions.com">hello@beaconmediasolutions.com</a>
         </div>
       </aside>
 
@@ -2144,7 +2144,7 @@ function Destination({ scene, choice, navigate, navWash }){
       setCfType('brand');
       setThanksOpen(true);
     } else {
-      alert('Sorry - something went wrong. Please email info@beaconmediasolutions.com directly.');
+      alert('Sorry - something went wrong. Please email hello@beaconmediasolutions.com directly.');
     }
     setCfSubmitting(false);
   };
@@ -2383,7 +2383,7 @@ function Destination({ scene, choice, navigate, navWash }){
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
                     <div className="cf-detail">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                      <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+                      <a href="mailto:hello@beaconmediasolutions.com">hello@beaconmediasolutions.com</a>
                     </div>
                     <div className="cf-detail">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -2462,7 +2462,7 @@ function Destination({ scene, choice, navigate, navWash }){
 
           <div className="container narrow closing">
             <h2 className="anim">The first message is always the hardest. Make it easy - just say hello.</h2>
-            <a className="cta" href="mailto:info@beaconmediasolutions.com">Say hello
+            <a className="cta" href="mailto:hello@beaconmediasolutions.com">Say hello
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </a>
           </div>
@@ -2512,7 +2512,7 @@ function DestFooter({ navWash }){
 
       <div className="ft-connect">
         <div className="ft-label">Connect</div>
-        <a className="ft-email" href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+        <a className="ft-email" href="mailto:hello@beaconmediasolutions.com">hello@beaconmediasolutions.com</a>
         <div className="ft-location">
           141 Cecil Street #08-07<br/>
           Tung Ann Association Building<br/>

@@ -7,7 +7,7 @@
 //
 // To change the recipient: set CONTACT_TO in your environment (.env.local
 // for dev, Vercel Project Settings → Environment Variables for prod).
-// Default falls back to biz.siiyuan@gmail.com - see app/api/contact/route.ts.
+// Default falls back to hello@beaconmediasolutions.com - see app/api/contact/route.ts.
 //
 // Getting set up:
 //   1. Sign up at resend.com (free, no card required)
@@ -23,7 +23,7 @@ export const FORM_ENDPOINT = '/api/contact';
 
 // Inbox the mailto: fallback targets when the API is not configured (or
 // fails for any reason). Same default as the API's `to` field.
-export const CONTACT_INBOX = 'info@beaconmediasolutions.com';
+export const CONTACT_INBOX = 'hello@beaconmediasolutions.com';
 
 /* ─────────────────────────────────────────────────────────────────────────
    submitForm(form, kind)

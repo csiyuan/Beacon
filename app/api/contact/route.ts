@@ -17,7 +17,7 @@ import { appendSubmissionToSheet, getTabUrl } from '@/lib/sheets';
 //
 // Env:
 //   RESEND_API_KEY  - get one free at resend.com/api-keys
-//   CONTACT_TO      - inbox to forward to (defaults to biz.siiyuan@gmail.com)
+//   CONTACT_TO      - inbox to forward to (defaults to hello@beaconmediasolutions.com)
 //   CONTACT_FROM    - sender ("Beacon <hello@yourdomain.com>" once you
 //                     verify a domain in Resend; until then leave unset to
 //                     fall back to Resend's onboarding sender)
@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const to = process.env.CONTACT_TO || 'biz.siiyuan@gmail.com';
+  const to = process.env.CONTACT_TO || 'hello@beaconmediasolutions.com';
   const from = process.env.CONTACT_FROM || 'Beacon <onboarding@resend.dev>';
 
   // Flatten the FormData into a plain string map for the sheets helper -

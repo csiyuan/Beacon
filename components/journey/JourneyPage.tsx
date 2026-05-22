@@ -428,7 +428,7 @@ export default function JourneyPage({
         </nav>
         <div className={nav.sideMenuConnect}>
           <p className={nav.sideMenuLabel}>Connect</p>
-          <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+          <a href="mailto:hello@beaconmediasolutions.com">hello@beaconmediasolutions.com</a>
         </div>
       </aside>
       <section className={`${s.container} ${s.hero}`}>
@@ -707,8 +707,8 @@ export default function JourneyPage({
                 created by the (taller) accordion on the right. */}
             <div className={s.faqContact}>
               <p className={s.faqContactPrompt}>Don't see your question?</p>
-              <a className={s.faqContactLink} href="mailto:info@beaconmediasolutions.com">
-                info@beaconmediasolutions.com
+              <a className={s.faqContactLink} href="mailto:hello@beaconmediasolutions.com">
+                hello@beaconmediasolutions.com
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
@@ -862,7 +862,7 @@ export default function JourneyPage({
 
             <div className={s.ftCol}>
               <div className={s.ftLabel}>Connect</div>
-              <a className={s.ftEmail} href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+              <a className={s.ftEmail} href="mailto:hello@beaconmediasolutions.com">hello@beaconmediasolutions.com</a>
               <div className={s.ftLocation}>
                 141 Cecil Street #08-07<br />
                 Tung Ann Association Building<br />

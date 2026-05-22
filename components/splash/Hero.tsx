@@ -212,7 +212,7 @@ export default function Hero() {
           </nav>
           <div className={s.sideMenuConnect}>
             <p className={s.sideMenuLabel}>Connect</p>
-            <a href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+            <a href="mailto:hello@beaconmediasolutions.com">hello@beaconmediasolutions.com</a>
           </div>
         </aside>
 
@@ -561,7 +561,7 @@ export default function Hero() {
           {/* Column 4 - Connect */}
           <div className={s.footerCol}>
             <div className={s.footerColLabel}>Connect</div>
-            <a className={s.footerEmail} href="mailto:info@beaconmediasolutions.com">info@beaconmediasolutions.com</a>
+            <a className={s.footerEmail} href="mailto:hello@beaconmediasolutions.com">hello@beaconmediasolutions.com</a>
             <div className={s.footerAddress}>
               141 Cecil Street #08-07<br />
               Tung Ann Association Building<br />

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────
-// Branded HTML email template - sent to biz.siiyuan@gmail.com (and later,
+// Branded HTML email template - sent to hello@beaconmediasolutions.com (and later,
 // to the real inbox) whenever someone submits one of the four intake forms.
 //
 // Why inline styles only:
@@ -328,7 +328,7 @@ export function buildEmailHtml(p: EmailPayload): string {
               </p>
               <p style="margin:8px 0 0 0;font-family:${SANS};font-size:11px;line-height:1.7;color:${CREAM_FAINT};">
                 141 Cecil Street &middot; #08-07 &middot; Singapore 069541<br />
-                <a href="mailto:info@beaconmediasolutions.com" style="color:${GOLD_BRIGHT};text-decoration:none;border-bottom:1px solid ${HAIRLINE_SOFT};">info@beaconmediasolutions.com</a>
+                <a href="mailto:hello@beaconmediasolutions.com" style="color:${GOLD_BRIGHT};text-decoration:none;border-bottom:1px solid ${HAIRLINE_SOFT};">hello@beaconmediasolutions.com</a>
               </p>
               <p style="margin:18px 0 0 0;font-family:${SERIF};font-style:italic;font-size:12px;color:${CREAM_FAINT};">
                 Sent automatically when a form was submitted on
@@ -376,7 +376,7 @@ export function buildEmailText(p: EmailPayload): string {
     msg,
     '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
     '141 Cecil Street · #08-07 · Singapore 069541',
-    'info@beaconmediasolutions.com',
+    'hello@beaconmediasolutions.com',
     '',
     'Sent automatically from beaconmediasolutions.com',
   ]
