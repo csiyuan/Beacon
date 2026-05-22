@@ -60,8 +60,12 @@ const esc = (s: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+// Email addresses are valid in the mailto: path as-is; percent-encoding the
+// `@` to `%40` breaks Gmail's web composer (it opens a blank "To:" instead
+// of pre-filling the address). Pass `to` through unescaped and only encode
+// the subject, which is a query parameter where encoding is required.
 const mailtoHref = (to: string, subject: string): string =>
-  `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent('Re: ' + subject)}`;
+  `mailto:${to}?subject=${encodeURIComponent('Re: ' + subject)}`;
 
 // Filmstrip "━ ━ ━ ● ━ ━ ━" mark used in the hero and the footer. Built
 // from spans (not images) so it stays sharp at any DPI and never breaks
